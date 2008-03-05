@@ -304,24 +304,57 @@ function PARAM_LIST(tokens, position)
 	return position+1, data
 end
 
+local quotes = {
+	["'"] = true,
+	['"'] = true,
+}
+
 -- '"', ( ANY - '"' ), '"' | "'", ( ANY - "'" ), "'"
 function STRING(tokens, position)
 	local c = tokens[position]
-	if c == '"' then
-		for i = position+1, #tokens do
-			local v = tokens[i]
-			if v == '"' then
-				return i+1, table_concat(tokens, '', position+1, i-1)
+	if not quotes[c] then
+		return nil
+	end
+	local t = newList()
+	local lastEscape = false
+	for i = position+1, #tokens do
+		local v = tokens[i]
+		if v == [=[\]=] then
+			if lastEscape then
+				lastEscape = false
+				t[#t+1] = [=[\]=]
+			else
+				lastEscape = true
 			end
-		end
-	elseif c == "'" then
-		for i = position+1, #tokens do
-			local v = tokens[i]
-			if v == "'" then
-				return i+1, table_concat(tokens, '', position+1, i-1)
+		elseif v == c then
+			if lastEscape then
+				lastEscape = false
+				t[#t+1] = c
+			else
+				local s = table_concat(t)
+				t = del(t)
+				return i+1, s
+			end
+		else
+			if lastEscape then
+				lastEscape = false
+				if v:find("^%d+$") then
+					if #v <= 3 then
+						t[#t+1] = string.char(v+0)
+					else
+						t[#t+1] = string.char(v:sub(1, 3)+0)
+						t[#t+1] = v:sub(4)
+					end
+				else
+					t[#t+1] = [=[\]=]
+					t[#t+1] = v
+				end
+			else
+				t[#t+1] = v
 			end
 		end
 	end
+	t = del(t)
 	return nil
 end
 
@@ -933,10 +966,10 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 			end
 		else
 			local str
-			if not ast:match('"') == not ast:match("'") then
-				str = ("%q"):format(ast)
-			else
+			if ast:match('"') and not ast:match("'") then
 				str = "'" .. ast .. "'"
+			else
+				str = ("%q"):format(ast)
 			end
 			if t then
 				t[#t+1] = str

@@ -881,3 +881,32 @@ assert_equal(DogTag:Evaluate("[KwargAndTuple(value=0.5, 2, 3, 4)]"), 2)
 assert_equal(DogTag:Evaluate("[TupleAndKwarg]"), [=[Arg #2 (value) req'd for TupleAndKwarg]=])
 assert_equal(DogTag:Evaluate("[TupleAndKwarg(value=0.5, 2, 3, 4)]"), 2)
 assert_equal(DogTag:Evaluate("[TupleAndKwarg(2, 3, 4, value=0.5)]"), 2)
+
+assert_equal(parse([=[['Alpha\'Bravo']]=]), "Alpha'Bravo")
+assert_equal(parse([=[["Alpha\"Bravo"]]=]), 'Alpha"Bravo')
+assert_equal(parse([=[['Alpha\'Bravo"Charlie']]=]), "Alpha'Bravo\"Charlie")
+assert_equal(parse([=[["Alpha\"Bravo'Charlie"]]=]), 'Alpha"Bravo\'Charlie')
+assert_equal(parse([=[["\124cffff0000"]]=]), '|cffff0000')
+assert_equal(parse([=[["\123456"]]=]), '\123' .. '456')
+
+assert_equal(parse([=[[Func('Alpha\'Bravo')]]=]), { "tag", "Func", "Alpha'Bravo" })
+assert_equal(parse([=[[Func("Alpha\"Bravo")]]=]), { "tag", "Func", 'Alpha"Bravo' })
+assert_equal(parse([=[[Func('Alpha\'Bravo"Charlie')]]=]), { "tag", "Func", "Alpha'Bravo\"Charlie" })
+assert_equal(parse([=[[Func("Alpha\"Bravo'Charlie")]]=]), { "tag", "Func", 'Alpha"Bravo\'Charlie' })
+assert_equal(parse([=[[Func("\124cffff0000")]]=]), { "tag", "Func", '|cffff0000' })
+assert_equal(parse([=[[Func("\123456")]]=]), { "tag", "Func", '\123' .. '456' })
+
+assert_equal(DogTag:CleanCode([=[['Alpha\'Bravo']]=]), "Alpha'Bravo")
+assert_equal(DogTag:CleanCode([=[["Alpha\"Bravo"]]=]), 'Alpha"Bravo')
+assert_equal(DogTag:CleanCode([=[['Alpha\'Bravo"Charlie']]=]), "Alpha'Bravo\"Charlie")
+assert_equal(DogTag:CleanCode([=[["Alpha\"Bravo'Charlie"]]=]), 'Alpha"Bravo\'Charlie')
+assert_equal(DogTag:CleanCode([=[["\124cffff0000"]]=]), '|cffff0000')
+assert_equal(DogTag:CleanCode([=[["\123456"]]=]), '\123' .. '456')
+
+assert_equal(DogTag:CleanCode([=[[Func('Alpha\'Bravo')]]=]), [=[[Func("Alpha'Bravo")]]=])
+assert_equal(DogTag:CleanCode([=[[Func("Alpha\"Bravo")]]=]), [=[[Func('Alpha"Bravo')]]=])
+assert_equal(DogTag:CleanCode([=[[Func('Alpha\'Bravo"Charlie')]]=]), [=[[Func("Alpha'Bravo\"Charlie")]]=])
+assert_equal(DogTag:CleanCode([=[[Func("Alpha\"Bravo'Charlie")]]=]), [=[[Func("Alpha\"Bravo'Charlie")]]=])
+assert_equal(DogTag:CleanCode([=[[Func("\124cffff0000")]]=]), [=[[Func("|cffff0000")]]=]) -- TODO: make it do \124, cause pipes are funky
+assert_equal(DogTag:CleanCode([=[[Func("\123456")]]=]), [=[[Func("{456")]]=])
+
