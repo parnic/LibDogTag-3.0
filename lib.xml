@@ -1,0 +1,10 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\FrameXML\UI.xsd">
+	<Script file="Localization\enUS.lua" />
+	<Script file="LibDogTag-3.0.lua" />
+	<Script file="Parser.lua" />
+	<Script file="Compiler.lua" />
+	<Script file="Modules\Operators.lua" />
+	<Script file="Modules\Math.lua" />
+	<Script file="Cleanup.lua" />
+</Ui>
