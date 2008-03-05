@@ -226,9 +226,9 @@ DogTag:AddTag("Base", "Subtract", {
 	category = "Testing"
 })
 
-local testfunc_data = "Hello World"
+local GlobalCheck_data = "Hello World"
 _G.testfunc = function()
-	return testfunc_data
+	return GlobalCheck_data
 end
 
 DogTag:AddTag("Base", "GlobalCheck", {
@@ -242,7 +242,7 @@ DogTag:AddTag("Base", "GlobalCheck", {
 
 testtable = {
 	testfunc = function()
-		return testfunc_data
+		return GlobalCheck_data
 	end
 }
 
@@ -408,6 +408,26 @@ DogTag:AddTag("Base", "TupleAndKwarg", {
 	globals = 'math.max';
 	doc = "Return the maximum of ... multiplied by value",
 	example = '[KwargAndTuple(5, 1, 2, 3)] => "15"',
+})
+
+DogTag:AddTag("Base", "Type", {
+	code = [=[return ${value:type}]=],
+	arg = {
+		'value', 'number;nil;string', '@req'
+	},
+	ret = 'string',
+	doc = "Return the type of value",
+	example = '[Type(nil)] => "nil"; [Type("Hello")] => "string"; [Type(5)] => "number"',
+})
+
+DogTag:AddTag("Base", "ToString", {
+	code = [=[return '`' .. ${value:string}:reverse():reverse() .. '`']=],
+	arg = {
+		'value', 'number;nil;string', '@req'
+	},
+	ret = 'string',
+	doc = "Return value surrounded by tickmarks",
+	example = '[ToString(nil)] => "``"; [ToString("Hello")] => "`Hello`"; [ToString(5)] => "`5`"',
 })
 
 assert_equal(parse("[MyTag]"), { "tag", "MyTag" })
@@ -690,7 +710,7 @@ myfunc_num = 0
 assert_equal(DogTag:Evaluate("[FunctionNumberCheck]"), 1)
 assert_equal(DogTag:Evaluate("[FunctionNumberCheck]"), 2)
 assert_equal(DogTag:Evaluate("[FunctionNumberCheck] [FunctionNumberCheck]"), "3 3") -- check caching
-testfunc_data = 2
+GlobalCheck_data = 2
 assert_equal(DogTag:Evaluate("[GlobalCheck + One]"), 3)
 assert_equal(DogTag:Evaluate("[One + GlobalCheck]"), 3)
 assert_equal(DogTag:Evaluate("[GlobalCheck + GlobalCheck]"), 4)
@@ -789,9 +809,9 @@ assert_equal(DogTag:Evaluate("[not nil not '' not nil]"), "TrueTrueTrue")
 assert_equal(DogTag:Evaluate("[nil 'Hello' nil]"), "Hello")
 assert_equal(DogTag:Evaluate("[nil 1234 nil]"), 1234)
 assert_equal(DogTag:Evaluate("[nil 1234 One nil]"), 12341)
-testfunc_data = 5
+GlobalCheck_data = 5
 assert_equal(DogTag:Evaluate("[nil 1234 GlobalCheck nil]"), 12345)
-testfunc_data = 'Hello'
+GlobalCheck_data = 'Hello'
 assert_equal(DogTag:Evaluate("[nil 1234 GlobalCheck nil]"), '1234Hello')
 
 myfunc_num = 0
@@ -810,24 +830,24 @@ assert_equal(DogTag:Evaluate("[if nil then 'True' else FunctionNumberCheck]"), 8
 
 myfunc_num = 0
 assert_equal(DogTag:Evaluate("[FunctionNumberCheck]"), 1)
-testfunc_data = "True"
+GlobalCheck_data = "True"
 assert_equal(DogTag:Evaluate("[GlobalCheck and FunctionNumberCheck]"), 2)
-testfunc_data = nil
+GlobalCheck_data = nil
 assert_equal(DogTag:Evaluate("[GlobalCheck and FunctionNumberCheck]"), nil) -- shouldn't call FunctionNumberCheck
 assert_equal(DogTag:Evaluate("[FunctionNumberCheck]"), 3)
-testfunc_data = "True"
+GlobalCheck_data = "True"
 assert_equal(DogTag:Evaluate("[GlobalCheck or FunctionNumberCheck]"), "True") -- shouldn't call FunctionNumberCheck
-testfunc_data = nil
+GlobalCheck_data = nil
 assert_equal(DogTag:Evaluate("[GlobalCheck or FunctionNumberCheck]"), 4)
-testfunc_data = "True"
+GlobalCheck_data = "True"
 assert_equal(DogTag:Evaluate("[if GlobalCheck then FunctionNumberCheck]"), 5)
-testfunc_data = nil
+GlobalCheck_data = nil
 assert_equal(DogTag:Evaluate("[if GlobalCheck then FunctionNumberCheck]"), nil)
 assert_equal(DogTag:Evaluate("[FunctionNumberCheck]"), 6)
-testfunc_data = "True"
+GlobalCheck_data = "True"
 assert_equal(DogTag:Evaluate("[if GlobalCheck then 'True' else FunctionNumberCheck]"), 'True')
 assert_equal(DogTag:Evaluate("[FunctionNumberCheck]"), 7)
-testfunc_data = nil
+GlobalCheck_data = nil
 assert_equal(DogTag:Evaluate("[if GlobalCheck then 'True' else FunctionNumberCheck]"), 8)
 
 assert_equal(DogTag:Evaluate("[PlusOne(1 1)]"), 12)
@@ -910,3 +930,25 @@ assert_equal(DogTag:CleanCode([=[[Func("Alpha\"Bravo'Charlie")]]=]), [=[[Func("A
 assert_equal(DogTag:CleanCode([=[[Func("\124cffff0000")]]=]), [=[[Func("|cffff0000")]]=]) -- TODO: make it do \124, cause pipes are funky
 assert_equal(DogTag:CleanCode([=[[Func("\123456")]]=]), [=[[Func("{456")]]=])
 
+assert_equal(DogTag:Evaluate("[Type(nil)]"), "nil")
+assert_equal(DogTag:Evaluate("[Type('Hello')]"), "string")
+assert_equal(DogTag:Evaluate("[Type(5)]"), "number")
+
+GlobalCheck_data = nil
+assert_equal(DogTag:Evaluate("[Type(GlobalCheck)]"), "nil")
+GlobalCheck_data = "Hello"
+assert_equal(DogTag:Evaluate("[Type(GlobalCheck)]"), "string")
+GlobalCheck_data = 5
+assert_equal(DogTag:Evaluate("[Type(GlobalCheck)]"), "number")
+
+
+assert_equal(DogTag:Evaluate("[ToString(nil)]"), "``")
+assert_equal(DogTag:Evaluate("[ToString('Hello')]"), "`Hello`")
+assert_equal(DogTag:Evaluate("[ToString(5)]"), "`5`")
+
+GlobalCheck_data = nil
+assert_equal(DogTag:Evaluate("[ToString(GlobalCheck)]"), "``")
+GlobalCheck_data = "Hello"
+assert_equal(DogTag:Evaluate("[ToString(GlobalCheck)]"), "`Hello`")
+GlobalCheck_data = 5
+assert_equal(DogTag:Evaluate("[ToString(GlobalCheck)]"), "`5`")

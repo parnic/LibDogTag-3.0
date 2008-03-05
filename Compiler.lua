@@ -455,26 +455,32 @@ local function interpolationHandler(str)
 		return num-1
 	end
 	
+	local str, strModifier = (":"):split(str, 2)
+	
 	for i = 1, #arg, 3 do
 		local argName, argTypes, default = arg[i], arg[i+1], arg[i+2]
 		if argName == str then
-			local result = alreadyCompiled[argName]
-			if not result then
+			local result_t = alreadyCompiled[argName]
+			local result, resultTypes, rawResult
+			if result_t then
+				result, resultTypes, rawResult = result_t[1], result_t[2], result_t[3]
+			else
 				if kwargs[argName] ~= nil then
-					local types
 					if kwargs[argName] == extraKwargs then
 						result = extraKwargs[argName][1]
-						types = extraKwargs[argName][2]
+						resultTypes = extraKwargs[argName][2]
+						rawResult = extraKwargs[argName][1]
 					else
-						result, types = compile(kwargs[argName] or nil, nsList, t, cachedTags, nil, extraKwargs)
+						result, resultTypes = compile(kwargs[argName] or nil, nsList, t, cachedTags, nil, extraKwargs)
 						if not result then
 							interpolationHandler__error = types
 							return nil
 						end
+						rawResult = result
 					end
 					
 					argTypes = newSet((";"):split(argTypes))
-					types = newSet((";"):split(types))
+					local types = newSet((";"):split(resultTypes))
 					local unfulfilledTypes = newList()
 					for k in pairs(types) do
 						if not argTypes[k] then
@@ -561,10 +567,11 @@ local function interpolationHandler(str)
 					else
 						result = ("(%s)"):format(result)
 					end
-					alreadyCompiled[argName] = result
+					alreadyCompiled[argName] = newList(result, resultTypes, rawResult)
 				elseif argTypes == "list-number" or argTypes == "list-string" then
 					local num = 0
 					local argList = newList()
+					resultTypes = argTypes == "list-number" and "number" or "string"
 					while true do
 						num = num + 1
 						local argName_num = argName .. num
@@ -657,31 +664,37 @@ local function interpolationHandler(str)
 					end
 					result = table.concat(argList, ", ")
 					argList = del(argList)
-					alreadyCompiled[argName] = result
+					rawResult = result
+					alreadyCompiled[argName] = newList(result, resultTypes, result)
 				end
 			end
-			return result
-		end
-	end
-	
-	for i = 0, #arg-1, 3 do
-		local argName, argTypes, default = arg[i+1], arg[i+2], arg[i+3]
-		if argName == str then
-			local result = alreadyCompiled[argName]
-			if not result then
-				local err
-				result, err = compile(ast.kwarg and ast.kwarg[str] or ast[i/3 + (isOperator and 2 or 3)], nsList, t, cachedTags, nil, extraKwargs)
-				if not result then
-					interpolationHandler__error = err
-					return nil
+			if strModifier == "type" then
+				if resultTypes:find(";") then
+					return "type(" .. result .. ")"
+				else
+					return ("%q"):format(resultTypes)
 				end
-				alreadyCompiled[argName] = result
-				if type(result) == "string" and result:match("^arg%d+$") then
-					afterStack[#afterStack+1] = result
+			elseif strModifier == "string" then
+				if resultTypes == "string" then
+					return result
+				elseif resultTypes == "number" then
+					if tonumber(rawResult) then
+						return ("(%q)"):format(tostring(0+rawResult))
+					else
+						return "tostring(" .. result .. ")"
+					end
+				elseif resultTypes == "nil" then
+					return "('')"
+				elseif resultTypes == "number;string" then
+					return "tostring(" .. result .. ")"
+				elseif resultTypes == "nil;string" then
+					return "(" .. result .. " or '')"
+				else--if resultTypes == "nil;number" or resultTypes == "nil;number;string" then
+					return "tostring(" .. result .. " or '')"
 				end
-				
-			end	
-			return result
+			else
+				return result
+			end
 		end
 	end
 end
@@ -774,13 +787,12 @@ function compile(ast, nsList, t, cachedTags, storeKey, extraKwargs)
 			-- TODO: Check for arguments
 			code = code:gsub("return ", storeKey .. " = ")
 			local afterStack = newList()
-			local alreadyCompiled = newList()
 			local kwargs, errMessage = getKwargsForAST(ast, nsList, extraKwargs)
 			if not kwargs then
 				afterStack = del(afterStack)
-				alreadyCompiled = del(alreadyCompiled)
 				return nil, errMessage
 			end
+			local alreadyCompiled = newList()
 			local data = newList(ast, tagData, nsList, t, astType ~= 'tag', afterStack, cachedTags, alreadyCompiled, kwargs, extraKwargs)
 			local prev_interpolationHandler__data = interpolationHandler__data
 			interpolationHandler__data = data
@@ -789,6 +801,9 @@ function compile(ast, nsList, t, cachedTags, storeKey, extraKwargs)
 			code = code:gsub("${(.-)}", interpolationHandler)
 			interpolationHandler__data = prev_interpolationHandler__data
 			data = del(data)
+			for k, v in pairs(alreadyCompiled) do
+				alreadyCompiled[k] = del(v)
+			end
 			alreadyCompiled = del(alreadyCompiled)
 			kwargs = del(kwargs)
 			if interpolationHandler__error then
@@ -1126,7 +1141,7 @@ function DogTag:CreateFunctionFromCode(code, ...)
 		nsList = getNamespaceList(select(3, ...))
 	else
 		local n = select('#', ...)
-		local kwargs = select(n, ...)
+		local kwargs = n > 0 and select(n, ...)
 		if type(kwargs) == "table" then
 			kwargsKey = kwargsToKey(kwargs)
 			n = n - 1

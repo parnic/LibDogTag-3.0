@@ -86,10 +86,18 @@ DogTag:AddTag("Base", "^", {
 })
 
 DogTag:AddTag("Base", "<", {
-	code = [=[if type(${left}) == type(${right}) then
-		return ${left} < ${right} and ${left} or nil
+	code = [=[if ${left:type} == ${right:type} then
+		if ${left} < ${right} then
+			return ${left}
+		else
+			return nil
+		end
 	else
-		return tostring(${left}) < tostring(${right}) and ${left} or nil
+		if ${left:string} < ${right:string} then
+			return ${left}
+		else
+			return nil
+		end
 	end]=],
 	arg = {
 		'left', 'number;string', "@req",
@@ -102,10 +110,18 @@ DogTag:AddTag("Base", "<", {
 })
 
 DogTag:AddTag("Base", ">", {
-	code = [=[if type(${left}) == type(${right}) then
-		return ${left} > ${right} and ${left} or nil
+	code = [=[if ${left:type} == ${right:type} then
+		if ${left} > ${right} then
+			return ${left}
+		else
+			return nil
+		end
 	else
-		return tostring(${left}) > tostring(${right}) and ${left} or nil
+		if ${left:string} > ${right:string} then
+			return ${left}
+		else
+			return nil
+		end
 	end]=],
 	arg = {
 		'left', 'number;string', "@req",
@@ -118,10 +134,18 @@ DogTag:AddTag("Base", ">", {
 })
 
 DogTag:AddTag("Base", "<=", {
-	code = [=[if type(${left}) == type(${right}) then
-		return ${left} <= ${right} and ${left} or nil
+	code = [=[if ${left:type} == ${right:type} then
+		if ${left} <= ${right} then
+			return ${left}
+		else
+			return nil
+		end
 	else
-		return tostring(${left}) <= tostring(${right}) and ${left} or nil
+		if ${left:string} <= ${right:string} then
+			return ${left}
+		else
+			return nil
+		end
 	end]=],
 	arg = {
 		'left', 'number;string', "@req",
@@ -134,10 +158,18 @@ DogTag:AddTag("Base", "<=", {
 })
 
 DogTag:AddTag("Base", ">=", {
-	code = [=[if type(${left}) == type(${right}) then
-		return ${left} >= ${right} and ${left} or nil
+	code = [=[if ${left:type} == ${right:type} then
+		if ${left} >= ${right} then
+			return ${left}
+		else
+			return nil
+		end
 	else
-		return tostring(${left}) >= tostring(${right}) and ${left} or nil
+		if ${left:string} >= ${right:string} then
+			return ${left}
+		else
+			return nil
+		end
 	end]=],
 	arg = {
 		'left', 'number;string', "@req",
@@ -150,10 +182,10 @@ DogTag:AddTag("Base", ">=", {
 })
 
 DogTag:AddTag("Base", "=", {
-	code = [=[if type(${left}) == type(${right}) then
-		return ${left} == ${right} and ${left} or nil
+	code = [=[if ${left} == ${right} then
+		return ${left}
 	else
-		return tostring(${left}) == tostring(${right}) and ${left} or nil
+		return nil
 	end]=],
 	arg = {
 		'left', 'number;string', "@req",
@@ -166,10 +198,10 @@ DogTag:AddTag("Base", "=", {
 })
 
 DogTag:AddTag("Base", "~=", {
-	code = [=[if type(${left}) ~= type(${right}) then
-		return ${left} ~= ${right} and ${left} or nil
+	code = [=[if ${left} ~= ${right} then
+		return ${left}
 	else
-		return tostring(${left}) ~= tostring(${right}) and ${left} or nil
+		return nil
 	end]=],
 	arg = {
 		'left', 'number;string', "@req",
