@@ -17,6 +17,23 @@ function pprint(...)
 	print(ptostring(...))
 end
 
+local function key_sort(alpha, bravo)
+	local type_alpha, type_bravo = type(alpha), type(bravo)
+	if type_alpha ~= type_bravo then
+		return type_alpha < type_bravo
+	end
+	
+	if type_alpha == "string" then
+		return alpha:lower() < bravo:lower()
+	elseif type_alpha == "number" then
+		return alpha < bravo
+	elseif type_alpha == "table" then
+		return tostring(alpha) < tostring(bravo)
+	else
+		return false
+	end
+end
+
 local first_ptostring = true
 function ptostring(...)
 	local t = {}
@@ -29,16 +46,32 @@ function ptostring(...)
 			t[#t+1] = (("%q"):format(v):gsub("[\001-\031\128-\255]", escape_char))
 		elseif type(v) == "table" then
 			t[#t+1] = "{ "
-			for a,b in pairs(v) do
+			local keys = {}
+			for a in pairs(v) do
+				keys[#keys+1] = a
+			end
+			table.sort(keys, key_sort)
+			local first = true
+			for _,a in ipairs(keys) do
+				local b = v[a]
+				if first then
+					first = nil
+				else
+					t[#t+1] = ", "
+				end
 				if type(a) ~= "number" or a < 1 or a > table_len(v) then
-					t[#t+1] = "["
-					t[#t+1] = ptostring(a)
-					t[#t+1] = "] = "
+					if type(a) == "string" and a:match("^[a-zA-Z_][a-zA-Z_0-9]*$") then
+						t[#t+1] = a
+						t[#t+1] = " = "
+					else
+						t[#t+1] = "["
+						t[#t+1] = ptostring(a)
+						t[#t+1] = "] = "
+					end
 				end
 				t[#t+1] = ptostring(b)
-				t[#t+1] = ", "
 			end
-			t[#t+1] = "}"
+			t[#t+1] = " }"
 		else
 			t[#t+1] = tostring(v)
 		end
@@ -428,6 +461,18 @@ DogTag:AddTag("Base", "ToString", {
 	ret = 'string',
 	doc = "Return value surrounded by tickmarks",
 	example = '[ToString(nil)] => "``"; [ToString("Hello")] => "`Hello`"; [ToString(5)] => "`5`"',
+})
+
+local RetSame_types
+DogTag:AddTag("Base", "RetSame", {
+	code = [=[return ${value}]=],
+	arg = {
+		'value', 'number;nil;string', '@req'
+	},
+	ret = function(args)
+		RetSame_types = args.value.types
+		return args.value.types
+	end
 })
 
 assert_equal(parse("[MyTag]"), { "tag", "MyTag" })
@@ -941,7 +986,6 @@ assert_equal(DogTag:Evaluate("[Type(GlobalCheck)]"), "string")
 GlobalCheck_data = 5
 assert_equal(DogTag:Evaluate("[Type(GlobalCheck)]"), "number")
 
-
 assert_equal(DogTag:Evaluate("[ToString(nil)]"), "``")
 assert_equal(DogTag:Evaluate("[ToString('Hello')]"), "`Hello`")
 assert_equal(DogTag:Evaluate("[ToString(5)]"), "`5`")
@@ -952,3 +996,29 @@ GlobalCheck_data = "Hello"
 assert_equal(DogTag:Evaluate("[ToString(GlobalCheck)]"), "`Hello`")
 GlobalCheck_data = 5
 assert_equal(DogTag:Evaluate("[ToString(GlobalCheck)]"), "`5`")
+
+assert_equal(DogTag:Evaluate("[RetSame(nil)]"), nil)
+assert_equal(RetSame_types, "nil")
+assert_equal(DogTag:Evaluate("[RetSame('Hello')]"), "Hello")
+assert_equal(RetSame_types, "string")
+assert_equal(DogTag:Evaluate("[RetSame(5)]"), 5)
+assert_equal(RetSame_types, "number")
+
+GlobalCheck_data = nil
+assert_equal(DogTag:Evaluate("[RetSame(GlobalCheck)]"), nil)
+assert_equal(RetSame_types, "nil;number;string")
+GlobalCheck_data = "Hello"
+assert_equal(DogTag:Evaluate("[RetSame(GlobalCheck)]"), "Hello")
+assert_equal(RetSame_types, "nil;number;string")
+GlobalCheck_data = 5
+assert_equal(DogTag:Evaluate("[RetSame(GlobalCheck)]"), 5)
+assert_equal(RetSame_types, "nil;number;string")
+
+assert_equal(DogTag:Evaluate("[RetSame(One)]"), 1)
+assert_equal(RetSame_types, "number")
+assert_equal(DogTag:Evaluate("[RetSame(CheckNilDefault(5))]"), 5)
+assert_equal(RetSame_types, "nil;number")
+assert_equal(DogTag:Evaluate("[RetSame(CheckNilDefault)]"), nil)
+assert_equal(RetSame_types, "nil;number")
+
+print("Tests succeeded")

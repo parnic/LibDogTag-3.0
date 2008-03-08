@@ -187,26 +187,35 @@ function DogTag:AddTag(namespace, tag, data)
 				elseif key ~= "..." then
 					error("arg must have its key be ... if a list-number or list-string.", 2)
 				end
+				arg[i+1] = sortStringList(types)
 			end
 			tagData.arg = arg
 		end
-		tagData.ret = sortStringList(data.ret)
-		if data.ret then
-			local a,b,c = (";"):split(data.ret)
-			if a ~= "nil" and a ~= "number" and a ~= "string" and a ~= "same" then
-				error("ret must have same, nil, number, or string", 2)
+		local ret = data.ret
+		if type(ret) == "string" then
+			tagData.ret = sortStringList(ret)
+			if ret then
+				local a,b,c = (";"):split(ret)
+				if a ~= "nil" and a ~= "number" and a ~= "string" and a ~= "same" then
+					error("ret must have same, nil, number, or string", 2)
+				end
+				if b and b ~= "nil" and b ~= "number" and b ~= "string" and b ~= "same" then
+					error("ret must have same, nil, number, or string", 2)
+				end
+				if c and c ~= "nil" and c ~= "number" and c ~= "string" and c ~= "same" then
+					error("ret must have same, nil, number, or string", 2)
+				end
 			end
-			if b and b ~= "nil" and b ~= "number" and b ~= "string" and b ~= "same" then
-				error("ret must have same, nil, number, or string", 2)
-			end
-			if c and c ~= "nil" and c ~= "number" and c ~= "string" and c ~= "same" then
-				error("ret must have same, nil, number, or string", 2)
-			end
+		elseif type(ret) == "function" then
+			tagData.ret = ret
+		else
+			error(("ret must be a string or a function which returns a string, got %s"):format(type(ret)), 2)
 		end
 		tagData.events = sortStringList(data.events)
-		tagData.globals = sortStringList(data.globals)
-		if tagData.globals then
-			local globals = newList((';'):split(tagData.globals))
+		local globals = data.globals
+		tagData.globals = sortStringList(globals)
+		if globals then
+			globals = newList((';'):split(globals))
 			for _,v in ipairs(globals) do
 				if not v:find("%.") and not _G[v] then
 					error(("Unknown global: %q"):format(v))
