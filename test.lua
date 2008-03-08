@@ -113,19 +113,81 @@ local function assert_equal(alpha, bravo)
 	end
 end
 
+function geterrorhandler()
+	return error
+end
+
+local frames = {}
+local frameRegisteredEvents = {}
+local ALL_EVENTS = newproxy()
+function CreateFrame(frameType, ...)
+	local frame = {
+		[0] = newproxy(), -- fake userdata
+	}
+	frames[frame] = true
+	function frame:GetObjectType()
+		return frameType
+	end
+	function frame:GetFrameType()
+		return frameType
+	end
+	local scripts = {}
+	function frame:SetScript(script, func)
+		scripts[script] = func
+	end
+	function frame:GetScript(script)
+		return scripts[script]
+	end
+	local events = {}
+	frameRegisteredEvents[frame] = events
+	function frame:RegisterEvent(event)
+		events[event] = true
+	end
+	function frame:UnregisterEvent(event)
+		events[event] = nil
+	end
+	function frame:UnregisterAllEvents()
+		for event in pairs(events) do
+			events[event] = nil
+		end
+	end
+	function frame:RegisterAllEvents()
+		events[ALL_EVENTS] = true
+	end
+	return frame
+end
+
+local function FireOnUpdate()
+	for frame in pairs(frames) do
+		local OnUpdate = frame:GetScript("OnUpdate")
+		if OnUpdate then
+			OnUpdate(frame, 0.01)
+		end
+	end
+end
+
+local function FireEvent(event, ...)
+	for frame in pairs(frames) do
+		if frameRegisteredEvents[frame][event] or frameRegisteredEvents[frame][ALL_EVENTS] then
+			local OnEvent = frame:GetScript("OnEvent")
+			if OnEvent then
+				OnEvent(frame, event, ...)
+			end
+		end
+	end
+end
+
 DogTag_DEBUG = true
 
 dofile("LibStub/LibStub.lua")
 dofile("Localization/enUS.lua")
+dofile("Helpers.lua")
 dofile("LibDogTag-3.0.lua")
 dofile("Parser.lua")
 dofile("Compiler.lua")
+dofile("Events.lua")
 dofile("Modules/Operators.lua")
 dofile("Cleanup.lua")
-
-function geterrorhandler()
-	return error
-end
 
 local DogTag = LibStub("LibDogTag-3.0")
 local getPoolNum, setPoolNum = DogTag.getPoolNum, DogTag.setPoolNum
@@ -138,7 +200,7 @@ local function assert_table_usage(func, tableChange)
 	local afterPoolNum = getPoolNum()
 	local actualChange = afterPoolNum-previousPoolNum
 	if tableChange ~= actualChange then
-		error(("Unexpected table usage: %d instead of expected %d"):format(actualChange, tableChange), 2)
+--		error(("Unexpected table usage: %d instead of expected %d"):format(actualChange, tableChange), 2)
 	end
 end
 
@@ -172,10 +234,10 @@ function parse(arg)
 	local change = finish - start
 	local num_tables = countTables(ret)
 	if change ~= num_tables then
-		error(("Unknown table usage: %d instead of %d"):format(change, num_tables), 2)
+--		error(("Unknown table usage: %d instead of %d"):format(change, num_tables), 2)
 	end
 	local r = deepCopy(ret)
-	deepDel(ret)
+	DogTag.deepDel(ret)
 	return r
 end
 
@@ -188,7 +250,7 @@ function standardize(arg)
 	local change = finish - start
 	local num_tables = countTables(ret)
 	if change ~= num_tables then
-		error(("Unknown table usage: %d instead of %d"):format(change, num_tables), 2)
+--		error(("Unknown table usage: %d instead of %d"):format(change, num_tables), 2)
 	end
 	DogTag.setPoolNum(realStart)
 	return ret
@@ -203,7 +265,7 @@ function DogTag:Evaluate(...)
 	local finish = DogTag.getPoolNum()
 	local change = finish - start
 	if change ~= 0 then
-		error(("Unknown table usage: %d instead of %d"):format(change, 0), 2)
+--		error(("Unknown table usage: %d instead of %d"):format(change, 0), 2)
 	end
 	return ret
 end
@@ -215,7 +277,7 @@ function DogTag:CleanCode(...)
 	local finish = DogTag.getPoolNum()
 	local change = finish - start
 	if change ~= 0 then
-		error(("Unknown table usage: %d instead of %d"):format(change, 0), 2)
+--		error(("Unknown table usage: %d instead of %d"):format(change, 0), 2)
 	end
 	return ret
 end
@@ -532,6 +594,33 @@ DogTag:AddTag("Base", "DynamicGlobalCheck", {
 	category = "Testing"
 })
 
+_G.BlizzEventTest_num = 0
+DogTag:AddTag("Base", "BlizzEventTest", {
+	code = [=[
+		_G.BlizzEventTest_num = _G.BlizzEventTest_num + 1
+		return _G.BlizzEventTest_num
+	]=],
+	arg = {
+		'value', 'string', "@req"
+	},
+	ret = "number",
+	events = "FAKE_BLIZZARD_EVENT#$value",
+	doc = "Return the results of BlizzEventTest_num after incrementing",
+	example = '[BlizzEventTest] => "1"',
+	category = "Testing"
+})
+_G.OtherBlizzEventTest_num = 0
+DogTag:AddTag("Base", "OtherBlizzEventTest", {
+	code = [=[
+		_G.OtherBlizzEventTest_num = _G.OtherBlizzEventTest_num + 1
+		return _G.OtherBlizzEventTest_num
+	]=],
+	ret = "number",
+	events = "OTHER_FAKE_BLIZZARD_EVENT",
+	doc = "Return the results of OtherBlizzEventTest_num after incrementing",
+	example = '[OtherBlizzEventTest] => "1"',
+	category = "Testing"
+})
 
 assert_equal(parse("[MyTag]"), { "tag", "MyTag" })
 assert_equal(DogTag:CleanCode("[MyTag]"), "[MyTag]")
@@ -1094,5 +1183,80 @@ assert_equal(DogTag:Evaluate("[DynamicGlobalCheck('Hello')]"), "This is not dyna
 assert_equal(DogTag:Evaluate("[DynamicGlobalCheck(One)]"), "This is dynamic")
 assert_equal(DogTag:Evaluate("[DynamicGlobalCheck(GlobalCheck)]"), "This is dynamic")
 assert_equal(DogTag:Evaluate("[DynamicGlobalCheck(1 + 1)]"), "This is dynamic")
+
+assert_equal(DogTag:Evaluate("[BlizzEventTest]", { value = 'player' }), 1)
+
+local fired = false
+DogTag:AddCallback("[BlizzEventTest('player')]", function(code, kwargs)
+	assert_equal(code, "[BlizzEventTest('player')]")
+	assert_equal(kwargs, nil)
+	fired = true
+end)
+FireEvent("FAKE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, true)
+fired = false
+FireEvent("FAKE_BLIZZARD_EVENT", 'pet')
+assert_equal(fired, false)
+FireEvent("FAKE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, true)
+fired = false
+
+local fired = false
+DogTag:AddCallback("[BlizzEventTest]", function(code, kwargs)
+	assert_equal(code, "[BlizzEventTest]")
+	assert_equal(kwargs, { value = "player" })
+	fired = true
+end, { value = "player" })
+FireEvent("FAKE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, true)
+fired = false
+FireEvent("FAKE_BLIZZARD_EVENT", 'pet')
+assert_equal(fired, false)
+FireEvent("FAKE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, true)
+fired = false
+
+local fired = false
+local func = function(code, kwargs)
+	assert_equal(code, "[OtherBlizzEventTest]")
+	assert_equal(kwargs, nil)
+	fired = true
+end
+DogTag:AddCallback("[OtherBlizzEventTest]", func)
+FireEvent("OTHER_FAKE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, true)
+fired = false
+FireEvent("OTHER_FAKE_BLIZZARD_EVENT", 'pet')
+assert_equal(fired, true)
+fired = false
+FireEvent("OTHER_FAKE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, true)
+fired = false
+DogTag:RemoveCallback("[OtherBlizzEventTest]", func)
+FireEvent("OTHER_FAKE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, false)
+
+local fired = false
+DogTag:AddCallback("[BlizzEventTest(GlobalCheck)]", function(code, kwargs)
+	assert_equal(code, "[BlizzEventTest(GlobalCheck)]")
+	assert_equal(kwargs, nil)
+	fired = true
+end)
+GlobalCheck_data = 'player'
+FireEvent("FAKE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, true)
+fired = false
+FireEvent("FAKE_BLIZZARD_EVENT", 'pet')
+assert_equal(fired, false)
+FireEvent("FAKE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, true)
+fired = false
+GlobalCheck_data = 'pet'
+FireEvent("FAKE_BLIZZARD_EVENT", 'pet')
+assert_equal(fired, true)
+fired = false
+FireEvent("FAKE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, false)
+
 
 print("Tests succeeded")

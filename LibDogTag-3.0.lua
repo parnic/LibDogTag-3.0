@@ -19,115 +19,17 @@ local DogTag = _G.DogTag
 
 -- #AUTODOC_NAMESPACE DogTag
 
-local oldLib
-if next(DogTag) ~= nil then
-	oldLib = {}
-	for k,v in pairs(DogTag) do
-		oldLib[k] = v
-		DogTag[k] = nil
-	end
-end
-DogTag.oldLib = oldLib
 local L = DogTag__L
 DogTag.L = L
 
-local poolNum = 0
-local newList, newDict, newSet, del
-do
-	local pool = setmetatable({}, {__mode='k'})
-	function newList(...)
-		poolNum = poolNum + 1
-		local t = next(pool)
-		if t then
-			pool[t] = nil
-			for i = 1, select('#', ...) do
-				t[i] = select(i, ...)
-			end
-		else
-			t = { ... }
-		end
-		return t
-	end
-	function newDict(...)
-		poolNum = poolNum + 1
-		local t = next(pool)
-		if t then
-			pool[t] = nil
-		else
-			t = {}
-		end
-		for i = 1, select('#', ...), 2 do
-			t[select(i, ...)] = select(i+1, ...)
-		end
-		return t
-	end
-	function newSet(...)
-		poolNum = poolNum + 1
-		local t = next(pool)
-		if t then
-			pool[t] = nil
-		else
-			t = {}
-		end
-		for i = 1, select('#', ...) do
-			t[select(i, ...)] = true
-		end
-		return t
-	end
-	function del(t)
-		if not t then
-			error("Bad argument #1 to `del'. Expected table, got nil.", 2)
-		end
-		if pool[t] then
-			error("Double-free syndrome.", 2)
-		end
-		pool[t] = true
-		poolNum = poolNum - 1
-		for k in pairs(t) do
-			t[k] = nil
-		end
-		t[''] = true
-		t[''] = nil
-		return nil
-	end
-	function deepDel(t)
-		if type(t) == "table" then
-			for k,v in pairs(t) do
-				deepDel(v)
-				deepDel(k)
-			end
-			del(t)
-		end
-		return nil
-	end
-end
-DogTag.newList, DogTag.newDict, DogTag.newSet, DogTag.del, DogTag.deepDel = newList, newDict, newSet, del, deepDel
-
-local DEBUG = _G.DogTag_DEBUG -- set in test.lua
-if DEBUG then
-	DogTag.getPoolNum = function()
-		return poolNum
-	end
-	DogTag.setPoolNum = function(value)
-		poolNum = value
-	end
-end
+local newList, del = DogTag.newList, DogTag.del
 
 local FakeGlobals = { ["Base"] = {} }
 DogTag.FakeGlobals = FakeGlobals
 local Tags = { ["Base"] = {} }
 DogTag.Tags = Tags
 
-local function sortStringList(s)
-	if not s then
-		return nil
-	end
-	local list = newList((";"):split(s))
-	table.sort(list)
-	local q = table.concat(list, ';')
-	list = del(list)
-	return q
-end
+local sortStringList = DogTag.sortStringList
 
 function DogTag:AddTag(namespace, tag, data)
 	if type(namespace) ~= "string" then
@@ -174,6 +76,9 @@ function DogTag:AddTag(namespace, tag, data)
 					error("arg must have its types as strings", 2)
 				end
 				if types ~= "list-number" and types ~= "list-string" then
+					if not key:match("^[a-z]+$") then
+						error("arg must have its key be a string of lowercase letters.", 2)
+					end
 					local a,b,c = (';'):split(types)
 					if a ~= "nil" and a ~= "number" and a ~= "string" then
 						error("arg must have nil, number, string, list-number, or list-string", 2)

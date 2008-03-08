@@ -10,6 +10,16 @@ if not DogTag then
 	return
 end
 
+local oldLib
+if next(DogTag) ~= nil then
+	oldLib = {}
+	for k,v in pairs(DogTag) do
+		oldLib[k] = v
+		DogTag[k] = nil
+	end
+end
+DogTag.oldLib = oldLib
+
 _G.DogTag = DogTag
 
 for _,v in ipairs(DogTag_funcs) do

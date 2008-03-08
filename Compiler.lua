@@ -13,65 +13,15 @@ local L = DogTag__L
 
 local FakeGlobals = DogTag.FakeGlobals
 local Tags = DogTag.Tags
-local newList, newDict, newSet, del = DogTag.newList, DogTag.newDict, DogTag.newSet, DogTag.del
+local newList, newDict, newSet, del, deepDel = DogTag.newList, DogTag.newDict, DogTag.newSet, DogTag.del, DogTag.deepDel
 
-local function getNamespaceList(...)
-	local n = select('#', ...)
-	if n == 0 then
-		return "Base"
-	end
-	local t = newList()
-	t["Base"] = true
-	for i = 1, n do
-		local v = select(i, ...)
-		t[v] = true
-	end
-	local u = newList()
-	for k in pairs(t) do
-		u[#u+1] = k
-	end
-	t = del(t)
-	table.sort(u)
-	local value = table.concat(u, ';')
-	u = del(u)
-	return value
-end
-
-local function select2(min, max, ...)
-	if min <= max then
-		return select(min, ...), select2(min+1, max, ...)
-	end
-end
-
-local function joinSet(set, connector)
-	local t = newList()
-	for k in pairs(set) do
-		t[#t+1] = k
-	end
-	table.sort(t)
-	local s = table.concat(t, connector)
-	t = del(t)
-	return s
-end
-
-local unpackNamespaceList = setmetatable({}, {__index = function(self, key)
-	local t = newList((";"):split(key))
-	self[key] = t
-	return t
-end, __call = function(self, key)
-	return unpack(self[key])
-end})
-
-local function getASTType(ast)
-	if not ast then
-		return "nil"
-	end
-	local type_ast = type(ast)
-	if type_ast ~= "table" then
-		return type_ast
-	end
-	return ast[1]
-end
+local getNamespaceList = DogTag.getNamespaceList
+local select2 = DogTag.select2
+local joinSet = DogTag.joinSet
+local unpackNamespaceList = DogTag.unpackNamespaceList
+local getASTType = DogTag.getASTType
+local kwargsToKey = DogTag.kwargsToKey
+local memoizeTable = DogTag.memoizeTable
 
 local correctTagCasing = setmetatable({}, {__index = function(self, tag)
 	for ns, data in pairs(Tags) do
@@ -111,42 +61,6 @@ local function correctASTCasing(ast)
 		correctASTCasing(ast[i])
 	end
 end
-
-local kwargsKeyPool = { [""] = {} }
-local function kwargsToKey(kwargs)
-	if not kwargs then
-		return kwargsKeyPool[""]
-	end
-	local kwargsKey = newList()
-	local keys = newList()
-	for k in pairs(kwargs) do
-		keys[#keys+1] = k
-	end
-	table.sort(keys)
-	local t = newList()
-	for i,k in ipairs(keys) do
-		if i > 1 then
-			t[#t+1] = ";"
-		end
-		local v = kwargs[k]
-		t[#t+1] = k
-		t[#t+1] = "="
-		local type_v = type(v)
-		t[#t+1] = type_v
-		kwargsKey[k] = type_v
-	end
-	keys = del(keys)
-	local s = table.concat(t)
-	t = del(t)
-	local kwargsKeyPool_s = kwargsKeyPool[s]
-	if kwargsKeyPool_s then
-		kwargsKey = del(kwargsKey)
-		return kwargsKeyPool_s
-	end
-	kwargsKeyPool[s] = kwargsKey
-	return kwargsKey
-end
-DogTag.kwargsToKey = kwargsToKey
 
 local codeToFunction
 do
@@ -595,11 +509,11 @@ local function forceTypes(storeKey, types, forceToTypes, t)
 	return storeKey, types
 end
 
-function compile(ast, nsList, t, cachedTags, globals, extraKwargs, forceToTypes, storeKey)
+function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, forceToTypes, storeKey)
 	local astType = getASTType(ast)
 	if astType == 'string' then
 		if ast == '' then
-			return compile(nil, nsList, t, cachedTags, globals, extraKwargs, forceToTypes, storeKey)
+			return compile(nil, nsList, t, cachedTags, globals, events, extraKwargs, forceToTypes, storeKey)
 		else
 			if storeKey then
 				t[#t+1] = storeKey
@@ -658,10 +572,7 @@ function compile(ast, nsList, t, cachedTags, globals, extraKwargs, forceToTypes,
 				return nil, errMessage
 			end
 			
-			local code = tagData.code
 			local arg = tagData.arg
-			local ret = tagData.ret
-			local globs = tagData.globals
 			
 			local compiledKwargs = newList()
 			for k,v in pairs(kwargs) do
@@ -669,7 +580,7 @@ function compile(ast, nsList, t, cachedTags, globals, extraKwargs, forceToTypes,
 					compiledKwargs[k] = newList(("kwargs[%q]"):format(k), extraKwargs[k])
 				else
 					local argTypes = "nil;number;string"
-					if not k:match("^...%d+$") then
+					if not k:match("^%.%.%.%d+$") then
 						for i = 1, #arg, 3 do
 							if arg[i] == k then
 								argTypes = arg[i+1]
@@ -689,7 +600,7 @@ function compile(ast, nsList, t, cachedTags, globals, extraKwargs, forceToTypes,
 							end
 						end
 					end
-					local arg, types = compile(v, nsList, t, cachedTags, globals, extraKwargs, argTypes)
+					local arg, types = compile(v, nsList, t, cachedTags, globals, events, extraKwargs, argTypes)
 					if not arg then
 						for k,v in pairs(compiledKwargs) do
 							compiledKwargs[k] = del(v)
@@ -716,6 +627,12 @@ function compile(ast, nsList, t, cachedTags, globals, extraKwargs, forceToTypes,
 					passData_k.types = compiledKwargs[k][2]
 				end
 			end
+			
+			local code = tagData.code
+			local ret = tagData.ret
+			local globs = tagData.globals
+			local evs = tagData.events
+			
 			if type(ret) == "function" then
 				ret = ret(passData)
 			end
@@ -724,6 +641,9 @@ function compile(ast, nsList, t, cachedTags, globals, extraKwargs, forceToTypes,
 			end
 			if type(globs) == "function" then
 				globs = globs(passData)
+			end
+			if type(evs) == "function" then
+				evs = evs(passData)
 			end
 			for k, v in pairs(passData) do
 				passData[k] = del(v)
@@ -736,6 +656,55 @@ function compile(ast, nsList, t, cachedTags, globals, extraKwargs, forceToTypes,
 					globals[k] = true
 				end
 				globs = del(globs)
+			end
+			if evs then
+				evs = newSet((";"):split(evs))
+				for k in pairs(evs) do
+					local ev, param = ("#"):split(k, 2)
+					local events_ev = events[ev]
+					if events_ev ~= true then
+						if param then
+							if param:match("^%$") then
+								local real_param = param:sub(2)
+								local compiledKwargs_real_param = compiledKwargs[real_param]
+								if not compiledKwargs_real_param then
+									error(("Unknown event parameter %q for tag %s. Please inform ckknight."):format(param, tag))
+								end
+								local compiledKwargs_real_param_1 = compiledKwargs_real_param[1]
+								if not compiledKwargs_real_param_1:match("^kwargs%[\"[a-z]+\"%]$") then
+									local kwargs_real_param = kwargs[real_param]
+									if type(kwargs_real_param) == "table" then
+										param = DogTag.unparse(kwargs[real_param])
+									else
+										param = kwargs_real_param or true
+									end
+								end
+							end
+							if type(events_ev) == "table" then
+								if param == true then
+									del(events_ev)
+									events[ev] = true
+								else
+									events_ev[param] = true
+								end
+							elseif events_ev then
+								if param == true then
+									events[ev] = true
+								else
+									events[ev] = newSet(events_ev, param)
+								end
+							else
+								events[ev] = param
+							end
+						else
+							if type(events_ev) == "table" then
+								del(events_ev)
+							end
+							events[ev] = true
+						end
+					end
+				end
+				evs = del(evs)
 			end
 			
 			interpolationHandler__compiledKwargs = compiledKwargs
@@ -780,7 +749,7 @@ function compile(ast, nsList, t, cachedTags, globals, extraKwargs, forceToTypes,
 		local argTypes = newList()
 		for i = 2, #ast do
 			local t_num = #t
-			local arg, err = compile(ast[i], nsList, t, cachedTags, globals, extraKwargs, "nil;number;string")
+			local arg, err = compile(ast[i], nsList, t, cachedTags, globals, events, extraKwargs, "nil;number;string")
 			if not arg then
 				args = del(args)
 				argTypes = del(argTypes)
@@ -881,7 +850,7 @@ function compile(ast, nsList, t, cachedTags, globals, extraKwargs, forceToTypes,
 		end
 		local t_num = #t
 		t[#t+1] = [=[do ]=]
-		local arg, firstResults = compile(ast[2], nsList, t, cachedTags, globals, extraKwargs, "nil;number;string", storeKey)
+		local arg, firstResults = compile(ast[2], nsList, t, cachedTags, globals, events, extraKwargs, "nil;number;string", storeKey)
 		if not arg then
 			return nil, firstResults
 		end
@@ -895,7 +864,7 @@ function compile(ast, nsList, t, cachedTags, globals, extraKwargs, forceToTypes,
 			end
 			t[#t+1] = storeKey
 			t[#t+1] = [=[ then ]=]
-			local arg, secondResults = compile(ast[3], nsList, t, cachedTags, globals, extraKwargs, "nil;number;string", storeKey)
+			local arg, secondResults = compile(ast[3], nsList, t, cachedTags, globals, events, extraKwargs, "nil;number;string", storeKey)
 			if not arg then
 				firstResults = del(firstResults)
 				totalResults = del(totalResults)
@@ -916,7 +885,7 @@ function compile(ast, nsList, t, cachedTags, globals, extraKwargs, forceToTypes,
 			for i = t_num, #t do
 				t[i] = nil
 			end
-			local arg, secondResults = compile(ast[3], nsList, t, cachedTags, globals, extraKwargs, "nil;number;string", storeKey)
+			local arg, secondResults = compile(ast[3], nsList, t, cachedTags, globals, events, extraKwargs, "nil;number;string", storeKey)
 			if not arg then
 				firstResults = del(firstResults)
 				totalResults = del(totalResults)
@@ -945,7 +914,7 @@ function compile(ast, nsList, t, cachedTags, globals, extraKwargs, forceToTypes,
 		end
 		local t_num = #t
 		t[#t+1] = [=[do ]=]
-		local storeKey, condResults = compile(ast[2], nsList, t, cachedTags, globals, extraKwargs, "nil;number;string", storeKey)
+		local storeKey, condResults = compile(ast[2], nsList, t, cachedTags, globals, events, extraKwargs, "nil;number;string", storeKey)
 		if not storeKey then
 			return nil, condResults
 		end
@@ -956,7 +925,7 @@ function compile(ast, nsList, t, cachedTags, globals, extraKwargs, forceToTypes,
 			t[#t+1] = [=[if ]=]
 			t[#t+1] = storeKey
 			t[#t+1] = [=[ then ]=]
-			local arg, firstResults = compile(ast[3], nsList, t, cachedTags, globals, extraKwargs, forceToTypes, storeKey)
+			local arg, firstResults = compile(ast[3], nsList, t, cachedTags, globals, events, extraKwargs, forceToTypes, storeKey)
 			if not arg then
 				return nil, firstResults
 			end
@@ -964,7 +933,7 @@ function compile(ast, nsList, t, cachedTags, globals, extraKwargs, forceToTypes,
 			t[#t+1] = [=[ else ]=]
 			local secondResults
 			if ast[4] then
-				storeKey, secondResults = compile(ast[4], nsList, t, cachedTags, globals, extraKwargs, forceToTypes, storeKey)
+				storeKey, secondResults = compile(ast[4], nsList, t, cachedTags, globals, events, extraKwargs, forceToTypes, storeKey)
 				if not storeKey then
 					totalResults = del(totalResults)
 					return nil, secondResults
@@ -993,7 +962,7 @@ function compile(ast, nsList, t, cachedTags, globals, extraKwargs, forceToTypes,
 			if type(cond) == "string" and cond:match("^arg%d+$") then
 				delUniqueVar(cond)
 			end
-			local storeKey, totalResults = compile(ast[4], nsList, t, cachedTags, globals, extraKwargs, forceToTypes, storeKey)
+			local storeKey, totalResults = compile(ast[4], nsList, t, cachedTags, globals, events, extraKwargs, forceToTypes, storeKey)
 			if not storeKey then
 				return nil, totalResults
 			end
@@ -1007,7 +976,7 @@ function compile(ast, nsList, t, cachedTags, globals, extraKwargs, forceToTypes,
 			if type(cond) == "string" and cond:match("^arg%d+$") then
 				delUniqueVar(cond)
 			end
-			local storeKey, totalResults = compile(ast[3], nsList, t, cachedTags, globals, extraKwargs, forceToTypes, storeKey)
+			local storeKey, totalResults = compile(ast[3], nsList, t, cachedTags, globals, events, extraKwargs, forceToTypes, storeKey)
 			if not storeKey then
 				return nil, totalResults
 			end
@@ -1015,7 +984,7 @@ function compile(ast, nsList, t, cachedTags, globals, extraKwargs, forceToTypes,
 		end
 	elseif astType == 'not' then
 		local t_num = #t
-		local s, results = compile(ast[2], nsList, t, cachedTags, globals, extraKwargs, "nil;number;string", storeKey)
+		local s, results = compile(ast[2], nsList, t, cachedTags, globals, events, extraKwargs, "nil;number;string", storeKey)
 		if not s then
 			return nil, results
 		end
@@ -1126,7 +1095,8 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	globals['tonumber'] = true
 	globals['tostring'] = true
 	globals['type'] = true
-	local ret, types = compile(ast, nsList, u, cachedTags, globals, extraKwargs, 'nil;number;string', 'value')
+	local events = newList()
+	local ret, types = compile(ast, nsList, u, cachedTags, globals, events, extraKwargs, 'nil;number;string', 'value')
 	for k, v in pairs(extraKwargs) do
 		extraKwargs[k] = del(v)
 	end
@@ -1164,6 +1134,14 @@ function DogTag:CreateFunctionFromCode(code, ...)
 		table.insert(t, i + globals_t_num, v)
 	end
 	g = del(g)
+	if not next(events) then
+		events = del(events)
+		DogTag.codeToEventList[nsList][kwargsKey][code] = false
+	else
+		events = memoizeTable(events)
+		DogTag.codeToEventList[nsList][kwargsKey][code] = events
+		DogTag.refreshEvents()
+	end
 	if not ret then
 		for i = 1, #u do
 			u[i] = nil
@@ -1202,33 +1180,13 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	return s
 end
 
-function DogTag:Evaluate(code, ...)
-	if type(code) ~= "string" then
-		error(("Bad argument #2 to `Evaluate'. Expected %q, got %q"):format("string", type(code)), 2)
-	end
-	local n = select('#', ...)
-	local kwargs
-	if n > 0 then
-		kwargs = select(n, ...)
-		if type(kwargs) == "table" then
-			n = n - 1
-		else
-			kwargs = nil
-		end
-	end
-	for i = 1, n do
-		if type(select(i, ...)) ~= "string" then
-			error(("Bad argument #%d to `Evaluate'. Expected %q, got %q"):format(i+2, "string", type(select(i, ...))), 2)
-		end
-	end
-	local nsList = getNamespaceList(select2(1, n, ...))
+local function evaluate(code, nsList, kwargs)
 	local kwargsKey = kwargsToKey(kwargs)
-	
-	
+
 	DogTag.__isMouseOver = false
-	
+
 	local func = codeToFunction[nsList][kwargsKey][code]
-	
+
 	local madeKwargs = not kwargs
 	if madeKwargs then
 		kwargs = newList()
@@ -1249,6 +1207,30 @@ function DogTag:Evaluate(code, ...)
 	else
 		geterrorhandler()(("%s.%d: Error with code %q%s. %s"):format(MAJOR_VERSION, MINOR_VERSION, code, nsList == "Base" and "" or " (" .. nsList .. ")", text))
 	end
+end
+DogTag.evaluate = evaluate
+
+function DogTag:Evaluate(code, ...)
+	if type(code) ~= "string" then
+		error(("Bad argument #2 to `Evaluate'. Expected %q, got %q"):format("string", type(code)), 2)
+	end
+	local n = select('#', ...)
+	local kwargs
+	if n > 0 then
+		kwargs = select(n, ...)
+		if type(kwargs) == "table" then
+			n = n - 1
+		else
+			kwargs = nil
+		end
+	end
+	for i = 1, n do
+		if type(select(i, ...)) ~= "string" then
+			error(("Bad argument #%d to `Evaluate'. Expected %q, got %q"):format(i+2, "string", type(select(i, ...))), 2)
+		end
+	end
+	local nsList = getNamespaceList(select2(1, n, ...))
+	return evaluate(code, nsList, kwargs)
 end
 
 end
