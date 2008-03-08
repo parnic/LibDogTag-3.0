@@ -213,15 +213,21 @@ function DogTag:AddTag(namespace, tag, data)
 		end
 		tagData.events = sortStringList(data.events)
 		local globals = data.globals
-		tagData.globals = sortStringList(globals)
-		if globals then
-			globals = newList((';'):split(globals))
-			for _,v in ipairs(globals) do
-				if not v:find("%.") and not _G[v] then
-					error(("Unknown global: %q"):format(v))
+		if type(globals) == "string" then
+			tagData.globals = sortStringList(globals)
+			if globals then
+				globals = newList((';'):split(globals))
+				for _,v in ipairs(globals) do
+					if not v:find("%.") and not _G[v] then
+						error(("Unknown global: %q"):format(v))
+					end
 				end
+				globals = del(globals)
 			end
-			globals = del(globals)
+		elseif type(globals) == "function" then
+			tagData.globals = globals
+		elseif globals then
+			error(("globals must be a string, a function which returns a string, or nil, got %s"):format(type(globals)), 2)
 		end
 		tagData.alias = data.fakeAlias
 	end

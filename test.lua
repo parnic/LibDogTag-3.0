@@ -490,6 +490,49 @@ DogTag:AddTag("Base", "DynamicCodeTest", {
 	ret = "string",
 })
 
+local DynamicGlobalCheck_data = "Hello World"
+local LiteralGlobalCheck_data = "Hello World"
+
+dynamictable = {
+	dynamictestfunc = function()
+		return DynamicGlobalCheck_data
+	end,
+	literaltestfunc = function()
+		return LiteralGlobalCheck_data
+	end,
+}
+
+DogTag:AddTag("Base", "DynamicGlobalCheck", {
+	code = function(args)
+		if args.value.isLiteral then
+			return [=[
+				assert(not dynamictable_dynamictestfunc)
+				return dynamictable_literaltestfunc()
+			]=]
+		else
+			return [=[
+				assert(not dynamictable_literaltestfunc)
+				return dynamictable_dynamictestfunc()
+			]=]
+		end
+	end,
+	arg = {
+		'value', 'nil;number;string', '@req'
+	},
+	ret = "string;number;nil",
+	doc = "Return the results of testfunc",
+	globals = function(args)
+		if args.value.isLiteral then
+			return 'dynamictable.literaltestfunc'
+		else
+			return 'dynamictable.dynamictestfunc'
+		end
+	end,
+	example = '[DynamicGlobalCheck] => "Hello World"',
+	category = "Testing"
+})
+
+
 assert_equal(parse("[MyTag]"), { "tag", "MyTag" })
 assert_equal(DogTag:CleanCode("[MyTag]"), "[MyTag]")
 assert_equal(parse("Alpha [MyTag]"), {" ", "Alpha ", { "tag", "MyTag" } })
@@ -1042,5 +1085,14 @@ assert_equal(DogTag:Evaluate("[DynamicCodeTest('Hello')]"), "literal, Hello")
 assert_equal(DogTag:Evaluate("[DynamicCodeTest(One)]"), "dynamic, One")
 assert_equal(DogTag:Evaluate("[DynamicCodeTest(GlobalCheck)]"), "dynamic, GlobalCheck")
 assert_equal(DogTag:Evaluate("[DynamicCodeTest(1 + 1)]"), "dynamic, +")
+
+DynamicGlobalCheck_data = "This is dynamic"
+LiteralGlobalCheck_data = "This is not dynamic"
+assert_equal(DogTag:Evaluate("[DynamicGlobalCheck(nil)]"), "This is not dynamic")
+assert_equal(DogTag:Evaluate("[DynamicGlobalCheck(5)]"), "This is not dynamic")
+assert_equal(DogTag:Evaluate("[DynamicGlobalCheck('Hello')]"), "This is not dynamic")
+assert_equal(DogTag:Evaluate("[DynamicGlobalCheck(One)]"), "This is dynamic")
+assert_equal(DogTag:Evaluate("[DynamicGlobalCheck(GlobalCheck)]"), "This is dynamic")
+assert_equal(DogTag:Evaluate("[DynamicGlobalCheck(1 + 1)]"), "This is dynamic")
 
 print("Tests succeeded")
