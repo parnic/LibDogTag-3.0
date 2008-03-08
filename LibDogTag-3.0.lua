@@ -230,6 +230,9 @@ function DogTag:AddTag(namespace, tag, data)
 	tagData.category = data.category
 	if not data.alias then
 		tagData.code = data.code
+		if type(data.code) ~= "string" and type(data.code) ~= "function" then
+			error(("code must be a string or a function which returns a string, got %s"):format(type(data.code)), 2)
+		end
 	end
 	del(data)
 end

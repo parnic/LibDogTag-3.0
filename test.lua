@@ -475,6 +475,21 @@ DogTag:AddTag("Base", "RetSame", {
 	end
 })
 
+DogTag:AddTag("Base", "DynamicCodeTest", {
+	code = function(args)
+		if args.value.isLiteral then
+			return ([=[return "literal, %s"]=]):format(tostring(args.value.value))
+		else
+			local value = args.value.value
+			return ([=[return "dynamic, %s"]=]):format(value[1] == "tag" and value[2] or value[1])
+		end
+	end,
+	arg = {
+		'value', 'number;nil;string', '@req'
+	},
+	ret = "string",
+})
+
 assert_equal(parse("[MyTag]"), { "tag", "MyTag" })
 assert_equal(DogTag:CleanCode("[MyTag]"), "[MyTag]")
 assert_equal(parse("Alpha [MyTag]"), {" ", "Alpha ", { "tag", "MyTag" } })
@@ -1020,5 +1035,12 @@ assert_equal(DogTag:Evaluate("[RetSame(CheckNilDefault(5))]"), 5)
 assert_equal(RetSame_types, "nil;number")
 assert_equal(DogTag:Evaluate("[RetSame(CheckNilDefault)]"), nil)
 assert_equal(RetSame_types, "nil;number")
+
+assert_equal(DogTag:Evaluate("[DynamicCodeTest(nil)]"), "literal, nil")
+assert_equal(DogTag:Evaluate("[DynamicCodeTest(5)]"), "literal, 5")
+assert_equal(DogTag:Evaluate("[DynamicCodeTest('Hello')]"), "literal, Hello")
+assert_equal(DogTag:Evaluate("[DynamicCodeTest(One)]"), "dynamic, One")
+assert_equal(DogTag:Evaluate("[DynamicCodeTest(GlobalCheck)]"), "dynamic, GlobalCheck")
+assert_equal(DogTag:Evaluate("[DynamicCodeTest(1 + 1)]"), "dynamic, +")
 
 print("Tests succeeded")
