@@ -1538,4 +1538,7 @@ assert_equal(DogTag:Evaluate("[-1666:Romanize]"), "-MDCLXVI")
 assert_equal(DogTag:Evaluate("[-1666666:Romanize]"), "-(MDCLXV)MDCLXVI")
 assert_equal(DogTag:Evaluate("[-4999999:Romanize]"), "-(MMMMCMXCIX)CMXCIX")
 
+assert_equal(DogTag:Evaluate("[nil:Length]"), nil)
+assert_equal(DogTag:Evaluate("[nil:Short]"), nil)
+
 print("Tests succeeded")

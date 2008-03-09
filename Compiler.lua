@@ -432,26 +432,42 @@ local function forceTypes(storeKey, types, forceToTypes, t)
 	if unfulfilledTypes['nil'] then
 		-- we have a possible unrequested nil
 		if forceToTypes['string'] then
-			t[#t+1] = storeKey
-			t[#t+1] = [=[ = ]=]
-			if unfulfilledTypes['number'] then
-				-- and a possible unrequested number
-				t[#t+1] = [=[tostring(]=]
+			if type(storeKey) == "string" and storeKey:match("^arg%d+$") then
 				t[#t+1] = storeKey
-				t[#t+1] = [=[ or '');]=]
+				t[#t+1] = [=[ = ]=]
+				if unfulfilledTypes['number'] then
+					-- and a possible unrequested number
+					t[#t+1] = [=[tostring(]=]
+					t[#t+1] = storeKey
+					t[#t+1] = [=[ or '');]=]
+				else
+					t[#t+1] = [=['';]=]
+				end
 			else
-				t[#t+1] = [=['';]=]
+				if storeKey == "nil" then
+					storeKey = "''"
+				else
+					storeKey = tostring(storeKey or "''")
+				end
 			end
 			finalTypes['string'] = true
 		elseif forceToTypes['number'] then
-			t[#t+1] = [=[if not ]=]
-			t[#t+1] = storeKey
-			t[#t+1] = [=[ then ]=]
-			t[#t+1] = storeKey
-			t[#t+1] = [=[ = ]=]
-			t[#t+1] = [=[0;]=]
-			t[#t+1] = [=[end;]=]
-			finalTypes['number'] = true
+			if type(storeKey) == "string" and storeKey:match("^arg%d+$") then
+				t[#t+1] = [=[if not ]=]
+				t[#t+1] = storeKey
+				t[#t+1] = [=[ then ]=]
+				t[#t+1] = storeKey
+				t[#t+1] = [=[ = ]=]
+				t[#t+1] = [=[0;]=]
+				t[#t+1] = [=[end;]=]
+				finalTypes['number'] = true
+			else
+				if storeKey == "nil" then
+					storeKey = "0"
+				else
+					storeKey = tonumber(storeKey) or "0"
+				end
+			end
 		end
 	elseif unfulfilledTypes['number'] then
 		-- we have a possible unrequested number
@@ -581,22 +597,29 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 			
 			local arg = tagData.arg
 			
+			local firstAndNonNil_t_num = #t
 			local compiledKwargs = newList()
+			local firstAndNonNil
 			for k,v in pairs(kwargs) do
 				if v == extraKwargs then
 					compiledKwargs[k] = newList(("kwargs[%q]"):format(k), extraKwargs[k])
 				else
 					local argTypes = "nil;number;string"
+					local arg_num
+					local arg_default = false
 					if not k:match("^%.%.%.%d+$") then
 						for i = 1, #arg, 3 do
 							if arg[i] == k then
 								argTypes = arg[i+1]
+								arg_num = (i-1)/3 + 1
+								arg_default = arg[i+2]
 								break
 							end
 						end
 					else
 						for i = 1, #arg, 3 do
 							if arg[i] == "..." then
+								arg_num = (i-1)/3 + 1
 								if arg[i+1] == "list-string" then
 									argTypes = "string"
 								elseif arg[i+1] == "list-number" then
@@ -607,6 +630,12 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 							end
 						end
 					end
+					if not firstAndNonNil then
+						firstAndNonNil = arg_num == 1 and arg_default == "@req" and (argTypes == "number" or argTypes == "string" or argTypes == "number;string") and k
+						if firstAndNonNil then
+							argTypes = "nil;" .. argTypes
+						end
+					end
 					local arg, types = compile(v, nsList, t, cachedTags, globals, events, extraKwargs, argTypes)
 					if not arg then
 						for k,v in pairs(compiledKwargs) do
@@ -615,8 +644,23 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 						compiledKwargs = del(compiledKwargs)
 						return nil, types
 					end
+					if firstAndNonNil == k then
+						local returns = newSet((";"):split(types))
+						if not returns["nil"] then
+							firstAndNonNil = nil
+							firstAndNonNil_t_num = nil
+						elseif returns["string"] or returns["number"] then
+							firstAndNonNil_t_num = nil
+						end
+						returns = del(returns)
+					end
 					compiledKwargs[k] = newList(arg, types)
 				end
+			end
+			if firstAndNonNil then
+				t[#t+1] = [=[if ]=]
+				t[#t+1] = compiledKwargs[firstAndNonNil][1]
+				t[#t+1] = [=[ then ]=]
 			end
 			
 			local passData = newList()
@@ -733,6 +777,19 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 				compiledKwargs[k] = del(v)
 			end
 			compiledKwargs = del(compiledKwargs)
+			
+			if firstAndNonNil then
+				t[#t+1] = [=[end;]=]
+				local returns = newSet((";"):split(ret))
+				returns["nil"] = true
+				ret = joinSet(returns, ";")
+				returns = del(returns)
+				if firstAndNonNil_t_num then
+					for i = firstAndNonNil_t_num, #t do
+						t[i] = nil
+					end
+				end
+			end
 			
 			if caching then
 				t[#t+1] = [=[cache_]=]
