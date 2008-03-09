@@ -20,8 +20,15 @@ local select2 = DogTag.select2
 local joinSet = DogTag.joinSet
 local unpackNamespaceList = DogTag.unpackNamespaceList
 local getASTType = DogTag.getASTType
-local kwargsToKey = DogTag.kwargsToKey
+local kwargsToKwargTypes = DogTag.kwargsToKwargTypes
 local memoizeTable = DogTag.memoizeTable
+local unparse, parse, standardize, codeToEventList
+DogTag_funcs[#DogTag_funcs+1] = function()
+	unparse = DogTag.unparse
+	parse = DogTag.parse
+	standardize = DogTag.standardize
+	codeToEventList = DogTag.codeToEventList
+end
 
 local correctTagCasing = setmetatable({}, {__index = function(self, tag)
 	for ns, data in pairs(Tags) do
@@ -69,9 +76,9 @@ do
 			return self[""]
 		end
 		local nsList = self[1]
-		local kwargsKey = self[2]
+		local kwargTypes = self[2]
 		
-		local s = DogTag:CreateFunctionFromCode(code, true, kwargsKey, unpackNamespaceList(nsList))
+		local s = DogTag:CreateFunctionFromCode(code, true, kwargTypes, unpackNamespaceList(nsList))
 		for i, ns in ipairs(unpackNamespaceList[nsList]) do
 			local data = FakeGlobals[ns]
 			if data then
@@ -105,9 +112,9 @@ do
 		self[code] = val
 		return val
 	end}
-	local codeToFunction_mt = {__index = function(self, kwargsKey)
-		local t = setmetatable(newList(self[1], kwargsKey), codeToFunction_mt_mt)
-		self[kwargsKey] = t
+	local codeToFunction_mt = {__index = function(self, kwargTypes)
+		local t = setmetatable(newList(self[1], kwargTypes), codeToFunction_mt_mt)
+		self[kwargTypes] = t
 		return t
 	end}
 	codeToFunction = setmetatable({}, {__index = function(self, nsList)
@@ -674,7 +681,7 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 								if not compiledKwargs_real_param_1:match("^kwargs%[\"[a-z]+\"%]$") then
 									local kwargs_real_param = kwargs[real_param]
 									if type(kwargs_real_param) == "table" then
-										param = DogTag.unparse(kwargs[real_param])
+										param = unparse(kwargs[real_param])
 									else
 										param = kwargs_real_param or true
 									end
@@ -1040,16 +1047,16 @@ function DogTag:CreateFunctionFromCode(code, ...)
 		error(("Bad argument #2 to `CreateFunctionFromCode'. Expected %q, got %q."):format("string", type(code)), 2)
 	end
 	local notDebug = (...) == true
-	local kwargsKey = kwargsToKey()
+	local kwargTypes = kwargsToKwargTypes[""]
 	local nsList
 	if notDebug then
-		kwargsKey = select(2, ...)
+		kwargTypes = select(2, ...)
 		nsList = getNamespaceList(select(3, ...))
 	else
 		local n = select('#', ...)
 		local kwargs = n > 0 and select(n, ...)
 		if type(kwargs) == "table" then
-			kwargsKey = kwargsToKey(kwargs)
+			kwargTypes = kwargsToKwargTypes[kwargs]
 			n = n - 1
 		end
 		for i = 1, n do
@@ -1060,8 +1067,8 @@ function DogTag:CreateFunctionFromCode(code, ...)
 		nsList = getNamespaceList(select2(1, n, ...))
 	end
 	
-	local ast = DogTag.parse(code)
-	ast = DogTag.standardize(ast)
+	local ast = parse(code)
+	ast = standardize(ast)
 	correctASTCasing(ast)
 	
 	local t = newList()
@@ -1082,7 +1089,7 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	
 	local u = newList()
 	local extraKwargs = newList()
-	for k, v in pairs(kwargsKey) do
+	for k, v in pairs(kwargTypes) do
 		local arg = newUniqueVar()
 		u[#u+1] = arg
 		u[#u+1] = [=[ = kwargs["]=]
@@ -1136,11 +1143,10 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	g = del(g)
 	if not next(events) then
 		events = del(events)
-		DogTag.codeToEventList[nsList][kwargsKey][code] = false
+		codeToEventList[nsList][kwargTypes][code] = false
 	else
 		events = memoizeTable(events)
-		DogTag.codeToEventList[nsList][kwargsKey][code] = events
-		DogTag.refreshEvents()
+		codeToEventList[nsList][kwargTypes][code] = events
 	end
 	if not ret then
 		for i = 1, #u do
@@ -1181,11 +1187,11 @@ function DogTag:CreateFunctionFromCode(code, ...)
 end
 
 local function evaluate(code, nsList, kwargs)
-	local kwargsKey = kwargsToKey(kwargs)
+	local kwargTypes = kwargsToKwargTypes[kwargs]
 
 	DogTag.__isMouseOver = false
 
-	local func = codeToFunction[nsList][kwargsKey][code]
+	local func = codeToFunction[nsList][kwargTypes][code]
 
 	local madeKwargs = not kwargs
 	if madeKwargs then

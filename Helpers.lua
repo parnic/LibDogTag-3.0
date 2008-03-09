@@ -308,12 +308,17 @@ do
 end
 DogTag.memoizeTable = memoizeTable
 
-local kwargsKeyPool = { [""] = {} }
-local function kwargsToKey(kwargs)
+local kwargsToKwargTypes = setmetatable({}, { __index = function(self, kwargs)
 	if not kwargs then
-		return kwargsKeyPool[""]
+		return self[""]
+	elseif kwargs == "" then
+		local t = {}
+		self[false] = t
+		self[""] = t
+		return t
 	end
-	local kwargsKey = newList()
+	
+	local kwargTypes = newList()
 	local keys = newList()
 	for k in pairs(kwargs) do
 		keys[#keys+1] = k
@@ -329,19 +334,21 @@ local function kwargsToKey(kwargs)
 		t[#t+1] = "="
 		local type_v = type(v)
 		t[#t+1] = type_v
-		kwargsKey[k] = type_v
+		kwargTypes[k] = type_v
 	end
 	keys = del(keys)
 	local s = table.concat(t)
 	t = del(t)
-	local kwargsKeyPool_s = kwargsKeyPool[s]
-	if kwargsKeyPool_s then
-		kwargsKey = del(kwargsKey)
-		return kwargsKeyPool_s
+	local self_s = rawget(self, s)
+	if self_s then
+		kwargTypes = del(kwargTypes)
+		self[kwargs] = self_s
+		return self_s
 	end
-	kwargsKeyPool[s] = kwargsKey
-	return kwargsKey
-end
-DogTag.kwargsToKey = kwargsToKey
+	self[s] = kwargTypes
+	self[kwargs] = kwargTypes
+	return kwargTypes
+end, __mode='kv' })
+DogTag.kwargsToKwargTypes = kwargsToKwargTypes
 
 end

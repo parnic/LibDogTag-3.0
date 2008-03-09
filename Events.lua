@@ -13,7 +13,20 @@ local newList, del, deepCopy = DogTag.newList, DogTag.del, DogTag.deepCopy
 local getNamespaceList = DogTag.getNamespaceList
 local memoizeTable = DogTag.memoizeTable
 local select2 = DogTag.select2
-local kwargsToKey = DogTag.kwargsToKey
+local kwargsToKwargTypes = DogTag.kwargsToKwargTypes
+local codeToFunction, evaluate, fsToKwargs, fsToNSList, updateFontString
+DogTag_funcs[#DogTag_funcs+1] = function()
+	codeToFunction = DogTag.codeToFunction
+	evaluate = DogTag.evaluate
+	fsToKwargs = DogTag.fsToKwargs
+	fsToNSList = DogTag.fsToNSList
+	updateFontString = DogTag.updateFontString
+end
+
+local fsNeedUpdate = {}
+DogTag.fsNeedUpdate = fsNeedUpdate
+local fsNeedQuickUpdate = {}
+DogTag.fsNeedQuickUpdate = fsNeedQuickUpdate
 
 local frame
 if DogTag.oldLib then
@@ -30,9 +43,9 @@ frame:RegisterAllEvents()
 
 local codeToEventList
 do
-	local codeToEventList_mt = {__index = function(self, kwargsKey)
+	local codeToEventList_mt = {__index = function(self, kwargTypes)
 		local t = newList()
-		self[kwargsKey] = t
+		self[kwargTypes] = t
 		return t
 	end}
 	codeToEventList = setmetatable({}, {__index = function(self, nsList)
@@ -43,28 +56,11 @@ do
 end
 DogTag.codeToEventList = codeToEventList
 
-local function refreshEvents()
-	local totalEvents = newList()
-	for nsList, codeToEventList_nsList in pairs(codeToEventList) do
-		for kwargsKey, codeToEventList_nsList_kwargsKey in pairs(codeToEventList_nsList) do
-			for code, eventList in pairs(codeToEventList_nsList_kwargsKey) do
-				if eventList then
-					for event in pairs(eventList) do
-						totalEvents[event] = true
-					end
-				end
-			end
-		end
-	end
-	totalEvents = del(totalEvents)
-end
-DogTag.refreshEvents = refreshEvents
-
 local callbacks
 do
-	local callbacks_mt = {__index=function(self, kwargsKey)
+	local callbacks_mt = {__index=function(self, kwargTypes)
 		local t = newList()
-		self[kwargsKey] = t
+		self[kwargTypes] = t
 		return t
 	end}
 	callbacks = setmetatable({}, {__index=function(self, nsList)
@@ -73,6 +69,14 @@ do
 		return t
 	end})
 end
+DogTag.callbacks = nil
+
+local eventData = setmetatable({}, {__index = function(self, key)
+	local t = {}
+	self[key] = t
+	return t
+end})
+DogTag.eventData = eventData
 
 function DogTag:AddCallback(code, callback, ...)
 	local n = select('#', ...)
@@ -86,30 +90,30 @@ function DogTag:AddCallback(code, callback, ...)
 		end
 	end
 	local nsList = getNamespaceList(select2(1, n, ...))
-	local kwargsKey = kwargsToKey(kwargs)
-	local codeToEventList_nsList_kwargsKey = codeToEventList[nsList][kwargsKey]
-	local eventList = codeToEventList_nsList_kwargsKey[code]
+	local kwargTypes = kwargsToKwargTypes[kwargs]
+	local codeToEventList_nsList_kwargTypes = codeToEventList[nsList][kwargTypes]
+	local eventList = codeToEventList_nsList_kwargTypes[code]
 	if eventList == nil then
-		local _ = DogTag.codeToFunction[nsList][kwargsKey][code]
-		eventList = codeToEventList_nsList_kwargsKey[code]
+		local _ = codeToFunction[nsList][kwargTypes][code]
+		eventList = codeToEventList_nsList_kwargTypes[code]
 		assert(eventList ~= nil)
 	end
-	local callbacks_nsList_kwargsKey = callbacks[nsList][kwargsKey]
+	local callbacks_nsList_kwargTypes = callbacks[nsList][kwargTypes]
 	kwargs = memoizeTable(deepCopy(kwargs or false))
-	local callbacks_nsList_kwargsKey_kwargs = callbacks_nsList_kwargsKey[kwargs]
-	if not callbacks_nsList_kwargsKey_kwargs then
-		callbacks_nsList_kwargsKey_kwargs = newList()
-		callbacks_nsList_kwargsKey[kwargs] = callbacks_nsList_kwargsKey_kwargs
+	local callbacks_nsList_kwargTypes_kwargs = callbacks_nsList_kwargTypes[kwargs]
+	if not callbacks_nsList_kwargTypes_kwargs then
+		callbacks_nsList_kwargTypes_kwargs = newList()
+		callbacks_nsList_kwargTypes[kwargs] = callbacks_nsList_kwargTypes_kwargs
 	end
-	local callbacks_nsList_kwargsKey_kwargs_code = callbacks_nsList_kwargsKey_kwargs[code]
-	if callbacks_nsList_kwargsKey_kwargs_code then
-		if type(callbacks_nsList_kwargsKey_kwargs_code) == "table" then
-			callbacks_nsList_kwargsKey_kwargs_code[#callbacks_nsList_kwargsKey_kwargs_code+1] = callback
+	local callbacks_nsList_kwargTypes_kwargs_code = callbacks_nsList_kwargTypes_kwargs[code]
+	if callbacks_nsList_kwargTypes_kwargs_code then
+		if type(callbacks_nsList_kwargTypes_kwargs_code) == "table" then
+			callbacks_nsList_kwargTypes_kwargs_code[#callbacks_nsList_kwargTypes_kwargs_code+1] = callback
 		else
-			callbacks_nsList_kwargsKey_kwargs[code] = newList(callbacks_nsList_kwargsKey_kwargs_code, callback)
+			callbacks_nsList_kwargTypes_kwargs[code] = newList(callbacks_nsList_kwargTypes_kwargs_code, callback)
 		end
 	else
-		callbacks_nsList_kwargsKey_kwargs[code] = callback
+		callbacks_nsList_kwargTypes_kwargs[code] = callback
 	end
 end
 
@@ -126,41 +130,41 @@ function DogTag:RemoveCallback(code, callback, ...)
 	end
 	local nsList = getNamespaceList(select2(1, n, ...))
 	
-	local kwargsKey = kwargsToKey(kwargs)
+	local kwargTypes = kwargsToKwargTypes[kwargs]
 	
-	local callbacks_nsList_kwargsKey = callbacks[nsList][kwargsKey]
+	local callbacks_nsList_kwargTypes = callbacks[nsList][kwargTypes]
 	
 	kwargs = memoizeTable(deepCopy(kwargs or false))
 	
-	local callbacks_nsList_kwargsKey_kwargs = callbacks_nsList_kwargsKey[kwargs]
-	if not callbacks_nsList_kwargsKey_kwargs then
+	local callbacks_nsList_kwargTypes_kwargs = callbacks_nsList_kwargTypes[kwargs]
+	if not callbacks_nsList_kwargTypes_kwargs then
 		return
 	end
 	
-	local callbacks_nsList_kwargsKey_kwargs_code = callbacks_nsList_kwargsKey_kwargs[code]
-	if not callbacks_nsList_kwargsKey_kwargs_code then
+	local callbacks_nsList_kwargTypes_kwargs_code = callbacks_nsList_kwargTypes_kwargs[code]
+	if not callbacks_nsList_kwargTypes_kwargs_code then
 		return
 	end
 	
-	if type(callbacks_nsList_kwargsKey_kwargs_code) == "table" then
-		for i, v in ipairs(callbacks_nsList_kwargsKey_kwargs_code) do
+	if type(callbacks_nsList_kwargTypes_kwargs_code) == "table" then
+		for i, v in ipairs(callbacks_nsList_kwargTypes_kwargs_code) do
 			if v == callback then
-				table.remove(callbacks_nsList_kwargsKey_kwargs_code, i)
+				table.remove(callbacks_nsList_kwargTypes_kwargs_code, i)
 				break
 			end
 		end
 	else -- function
-		callbacks_nsList_kwargsKey_kwargs[code] = nil
-		if not next(callbacks_nsList_kwargsKey_kwargs) then
-			callbacks_nsList_kwargsKey[kwargs] = nil
+		callbacks_nsList_kwargTypes_kwargs[code] = nil
+		if not next(callbacks_nsList_kwargTypes_kwargs) then
+			callbacks_nsList_kwargTypes[kwargs] = nil
 		end
 	end
 end
 
 local function OnEvent(this, event, arg1)
 	for nsList, codeToEventList_nsList in pairs(codeToEventList) do
-		for kwargsKey, codeToEventList_nsList_kwargsKey in pairs(codeToEventList_nsList) do
-			for code, eventList in pairs(codeToEventList_nsList_kwargsKey) do
+		for kwargTypes, codeToEventList_nsList_kwargTypes in pairs(codeToEventList_nsList) do
+			for code, eventList in pairs(codeToEventList_nsList_kwargTypes) do
 				if eventList then
 					local eventList_event = eventList[event]
 					if eventList_event then
@@ -179,16 +183,16 @@ local function OnEvent(this, event, arg1)
 							mustEvaluate = eventList_event
 						end
 						if good then
-							local callbacks_nsList_kwargsKey = callbacks[nsList][kwargsKey]
-							for kwargs, callbacks_nsList_kwargsKey_kwargs in pairs(callbacks_nsList_kwargsKey) do
+							local callbacks_nsList_kwargTypes = callbacks[nsList][kwargTypes]
+							for kwargs, callbacks_nsList_kwargTypes_kwargs in pairs(callbacks_nsList_kwargTypes) do
 								good = true
 								if mustEvaluate then
-									good = DogTag.evaluate(mustEvaluate, nsList, kwargs) == arg1
+									good = evaluate(mustEvaluate, nsList, kwargs) == arg1
 								elseif checkKwargs then
 									good = kwargs[checkKwargs] == arg1
 								end
 								if good then
-									local c = callbacks_nsList_kwargsKey_kwargs[code]
+									local c = callbacks_nsList_kwargTypes_kwargs[code]
 									if c then
 										if not kwargs then
 											kwargs = nil
@@ -209,10 +213,54 @@ local function OnEvent(this, event, arg1)
 			end
 		end
 	end
+	
+	local eventData_event = eventData[event]
+	for fs, arg in pairs(eventData_event) do
+		local good = false
+		local checkKwargs = false
+		local mustEvaluate = false
+		if arg == true then
+			good = true
+		elseif arg == arg1 then
+			good = true
+		elseif arg:match("^%$") then
+			good = true
+			checkKwargs = eventList_event:sub(2)
+		elseif arg:match("^%[.*%]$") then
+			good = true
+			mustEvaluate = arg
+		end
+		if good then
+			good = true
+			if mustEvaluate then
+				local kwargs = fsToKwargs[fs]
+				local nsList = fsToNSList[fs]
+				good = evaluate(mustEvaluate, nsList, kwargs) == arg1
+			elseif checkKwargs then
+				local kwargs = fsToKwargs[fs]
+				good = kwargs[checkKwargs] == arg1
+			end
+			if good then
+				fsNeedUpdate[fs] = true
+			end
+		end
+	end
 end
 frame:SetScript("OnEvent", OnEvent)
 
+local timePassed = 0
 local function OnUpdate(this, elapsed)
+	timePassed = timePassed + elapsed
+	DogTag.__lastMouseover = GetMouseFocus()
+	if timePassed >= 0.05 then
+		timePassed = 0
+		for fs in pairs(fsNeedUpdate) do
+			updateFontString(fs)
+		end
+	end	
+	for fs in pairs(fsNeedQuickUpdate) do
+		updateFontString(fs)
+	end
 end
 frame:SetScript("OnUpdate", OnUpdate)
 

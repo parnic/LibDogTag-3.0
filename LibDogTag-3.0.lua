@@ -22,7 +22,28 @@ local DogTag = _G.DogTag
 local L = DogTag__L
 DogTag.L = L
 
-local newList, del = DogTag.newList, DogTag.del
+local newList, del, deepCopy = DogTag.newList, DogTag.del, DogTag.deepCopy
+local select2 = DogTag.select2
+local getNamespaceList = DogTag.getNamespaceList
+local memoizeTable = DogTag.memoizeTable
+local kwargsToKwargTypes = DogTag.kwargsToKwargTypes
+local fsNeedUpdate, fsNeedQuickUpdate, codeToFunction, codeToEventList, eventData
+DogTag_funcs[#DogTag_funcs+1] = function()
+	fsNeedUpdate = DogTag.fsNeedUpdate
+	fsNeedQuickUpdate = DogTag.fsNeedQuickUpdate
+	codeToFunction = DogTag.codeToFunction
+	codeToEventList = DogTag.codeToEventList
+	eventData = DogTag.eventData
+end
+
+local fsToFrame = {}
+DogTag.fsToFrame = fsToFrame
+local fsToCode = {}
+DogTag.fsToCode = fsToCode
+local fsToNSList = {}
+DogTag.fsToNSList = fsToNSList
+local fsToKwargs = {}
+DogTag.fsToKwargs = fsToKwargs
 
 local FakeGlobals = { ["Base"] = {} }
 DogTag.FakeGlobals = FakeGlobals
@@ -146,6 +167,133 @@ function DogTag:AddTag(namespace, tag, data)
 		end
 	end
 	del(data)
+end
+
+local function updateFontString(fs)
+	fsNeedUpdate[fs] = nil
+	fsNeedQuickUpdate[fs] = nil
+	local code = fsToCode[fs]
+	local nsList = fsToNSList[fs]
+	local kwargs = fsToKwargs[fs]
+	local kwargTypes = kwargsToKwargTypes[kwargs]
+	local func = codeToFunction[nsList][kwargTypes][code]
+	DogTag.__isMouseover = DogTag.__lastMouseover == fsToFrame[fs]
+	local success, ret, alpha = pcall(func, kwargs)
+	if success then
+		fs:SetText(ret)
+		if alpha then
+			if alpha < 0 then
+				alpha = 0
+			elseif alpha > 1 then
+				alpha = 1
+			end
+			fs:SetAlpha(alpha)
+		end
+	else
+		geterrorhandler()(("%s.%d: Error with code %q%s. %s"):format(MAJOR_VERSION, MINOR_VERSION, code, nsList == "Base" and "" or " (" .. nsList .. ")", ret))
+	end
+end
+DogTag.updateFontString = updateFontString
+
+function DogTag:AddFontString(fs, frame, code, ...)
+	if type(fs) ~= "table" then
+		error(("Bad argument #2 to `AddFontString'. Expected %q, got %q."):format("table", type(fs)), 2)
+	end
+	if type(frame) ~= "table" then
+		error(("Bad argument #3 to `AddFontString'. Expected %q, got %q."):format("table", type(frame)), 2)
+	end
+	if type(code) ~= "string" then
+		error(("Bad argument #4 to `AddFontString'. Expected %q, got %q."):format("string", type(code)), 2)
+	end
+	local n = select('#', ...)
+	local kwargs
+	if n > 0 then
+		kwargs = select(n, ...)
+		if type(kwargs) == "table" then
+			n = n - 1
+		else
+			kwargs = nil
+		end
+	end
+	for i = 1, n do
+		if type(select(i, ...)) ~= "string" then
+			error(("Bad argument #%d to `AddFontString'. Expected %q, got %q"):format(i+4, "string", type(select(i, ...))), 2)
+		end
+	end
+	
+	local nsList = getNamespaceList(select2(1, n, ...))
+	
+	kwargs = memoizeTable(deepCopy(kwargs))
+	
+	if fsToCode[fs] then
+		if fsToFrame[fs] == frame and fsToCode[fs] == code and fsToNSList[fs] == nsList and fsToKwargs[fs] == kwargs then
+			fsNeedUpdate[fs] = true
+			return
+		end
+		self:RemoveFontString(fs)
+	end
+	fsToFrame[fs] = frame
+	fsToCode[fs] = code
+	fsToNSList[fs] = nsList
+	fsToKwargs[fs] = kwargs
+	
+	local kwargTypes = kwargsToKwargTypes[kwargs]
+	
+	local codeToEventList_nsList_kwargTypes_code = codeToEventList[nsList][kwargTypes][code]
+	if codeToEventList_nsList_kwargTypes_code == nil then
+		local _ = codeToFunction[nsList][kwargTypes][code]
+		codeToEventList_nsList_kwargTypes_code = codeToEventList[nsList][kwargTypes][code]
+		assert(codeToEventList_nsList_kwargTypes_code ~= nil)
+	end
+	if codeToEventList_nsList_kwargTypes_code then
+		for event, arg in pairs(codeToEventList_nsList_kwargTypes_code) do
+			eventData[event][fs] = arg
+		end
+	end
+	
+	updateFontString(fs)
+end
+
+function DogTag:RemoveFontString(fs)
+	if type(fs) ~= "table" then
+		error(("Bad argument #2 to `RemoveFontString'. Expected %q, got %q"):format("table", type(fs)), 2)
+	end
+	local code = fsToCode[fs]
+	if not code then
+		return
+	end
+	local frame = fsToFrame[fs]
+	local nsList = fsToNSList[fs]
+	local kwargs = fsToKwargs[fs]
+	
+	fsToCode[fs], fsToFrame[fs], fsToNSList[fs], fsToKwargs[fs] = nil, nil, nil, nil
+	
+	local kwargTypes = kwargsToKwargTypes[kwargs]
+	
+	local codeToEventList_nsList_kwargTypes_code = codeToEventList[nsList][kwargTypes][code]
+	if codeToEventList_nsList_kwargTypes_code then
+		for event in pairs(codeToEventList_nsList_kwargTypes_code) do
+			eventData[event][fs] = nil
+		end
+	end
+	
+	fs:SetText(nil)
+end
+
+function DogTag:AddFakeGlobal(namespace, key, value)
+	if type(namespace) ~= "string" then
+		error(("Bad argument #2 to `AddFakeGlobal'. Expected %q, got %q"):format("string", type(namespace)), 2)
+	end
+	if type(key) ~= "string" then
+		error(("Bad argument #3 to `AddFakeGlobal'. Expected %q, got %q"):format("string", type(key)), 2)
+	end
+	if type(value) ~= "table" and type(value) ~= "function" then
+		error(("Bad argument #4 to `AddFakeGlobal'. Expected %q or %q, got %q"):format("table", "function", type(value)), 2)
+	end
+	if not FakeGlobals[namespace] then
+		FakeGlobals[namespace] = newList()
+	end
+	FakeGlobals[namespace]["__" .. key] = value
 end
 
 end

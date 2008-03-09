@@ -774,6 +774,25 @@ function UNARY_MINUS(tokens, position)
 	if type(data) == "number" then
 		return position, -data
 	else
+		-- TODO: this should not be this way.
+		local current, next_ = nil, data
+		while type(next_) == "table" do
+			if next_[1] == "mod" then
+				current = next_
+				next_ = next_[3]
+			else
+				break
+			end
+		end
+		if current and current[1] == "mod" then
+			if type(next_) == "number" then
+				current[3] = -current[3]
+				return position, data
+			elseif type(next_) == "table" and next_[1] == "tag" then
+				current[3] = newList("unm", next_)
+				return position, data
+			end
+		end
 		return position, newList("unm", data)
 	end
 end
@@ -854,7 +873,7 @@ local function standardize(ast, parent)
 	
 	local kind = ast[1]
 	
-	if kind == "(" or kind == ")" then
+	if kind == "(" or kind == "[" then
 		local ast_2 = ast[2]
 		standardize(ast_2, ast)
 		local parent__i

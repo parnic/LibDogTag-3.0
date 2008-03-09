@@ -10,17 +10,22 @@ DogTag_funcs[#DogTag_funcs+1] = function()
 local L = DogTag.L
 
 DogTag:AddTag("Base", "Round", {
-	code = [=[
-		return math_floor(${number} * (10^${ndigits}) + 0.5)) / (10^${ndigits})
-	]=],
+	code = [=[local mantissa = 10^${digits}
+	local norm = ${number}*mantissa + 0.5
+	local norm_floor = math_floor(norm)
+	if norm == norm_floor and (norm_floor % 2) == 1 then
+		return (norm_floor-1) / mantissa
+	else
+		return norm_floor / mantissa
+	end]=],
 	arg = {
 		'number', "number", "@req",
-		'ndigits', "number", 0,
+		'digits', "number", 0,
 	},
 	ret = "number",
 	globals = "math.floor",
-	doc = L["Round number to the one's place or the place specified by ndigits"],
-	example = '[1234.5:Round] => "1235"; [1234:Round(-2)] => "1200"; [Round(1234.5)] => "1235"; [Round(1234, -2)] => "1200"',
+	doc = L["Round number to the one's place or the place specified by digits"],
+	example = '[1234.5:Round] => "1234"; [1234:Round(-2)] => "1200"; [Round(1235.5)] => "1236"; [Round(1234, -2)] => "1200"',
 	category = L["Mathematics"],
 })
 
@@ -70,7 +75,7 @@ DogTag:AddTag("Base", "Sign", {
 	code = [=[
 		if ${number} < 0 then
 		 	return -1
-		elseif value == 0 then
+		elseif ${number} == 0 then
 			return 0
 		else
 			return 1
@@ -87,11 +92,11 @@ DogTag:AddTag("Base", "Sign", {
 
 DogTag:AddTag("Base", "Max", {
 	code = [=[
-		return math_max(${number}, unpack(${number_list}))
+		return math_max(${number}, ${...})
 	]=],
 	arg = {
 		'number', 'number', "@req",
-		'number_list', 'list-number', false
+		'...', 'list-number', false
 	},
 	ret = "number",
 	globals = "math.max;unpack",
@@ -101,11 +106,11 @@ DogTag:AddTag("Base", "Max", {
 
 DogTag:AddTag("Base", "Min", {
 	code = [=[
-		return math_min(${number}, unpack(${number_list}))
+		return math_min(${number}, ${...})
 	]=],
 	arg = {
 		'number', 'number', "@req",
-		'number_list', 'list-number', false
+		'...', 'list-number', false
 	},
 	ret = "number",
 	globals = "math.min;unpack",
@@ -135,7 +140,7 @@ DogTag:AddTag("Base", "Deg", {
 })
 
 DogTag:AddTag("Base", "Rad", {
-	code = ([=[return math_rad(${radian})]=]),
+	code = ([=[return math_rad(${degree})]=]),
 	fakeAlias = "${degree} * Pi / 180",
 	arg = {
 		'degree', 'number', "@req"
@@ -196,7 +201,7 @@ DogTag:AddTag("Base", "Ln", {
 })
 
 DogTag:AddTag("Base", "Log", {
-	code = [[return math_log10(value)]],
+	code = [[return math_log10(${number})]],
 	arg = {
 		'number', 'number', "@req",
 	},

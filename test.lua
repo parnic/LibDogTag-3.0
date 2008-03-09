@@ -85,7 +85,7 @@ local function is_equal(alpha, bravo)
 	end
 	
 	if type(alpha) == "number" then
-		return alpha == bravo or math.abs(alpha - bravo) < 1e-10
+		return alpha == bravo or tostring(alpha) == tostring(bravo) or math.abs(alpha - bravo) < 1e-15
 	elseif type(alpha) ~= "table" then
 		return alpha == bravo
 	end
@@ -117,6 +117,29 @@ function geterrorhandler()
 	return error
 end
 
+local function CreateFontString(parent, name, layer)
+	local fs = {
+		[0] = newproxy(), -- fake userdata
+	}
+	function fs:GetObjectType()
+		return "FontString"
+	end
+	local text
+	function fs:SetText(x)
+		text = x
+	end
+	function fs:GetText()
+		return text
+	end
+	local alpha = 1
+	function fs:SetAlpha(a)
+		alpha = a
+	end
+	function fs:GetAlpha()
+		return alpha
+	end
+	return fs
+end
 local frames = {}
 local frameRegisteredEvents = {}
 local ALL_EVENTS = newproxy()
@@ -154,14 +177,26 @@ function CreateFrame(frameType, ...)
 	function frame:RegisterAllEvents()
 		events[ALL_EVENTS] = true
 	end
+	function frame:CreateFontString(...)
+		return CreateFontString(frame, ...)
+	end
 	return frame
 end
 
-local function FireOnUpdate()
+local currentTime = 1e5 -- initial time
+function GetTime()
+	return currentTime
+end
+
+local function FireOnUpdate(elapsed)
+	if not elapsed then
+		elapsed = 1
+	end
+	currentTime = currentTime + elapsed
 	for frame in pairs(frames) do
 		local OnUpdate = frame:GetScript("OnUpdate")
 		if OnUpdate then
-			OnUpdate(frame, 0.01)
+			OnUpdate(frame, elapsed)
 		end
 	end
 end
@@ -177,6 +212,11 @@ local function FireEvent(event, ...)
 	end
 end
 
+local GetMouseFocus_data = nil
+function GetMouseFocus()
+	return GetMouseFocus_data
+end
+
 DogTag_DEBUG = true
 
 dofile("LibStub/LibStub.lua")
@@ -187,6 +227,8 @@ dofile("Parser.lua")
 dofile("Compiler.lua")
 dofile("Events.lua")
 dofile("Modules/Operators.lua")
+dofile("Modules/Math.lua")
+dofile("Modules/TextManip.lua")
 dofile("Cleanup.lua")
 
 local DogTag = LibStub("LibDogTag-3.0")
@@ -362,6 +404,19 @@ DogTag:AddTag("Base", "FunctionNumberCheck", {
 	doc = "Return the results of myfunc",
 	globals = 'myfunc',
 	example = '[FunctionNumberCheck] => "1"',
+	category = "Testing"
+})
+
+
+DogTag:AddTag("Base", "AbsoluteValue", {
+	code = [=[return math_abs(${number})]=],
+	arg = {
+		'number', 'number', "@req",
+	},
+	ret = "number",
+	globals = "math.abs",
+	doc = "Get the absolute value of number",
+	example = '[AbsoluteValue(5)] => "5"; [AbsoluteValue(-5)] => "5"',
 	category = "Testing"
 })
 
@@ -891,6 +946,11 @@ assert_equal(parse("[-MissingHP]"), { "unm", { "tag", "MissingHP" } })
 assert_equal(DogTag:CleanCode("[-MissingHP]"), "[-MissingHP]")
 assert_equal(parse("[-(-1)]"), { "unm", { "(", -1 } })
 assert_equal(standardize(parse("[-(-1)]")), { "unm", -1 })
+assert_equal(parse("[AbsoluteValue(-5)]"), { "tag", "AbsoluteValue", -5 })
+assert_equal(parse("[(-5):AbsoluteValue]"), { "mod", "AbsoluteValue", { "(", -5 } })
+assert_equal(parse("[-5:AbsoluteValue]"), { "mod", "AbsoluteValue", -5})
+assert_equal(parse("[-5:AbsoluteValue:AbsoluteValue]"), { "mod", "AbsoluteValue", { "mod", "AbsoluteValue", -5} })
+assert_equal(parse("[-MissingHP:AbsoluteValue]"), { "mod", "AbsoluteValue", { "unm", { "tag", "MissingHP" } } })
 
 assert_equal(DogTag:Evaluate("[One]"), 1)
 assert_equal(DogTag:Evaluate("[One:PlusOne]"), 2)
@@ -902,6 +962,12 @@ myfunc_num = 0
 assert_equal(DogTag:Evaluate("[FunctionNumberCheck]"), 1)
 assert_equal(DogTag:Evaluate("[FunctionNumberCheck]"), 2)
 assert_equal(DogTag:Evaluate("[FunctionNumberCheck] [FunctionNumberCheck]"), "3 3") -- check caching
+
+assert_equal(DogTag:Evaluate("[AbsoluteValue(5)]"), 5)
+assert_equal(DogTag:Evaluate("[AbsoluteValue(-5)]"), 5)
+assert_equal(DogTag:Evaluate("[5:AbsoluteValue]"), 5)
+assert_equal(DogTag:Evaluate("[-5:AbsoluteValue]"), 5)
+
 GlobalCheck_data = 2
 assert_equal(DogTag:Evaluate("[GlobalCheck + One]"), 3)
 assert_equal(DogTag:Evaluate("[One + GlobalCheck]"), 3)
@@ -1202,11 +1268,12 @@ assert_equal(fired, true)
 fired = false
 
 local fired = false
-DogTag:AddCallback("[BlizzEventTest]", function(code, kwargs)
+local function func(code, kwargs)
 	assert_equal(code, "[BlizzEventTest]")
 	assert_equal(kwargs, { value = "player" })
 	fired = true
-end, { value = "player" })
+end
+DogTag:AddCallback("[BlizzEventTest]", func, { value = "player" })
 FireEvent("FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, true)
 fired = false
@@ -1215,6 +1282,9 @@ assert_equal(fired, false)
 FireEvent("FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, true)
 fired = false
+DogTag:RemoveCallback("[BlizzEventTest]", func, { value = "player" })
+FireEvent("FAKE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, false)
 
 local fired = false
 local func = function(code, kwargs)
@@ -1237,11 +1307,12 @@ FireEvent("OTHER_FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, false)
 
 local fired = false
-DogTag:AddCallback("[BlizzEventTest(GlobalCheck)]", function(code, kwargs)
+local function func(code, kwargs)
 	assert_equal(code, "[BlizzEventTest(GlobalCheck)]")
 	assert_equal(kwargs, nil)
 	fired = true
-end)
+end
+DogTag:AddCallback("[BlizzEventTest(GlobalCheck)]", func)
 GlobalCheck_data = 'player'
 FireEvent("FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, true)
@@ -1257,6 +1328,214 @@ assert_equal(fired, true)
 fired = false
 FireEvent("FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, false)
+DogTag:RemoveCallback("[BlizzEventTest(GlobalCheck)]", func)
+FireEvent("FAKE_BLIZZARD_EVENT", 'pet')
+assert_equal(fired, false)
 
+local f = CreateFrame("Frame")
+local fs = f:CreateFontString(nil, "ARTWORK")
+assert_equal(fs:GetText(), nil)
+DogTag:AddFontString(fs, f, "[One]")
+assert_equal(fs:GetText(), 1)
+DogTag:RemoveFontString(fs)
+assert_equal(fs:GetText(), nil)
+
+_G.OtherBlizzEventTest_num = 1
+DogTag:AddFontString(fs, f, "[OtherBlizzEventTest]")
+assert_equal(fs:GetText(), 2)
+FireEvent("OTHER_FAKE_BLIZZARD_EVENT")
+FireOnUpdate(0)
+assert_equal(fs:GetText(), 2)
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 3)
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 3)
+FireOnUpdate(1000)
+FireEvent("OTHER_FAKE_BLIZZARD_EVENT")
+FireOnUpdate(0.04)
+assert_equal(fs:GetText(), 3)
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 4)
+FireOnUpdate(0.01)
+
+_G.BlizzEventTest_num = 1
+GlobalCheck_data = 'player'
+DogTag:AddFontString(fs, f, "[BlizzEventTest(GlobalCheck)]")
+assert_equal(fs:GetText(), 2)
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 2)
+FireEvent("OTHER_FAKE_BLIZZARD_EVENT")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 2)
+FireEvent("FAKE_BLIZZARD_EVENT", "player")
+assert_equal(fs:GetText(), 2)
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 3)
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 3)
+FireEvent("FAKE_BLIZZARD_EVENT", "pet")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 3)
+FireEvent("FAKE_BLIZZARD_EVENT", "player")
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 4)
+GlobalCheck_data = 'pet'
+FireEvent("FAKE_BLIZZARD_EVENT", "player")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 4)
+FireEvent("FAKE_BLIZZARD_EVENT", "pet")
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 5)
+GlobalCheck_data = 'player'
+FireEvent("FAKE_BLIZZARD_EVENT", "player")
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 6)
+
+-- Test Math module
+assert_equal(DogTag:Evaluate("[Round(0)]"), 0)
+assert_equal(DogTag:Evaluate("[Round(0.5)]"), 0)
+assert_equal(DogTag:Evaluate("[Round(0.500001)]"), 1)
+assert_equal(DogTag:Evaluate("[Round(1)]"), 1)
+assert_equal(DogTag:Evaluate("[Round(1.499999)]"), 1)
+assert_equal(DogTag:Evaluate("[Round(1.5)]"), 2)
+
+assert_equal(DogTag:Evaluate("[Floor(-0.0000000001)]"), -1)
+assert_equal(DogTag:Evaluate("[Floor(0)]"), 0)
+assert_equal(DogTag:Evaluate("[Floor(0.9999999999)]"), 0)
+assert_equal(DogTag:Evaluate("[Floor(1)]"), 1)
+
+assert_equal(DogTag:Evaluate("[Ceil(-0.9999999999)]"), 0)
+assert_equal(DogTag:Evaluate("[Ceil(0)]"), 0)
+assert_equal(DogTag:Evaluate("[Ceil(0.0000000001)]"), 1)
+assert_equal(DogTag:Evaluate("[Ceil(1)]"), 1)
+
+assert_equal(DogTag:Evaluate("[Abs(-5)]"), 5)
+assert_equal(DogTag:Evaluate("[Abs(5)]"), 5)
+assert_equal(DogTag:Evaluate("[Abs(0)]"), 0)
+
+assert_equal(DogTag:Evaluate("[Sign(-5)]"), -1)
+assert_equal(DogTag:Evaluate("[Sign(5)]"), 1)
+assert_equal(DogTag:Evaluate("[Sign(0)]"), 0)
+
+assert_equal(DogTag:Evaluate("[Max(1)]"), 1)
+assert_equal(DogTag:Evaluate("[Max(1, 3, 4, 2)]"), 4)
+
+assert_equal(DogTag:Evaluate("[Min(1)]"), 1)
+assert_equal(DogTag:Evaluate("[Min(5, 3, 4, 2)]"), 2)
+
+assert_equal(DogTag:Evaluate("[Pi]"), math.pi)
+
+assert_equal(DogTag:Evaluate("[0:Deg]"), 0)
+assert_equal(DogTag:Evaluate("[Deg(Pi/2)]"), 90)
+assert_equal(DogTag:Evaluate("[Pi:Deg]"), 180)
+
+assert_equal(DogTag:Evaluate("[0:Rad]"), 0)
+assert_equal(DogTag:Evaluate("[90:Rad]"), math.pi/2)
+assert_equal(DogTag:Evaluate("[180:Rad]"), math.pi)
+
+assert_equal(DogTag:Evaluate("[0:Cos]"), 1)
+assert_equal(DogTag:Evaluate("[(Pi/4):Cos]"), 0.5^0.5)
+assert_equal(DogTag:Evaluate("[(Pi/2):Cos]"), 0)
+
+assert_equal(DogTag:Evaluate("[0:Sin]"), 0)
+assert_equal(DogTag:Evaluate("[(Pi/4):Sin]"), 0.5^0.5)
+assert_equal(DogTag:Evaluate("[(Pi/2):Sin]"), 1)
+
+assert_equal(DogTag:Evaluate("[E]"), math.exp(1))
+
+assert_equal(DogTag:Evaluate("[1:Ln]"), 0)
+assert_equal(DogTag:Evaluate("[E:Ln]"), 1)
+assert_equal(DogTag:Evaluate("[[E^2]:Ln]"), 2)
+
+assert_equal(DogTag:Evaluate("[1:Log]"), 0)
+assert_equal(DogTag:Evaluate("[10:Log]"), 1)
+assert_equal(DogTag:Evaluate("[100:Log]"), 2)
+
+assert_equal(DogTag:Evaluate("[100:Percent]"), "100%")
+assert_equal(DogTag:Evaluate("[50:Percent]"), "50%")
+assert_equal(DogTag:Evaluate("[0:Percent]"), "0%")
+
+assert_equal(DogTag:Evaluate("[100:Short]"), 100)
+assert_equal(DogTag:Evaluate("[1000:Short]"), 1000)
+assert_equal(DogTag:Evaluate("[10000:Short]"), '10.0k')
+assert_equal(DogTag:Evaluate("[100000:Short]"), '100k')
+assert_equal(DogTag:Evaluate("[1000000:Short]"), '1.00m')
+assert_equal(DogTag:Evaluate("[10000000:Short]"), '10.0m')
+assert_equal(DogTag:Evaluate("[100000000:Short]"), '100.0m')
+assert_equal(DogTag:Evaluate("[-100:Short]"), -100)
+assert_equal(DogTag:Evaluate("[-1000:Short]"), -1000)
+assert_equal(DogTag:Evaluate("[-10000:Short]"), '-10.0k')
+assert_equal(DogTag:Evaluate("[-100000:Short]"), '-100k')
+assert_equal(DogTag:Evaluate("[-1000000:Short]"), '-1.00m')
+assert_equal(DogTag:Evaluate("[-10000000:Short]"), '-10.0m')
+assert_equal(DogTag:Evaluate("[-100000000:Short]"), '-100.0m')
+
+assert_equal(DogTag:Evaluate("['100/1000':Short]"), '100/1000')
+assert_equal(DogTag:Evaluate("['1000/10000':Short]"), '1000/10.0k')
+assert_equal(DogTag:Evaluate("['10000/100000':Short]"), '10.0k/100k')
+assert_equal(DogTag:Evaluate("['100000/1000000':Short]"), '100k/1.00m')
+assert_equal(DogTag:Evaluate("['1000000/10000000':Short]"), '1.00m/10.0m')
+assert_equal(DogTag:Evaluate("['10000000/100000000':Short]"), '10.0m/100.0m')
+
+assert_equal(DogTag:Evaluate("[100:VeryShort]"), 100)
+assert_equal(DogTag:Evaluate("[1000:VeryShort]"), '1k')
+assert_equal(DogTag:Evaluate("[10000:VeryShort]"), '10k')
+assert_equal(DogTag:Evaluate("[100000:VeryShort]"), '100k')
+assert_equal(DogTag:Evaluate("[1000000:VeryShort]"), '1m')
+assert_equal(DogTag:Evaluate("[10000000:VeryShort]"), '10m')
+assert_equal(DogTag:Evaluate("[100000000:VeryShort]"), '100m')
+assert_equal(DogTag:Evaluate("[-100:VeryShort]"), -100)
+assert_equal(DogTag:Evaluate("[-1000:VeryShort]"), '-1k')
+assert_equal(DogTag:Evaluate("[-10000:VeryShort]"), '-10k')
+assert_equal(DogTag:Evaluate("[-100000:VeryShort]"), '-100k')
+assert_equal(DogTag:Evaluate("[-1000000:VeryShort]"), '-1m')
+assert_equal(DogTag:Evaluate("[-10000000:VeryShort]"), '-10m')
+assert_equal(DogTag:Evaluate("[-100000000:VeryShort]"), '-100m')
+
+assert_equal(DogTag:Evaluate("['100/1000':VeryShort]"), '100/1k')
+assert_equal(DogTag:Evaluate("['1000/10000':VeryShort]"), '1k/10k')
+assert_equal(DogTag:Evaluate("['10000/100000':VeryShort]"), '10k/100k')
+assert_equal(DogTag:Evaluate("['100000/1000000':VeryShort]"), '100k/1m')
+assert_equal(DogTag:Evaluate("['1000000/10000000':VeryShort]"), '1m/10m')
+assert_equal(DogTag:Evaluate("['10000000/100000000':VeryShort]"), '10m/100m')
+
+assert_equal(DogTag:Evaluate("['Hello':Upper]"), 'HELLO')
+assert_equal(DogTag:Evaluate("['Hello':Lower]"), 'hello')
+
+assert_equal(DogTag:Evaluate("['Hello':Bracket]"), '[Hello]')
+assert_equal(DogTag:Evaluate("['Hello':Angle]"), '<Hello>')
+assert_equal(DogTag:Evaluate("['Hello':Brace]"), '{Hello}')
+assert_equal(DogTag:Evaluate("['Hello':Paren]"), '(Hello)')
+
+assert_equal(DogTag:Evaluate("['Hello':Truncate(3)]"), 'Hel...')
+assert_equal(DogTag:Evaluate("['Über':Truncate(3)]"), 'Übe...')
+assert_equal(DogTag:Evaluate("['Hello':Truncate(4)]"), 'Hell...')
+assert_equal(DogTag:Evaluate("['Hello':Truncate(5)]"), 'Hello')
+assert_equal(DogTag:Evaluate("['Hello':Truncate(3, ellipses=nil)]"), 'Hel')
+assert_equal(DogTag:Evaluate("['Über':Truncate(3, nil)]"), 'Übe')
+assert_equal(DogTag:Evaluate("['Hello':Truncate(4, nil)]"), 'Hell')
+assert_equal(DogTag:Evaluate("['Hello':Truncate(5, ellipses=nil)]"), 'Hello')
+
+assert_equal(DogTag:Evaluate("['Hello':Repeat(0)]"), nil)
+assert_equal(DogTag:Evaluate("['Hello':Repeat(1)]"), 'Hello')
+assert_equal(DogTag:Evaluate("['Hello':Repeat(2)]"), 'HelloHello')
+assert_equal(DogTag:Evaluate("['Hello':Repeat(2.5)]"), 'HelloHello')
+
+assert_equal(DogTag:Evaluate("['Hello':Length]"), 5)
+assert_equal(DogTag:Evaluate("['Über':Length]"), 4)
+
+assert_equal(DogTag:Evaluate("[0:Romanize]"), "N")
+assert_equal(DogTag:Evaluate("[1:Romanize]"), "I")
+assert_equal(DogTag:Evaluate("[4:Romanize]"), "IV")
+assert_equal(DogTag:Evaluate("[500:Romanize]"), "D")
+assert_equal(DogTag:Evaluate("[1666:Romanize]"), "MDCLXVI")
+assert_equal(DogTag:Evaluate("[1666666:Romanize]"), "(MDCLXV)MDCLXVI")
+assert_equal(DogTag:Evaluate("[4999999:Romanize]"), "(MMMMCMXCIX)CMXCIX")
+assert_equal(DogTag:Evaluate("[-1:Romanize]"), "-I")
+assert_equal(DogTag:Evaluate("[-4:Romanize]"), "-IV")
+assert_equal(DogTag:Evaluate("[-500:Romanize]"), "-D")
+assert_equal(DogTag:Evaluate("[-1666:Romanize]"), "-MDCLXVI")
+assert_equal(DogTag:Evaluate("[-1666666:Romanize]"), "-(MDCLXV)MDCLXVI")
+assert_equal(DogTag:Evaluate("[-4999999:Romanize]"), "-(MMMMCMXCIX)CMXCIX")
 
 print("Tests succeeded")
