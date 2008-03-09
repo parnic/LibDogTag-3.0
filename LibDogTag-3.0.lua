@@ -177,7 +177,7 @@ local function updateFontString(fs)
 	local kwargs = fsToKwargs[fs]
 	local kwargTypes = kwargsToKwargTypes[kwargs]
 	local func = codeToFunction[nsList][kwargTypes][code]
-	DogTag.__isMouseover = DogTag.__lastMouseover == fsToFrame[fs]
+	DogTag.__isMouseOver = DogTag.__lastMouseover == fsToFrame[fs]
 	local success, ret, alpha = pcall(func, kwargs)
 	if success then
 		fs:SetText(ret)

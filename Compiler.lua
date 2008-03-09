@@ -423,7 +423,7 @@ local function forceTypes(storeKey, types, forceToTypes, t)
 		local types = joinSet(finalTypes, ';')
 		finalTypes = del(finalTypes)
 		forceToTypes = del(forceToTypes)
-		if type(storeKey) ~= "string" or (not storeKey:match("^arg%d+$") and storeKey ~= "value") then
+		if type(storeKey) ~= "string" or (not storeKey:match("^arg%d+$") and storeKey ~= "result") then
 			storeKey = "(" .. storeKey .. ")"
 		end
 		return storeKey, types
@@ -526,7 +526,7 @@ local function forceTypes(storeKey, types, forceToTypes, t)
 	forceToTypes = del(forceToTypes)
 	local types = joinSet(finalTypes, ';')
 	finalTypes = del(finalTypes)
-	if type(storeKey) ~= "string" or (not storeKey:match("^arg%d+$") and storeKey ~= "value") then
+	if type(storeKey) ~= "string" or (not storeKey:match("^arg%d+$") and storeKey ~= "result") then
 		storeKey = "(" .. storeKey .. ")"
 	end
 	return storeKey, types
@@ -1135,7 +1135,7 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	t[#t+1] = [=[local cleanText = DogTag.__cleanText;]=]
 	local globals_t_num = #t
 	t[#t+1] = [=[return function(kwargs) ]=]
-	t[#t+1] = [=[local value, opacity;]=]
+	t[#t+1] = [=[local result, opacity;]=]
 	
 	local cachedTags = figureCachedTags(ast)
 	for k in pairs(cachedTags) do
@@ -1160,7 +1160,7 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	globals['tostring'] = true
 	globals['type'] = true
 	local events = newList()
-	local ret, types = compile(ast, nsList, u, cachedTags, globals, events, extraKwargs, 'nil;number;string', 'value')
+	local ret, types = compile(ast, nsList, u, cachedTags, globals, events, extraKwargs, 'nil;number;string', 'result')
 	for k, v in pairs(extraKwargs) do
 		extraKwargs[k] = del(v)
 	end
@@ -1209,7 +1209,7 @@ function DogTag:CreateFunctionFromCode(code, ...)
 		for i = 1, #u do
 			u[i] = nil
 		end
-		u[#u+1] = [=[value = ]=]
+		u[#u+1] = [=[result = ]=]
 		u[#u+1] = ("%q"):format(types)
 		u[#u+1] = [=[;]=]
 	end
@@ -1226,11 +1226,11 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	
 	types = newSet((";"):split(types))
 	if types["string"] then
-		t[#t+1] = [=[if value == '' then value = nil; elseif tonumber(value) then value = value+0; end;]=]
+		t[#t+1] = [=[if result == '' then result = nil; elseif tonumber(result) then result = result+0; end;]=]
 	end
 	types = del(types)
 	
-	t[#t+1] = [=[return value, opacity;]=]
+	t[#t+1] = [=[return result, opacity;]=]
 	
 	t[#t+1] = [=[end]=]
 	

@@ -217,6 +217,21 @@ function GetMouseFocus()
 	return GetMouseFocus_data
 end
 
+local IsAltKeyDown_data = nil
+function IsAltKeyDown()
+	return IsAltKeyDown_data
+end
+
+local IsShiftKeyDown_data = nil
+function IsShiftKeyDown()
+	return IsShiftKeyDown_data
+end
+
+local IsControlKeyDown_data = nil
+function IsControlKeyDown()
+	return IsControlKeyDown_data
+end
+
 DogTag_DEBUG = true
 
 dofile("LibStub/LibStub.lua")
@@ -226,8 +241,9 @@ dofile("LibDogTag-3.0.lua")
 dofile("Parser.lua")
 dofile("Compiler.lua")
 dofile("Events.lua")
-dofile("Modules/Operators.lua")
 dofile("Modules/Math.lua")
+dofile("Modules/Misc.lua")
+dofile("Modules/Operators.lua")
 dofile("Modules/TextManip.lua")
 dofile("Cleanup.lua")
 
@@ -303,13 +319,13 @@ DogTag:Evaluate("")
 local old_DogTag_Evaluate = DogTag.Evaluate
 function DogTag:Evaluate(...)
 	local start = DogTag.getPoolNum()
-	local ret = old_DogTag_Evaluate(self, ...)
+	local rets = { old_DogTag_Evaluate(self, ...) }
 	local finish = DogTag.getPoolNum()
 	local change = finish - start
 	if change ~= 0 then
 --		error(("Unknown table usage: %d instead of %d"):format(change, 0), 2)
 	end
-	return ret
+	return unpack(rets)
 end
 
 local old_DogTag_CleanCode = DogTag.CleanCode
@@ -1540,5 +1556,77 @@ assert_equal(DogTag:Evaluate("[-4999999:Romanize]"), "-(MMMMCMXCIX)CMXCIX")
 
 assert_equal(DogTag:Evaluate("[nil:Length]"), nil)
 assert_equal(DogTag:Evaluate("[nil:Short]"), nil)
+
+assert_equal(DogTag:Evaluate("[nil:Short]"), nil)
+
+IsAltKeyDown_data = nil
+assert_equal(DogTag:Evaluate("[Alt]"), nil)
+IsAltKeyDown_data = 1
+assert_equal(DogTag:Evaluate("[Alt]"), "True")
+
+IsShiftKeyDown_data = nil
+assert_equal(DogTag:Evaluate("[Shift]"), nil)
+IsShiftKeyDown_data = 1
+assert_equal(DogTag:Evaluate("[Shift]"), "True")
+
+IsControlKeyDown_data = nil
+assert_equal(DogTag:Evaluate("[Ctrl]"), nil)
+IsControlKeyDown_data = 1
+assert_equal(DogTag:Evaluate("[Ctrl]"), "True")
+
+local now = GetTime()
+FireOnUpdate(1)
+assert_equal(DogTag:Evaluate("[CurrentTime]"), now+1)
+FireOnUpdate(1)
+assert_equal(DogTag:Evaluate("[CurrentTime]"), now+2)
+
+assert_equal(DogTag:Evaluate("[Alpha(1)]"), nil)
+assert_equal(select(2, DogTag:Evaluate("[Alpha(1)]")), 1)
+assert_equal(select(2, DogTag:Evaluate("[Alpha(0)]")), 0)
+assert_equal(select(2, DogTag:Evaluate("[Alpha(0.5)]")), 0.5)
+assert_equal(select(2, DogTag:Evaluate("[Alpha(2)]")), 1)
+assert_equal(select(2, DogTag:Evaluate("[Alpha(-1)]")), 0)
+
+DogTag:AddFontString(fs, f, "[IsMouseOver]")
+assert_equal(fs:GetText(), nil)
+GetMouseFocus_data = f
+assert_equal(fs:GetText(), nil)
+FireOnUpdate(0)
+assert_equal(fs:GetText(), "True")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), "True")
+GetMouseFocus_data = nil
+FireOnUpdate(0)
+assert_equal(fs:GetText(), nil)
+DogTag:RemoveFontString(fs)
+
+assert_equal(DogTag:Evaluate("['Hello':Color('ff0000')]"), "|cffff0000Hello|r")
+assert_equal(DogTag:Evaluate("['There':Color('00ff00')]"), "|cff00ff00There|r")
+assert_equal(DogTag:Evaluate("['Friend':Color(0, 0, 1)]"), "|cff0000ffFriend|r")
+assert_equal(DogTag:Evaluate("['Broken':Color('00ff00a')]"), "|cffffffffBroken|r")
+assert_equal(DogTag:Evaluate("['Large nums':Color(180, 255, -60)]"), "|cffffff00Large nums|r")
+
+assert_equal(DogTag:Evaluate("[Color('ff0000')]"), "|cffff0000")
+assert_equal(DogTag:Evaluate("[Color('00ff00')]"), "|cff00ff00")
+assert_equal(DogTag:Evaluate("[Color(0, 0, 1)]"), "|cff0000ff")
+assert_equal(DogTag:Evaluate("[Color('00ff00a')]"), "|cffffffff")
+assert_equal(DogTag:Evaluate("[Color(180, 255, -60)]"), "|cffffff00")
+
+for name, color in pairs({
+	White = "ffffff",
+	Red = "ff0000",
+	Green = "00ff00",
+	Blue = "0000ff",
+	Cyan = "00ffff",
+	Fuschia = "ff00ff",
+	Yellow = "ffff00",
+	Gray = "afafaf",
+}) do
+	assert_equal(DogTag:Evaluate("['Hello':" .. name .. "]"), "|cff" .. color .. "Hello|r")
+	assert_equal(DogTag:Evaluate("[" .. name .. " 'Hello']"), "|cff" .. color .. "Hello")
+end
+
+assert_equal(DogTag:Evaluate("['Hello':Abbreviate]"), "Hello")
+assert_equal(DogTag:Evaluate("['Hello World':Abbreviate]"), "HW")
 
 print("Tests succeeded")

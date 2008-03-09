@@ -14,10 +14,11 @@ local getNamespaceList = DogTag.getNamespaceList
 local memoizeTable = DogTag.memoizeTable
 local select2 = DogTag.select2
 local kwargsToKwargTypes = DogTag.kwargsToKwargTypes
-local codeToFunction, evaluate, fsToKwargs, fsToNSList, updateFontString
+local codeToFunction, evaluate, fsToKwargs, fsToFrame, fsToNSList, updateFontString
 DogTag_funcs[#DogTag_funcs+1] = function()
 	codeToFunction = DogTag.codeToFunction
 	evaluate = DogTag.evaluate
+	fsToFrame = DogTag.fsToFrame
 	fsToKwargs = DogTag.fsToKwargs
 	fsToNSList = DogTag.fsToNSList
 	updateFontString = DogTag.updateFontString
@@ -251,7 +252,17 @@ frame:SetScript("OnEvent", OnEvent)
 local timePassed = 0
 local function OnUpdate(this, elapsed)
 	timePassed = timePassed + elapsed
-	DogTag.__lastMouseover = GetMouseFocus()
+	local oldMouseover = DogTag.__lastMouseover
+	local newMouseover = GetMouseFocus()
+	DogTag.__lastMouseover = newMouseover
+	if oldMouseover ~= DogTag.__lastMouseover then
+		for fs, frame in pairs(fsToFrame) do
+			if frame == oldMouseover or frame == newMouseover then
+				-- TODO: only update if has a mouseover event
+				fsNeedQuickUpdate[fs] = true
+			end
+		end
+	end
 	if timePassed >= 0.05 then
 		timePassed = 0
 		for fs in pairs(fsNeedUpdate) do

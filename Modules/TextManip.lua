@@ -1,4 +1,4 @@
-local MAJOR_VERSION = "LibDogTag-2.0"
+local MAJOR_VERSION = "LibDogTag-3.0"
 local MINOR_VERSION = tonumber(("$Revision$"):match("%d+")) or 0
 
 if MINOR_VERSION > _G.DogTag_MINOR_VERSION then
@@ -318,6 +318,35 @@ DogTag:AddTag("Base", "Romanize", {
 	doc = L["Turn number_value into a roman numeral."],
 	example = '[1666:Romanize] => "MDCLXVI"',
 	category = L["Text manipulation"]
+})
+
+local function abbreviate(text)
+	local b = text:byte(1)
+	if b <= 127 then
+		return text:sub(1, 1)
+	elseif b <= 223 then
+		return text:sub(1, 2)
+	elseif b <= 239 then
+		return text:sub(1, 3)
+	else
+		return text:sub(1, 4)
+	end
+end
+DogTag:AddFakeGlobal("Base", "abbreviate", abbreviate)
+DogTag:AddTag("Base", "Abbreviate", {
+	code = [[if ${value}:find(" ") then
+		return ${value}:gsub(" *([^ ]+) *", DogTag___abbreviate)
+	else
+		return ${value}
+	end]],
+	arg = {
+		'value', 'string', "@req"
+	},
+	ret = "string",
+	globals = "DogTag.__abbreviate",
+	doc = L["Abbreviate value if a space is found"],
+	example = '["Hello":Abbreviate] => "Hello"; ["Hello World":Abbreviate] => "HW"',
+	category = L["Text Manipulation"],
 })
 
 end
