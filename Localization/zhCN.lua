@@ -5,7 +5,7 @@ _G.DogTag_MINOR_VERSION = MINOR_VERSION
 
 DogTag_funcs[#DogTag_funcs+1] = function()
 
-if GetLocale() == "koKR" then
+if GetLocale() == "zhCN" then
 	local L = _G.DogTag__L
 
 	L["DogTag Help"] = "DogTag帮助"
