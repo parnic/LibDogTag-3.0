@@ -182,14 +182,14 @@ DogTag:AddTag("Base", ">=", {
 })
 
 DogTag:AddTag("Base", "=", {
-	code = [=[if ${left} == ${right} then
+	code = [=[if ${left} == ${right} or ${left:string} == ${right:string} then
 		return ${left}
 	else
 		return nil
 	end]=],
 	arg = {
 		'left', 'number;string', "@req",
-		'right', 'number;string', "@req",
+		'right', 'nil;number;string', "@req",
 	},
 	ret = "number;string;nil",
 	doc = L["Check if left is equal to right, if so, return left"],
@@ -198,14 +198,14 @@ DogTag:AddTag("Base", "=", {
 })
 
 DogTag:AddTag("Base", "~=", {
-	code = [=[if ${left} ~= ${right} then
+	code = [=[if ${left:string} ~= ${right:string} then
 		return ${left}
 	else
 		return nil
 	end]=],
 	arg = {
 		'left', 'number;string', "@req",
-		'right', 'number;string', "@req",
+		'right', 'nil;number;string', "@req",
 	},
 	ret = "number;string;nil",
 	doc = L["Check if left is equal to right, if so, return left"],
