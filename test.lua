@@ -533,6 +533,16 @@ DogTag:AddTag("Base", "TupleAlias", {
 	category = "Testing"
 })
 
+DogTag:AddTag("Base", "OtherTupleAlias", {
+	alias = [=[Subtract(...)]=],
+	arg = {
+		'...', 'list-number', false
+	},
+	doc = "Subtract the values of ...",
+	example = '[OtherTupleAlias(5, 2)] => "3"',
+	category = "Testing"
+})
+
 DogTag:AddTag("Base", "CheckAnotherNumTuple", {
 	code = [=[return math_max(0, ${...})]=],
 	arg = {
@@ -1710,5 +1720,10 @@ assert_equal(DogTag:Evaluate("[AbsAlias(-10)]"), 10)
 assert_equal(DogTag:Evaluate("[TupleAlias]"), 5)
 assert_equal(DogTag:Evaluate("[TupleAlias(1)]"), "5-1")
 assert_equal(DogTag:Evaluate("[TupleAlias(1, 2, 3)]"), "5-1-2-3")
+
+assert_equal(DogTag:Evaluate("[OtherTupleAlias(5, 2)]"), 3)
+assert_equal(DogTag:Evaluate("[OtherTupleAlias(2, 5)]"), -3)
+assert_equal(DogTag:Evaluate("[OtherTupleAlias(5, 6, 7)]"), "Too many args for Subtract")
+assert_equal(DogTag:Evaluate("[OtherTupleAlias(5)]"), "Arg #2 (right) req'd for Subtract")
 
 print("Tests succeeded")
