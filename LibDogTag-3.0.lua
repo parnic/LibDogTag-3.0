@@ -22,7 +22,7 @@ local DogTag = _G.DogTag
 local L = DogTag__L
 DogTag.L = L
 
-local newList, del, deepCopy = DogTag.newList, DogTag.del, DogTag.deepCopy
+local newList, newSet, del, deepCopy = DogTag.newList, DogTag.newSet, DogTag.del, DogTag.deepCopy
 local select2 = DogTag.select2
 local getNamespaceList = DogTag.getNamespaceList
 local memoizeTable = DogTag.memoizeTable
@@ -72,6 +72,43 @@ function DogTag:AddTag(namespace, tag, data)
 	local tagData = newList()
 	Tags[namespace][tag] = tagData
 	
+	local arg = data.arg
+	if arg then
+		if type(arg) ~= "table" then
+			error("arg must be a table", 2)
+		end
+		if #arg % 3 ~= 0 then
+			error("arg must be a table with a length a multiple of 3", 2)
+		end
+		for i = 1, #arg, 3 do
+			local key, types, default = arg[i], arg[i+1], arg[i+2]
+			if type(key) ~= "string" then
+				error("arg must have its keys as strings", 2)
+			end
+			if type(types) ~= "string" then
+				error("arg must have its types as strings", 2)
+			end
+			if types ~= "list-number" and types ~= "list-string" then
+				if not key:match("^[a-z]+$") then
+					error("arg must have its key be a string of lowercase letters.", 2)
+				end
+				local t = newSet((';'):split(types))
+				for k in pairs(t) do
+					if k ~= "nil" and k ~= "number" and k ~= "string" and k ~= "undef" then
+						error("arg must have nil, number, string, undef, list-number, or list-string", 2)
+					end
+				end
+				if t["nil"] and t["undef"] then
+					error("arg cannot specify both nil and undef", 2)
+				end
+				t = del(t)
+			elseif key ~= "..." then
+				error("arg must have its key be ... if a list-number or list-string.", 2)
+			end
+			arg[i+1] = sortStringList(types)
+		end
+		tagData.arg = arg
+	end
 	if data.alias then
 		if type(data.alias) == "string" then
 			tagData.alias = data.alias
@@ -80,57 +117,17 @@ function DogTag:AddTag(namespace, tag, data)
 			tagData.aliasFunc = data.alias
 		end
 	else
-		local arg = data.arg
-		if arg then
-			if type(arg) ~= "table" then
-				error("arg must be a table", 2)
-			end
-			if #arg % 3 ~= 0 then
-				error("arg must be a table with a length a multiple of 3", 2)
-			end
-			for i = 1, #arg, 3 do
-				local key, types, default = arg[i], arg[i+1], arg[i+2]
-				if type(key) ~= "string" then
-					error("arg must have its keys as strings", 2)
-				end
-				if type(types) ~= "string" then
-					error("arg must have its types as strings", 2)
-				end
-				if types ~= "list-number" and types ~= "list-string" then
-					if not key:match("^[a-z]+$") then
-						error("arg must have its key be a string of lowercase letters.", 2)
-					end
-					local a,b,c = (';'):split(types)
-					if a ~= "nil" and a ~= "number" and a ~= "string" then
-						error("arg must have nil, number, string, list-number, or list-string", 2)
-					end
-					if b and b ~= "nil" and b ~= "number" and b ~= "string" then
-						error("arg must have nil, number, or string", 2)
-					end
-					if c and c ~= "nil" and c ~= "number" and c ~= "string" then
-						error("arg must have nil, number, or string", 2)
-					end
-				elseif key ~= "..." then
-					error("arg must have its key be ... if a list-number or list-string.", 2)
-				end
-				arg[i+1] = sortStringList(types)
-			end
-			tagData.arg = arg
-		end
 		local ret = data.ret
 		if type(ret) == "string" then
 			tagData.ret = sortStringList(ret)
 			if ret then
-				local a,b,c = (";"):split(ret)
-				if a ~= "nil" and a ~= "number" and a ~= "string" and a ~= "same" then
-					error("ret must have same, nil, number, or string", 2)
+				local rets = newSet((";"):split(ret))
+				for k in pairs(rets) do
+					if k ~= "nil" and k ~= "number" and k ~= "string" then
+						error("ret must have nil, number, or string", 2)
+					end
 				end
-				if b and b ~= "nil" and b ~= "number" and b ~= "string" and b ~= "same" then
-					error("ret must have same, nil, number, or string", 2)
-				end
-				if c and c ~= "nil" and c ~= "number" and c ~= "string" and c ~= "same" then
-					error("ret must have same, nil, number, or string", 2)
-				end
+				rets = del(rets)
 			end
 		elseif type(ret) == "function" then
 			tagData.ret = ret

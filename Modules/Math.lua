@@ -127,8 +127,8 @@ DogTag:AddTag("Base", "Pi", {
 })
 
 DogTag:AddTag("Base", "Deg", {
-	code = ([=[return math_deg(${radian})]=]),
-	fakeAlias = "${radian} * 180 / Pi",
+	code = [=[return math_deg(${radian})]=],
+	fakeAlias = "radian * 180 / Pi",
 	arg = {
 		'radian', 'number', "@req"
 	},
@@ -140,8 +140,8 @@ DogTag:AddTag("Base", "Deg", {
 })
 
 DogTag:AddTag("Base", "Rad", {
-	code = ([=[return math_rad(${degree})]=]),
-	fakeAlias = "${degree} * Pi / 180",
+	code = [=[return math_rad(${degree})]=],
+	fakeAlias = "degree * Pi / 180",
 	arg = {
 		'degree', 'number', "@req"
 	},

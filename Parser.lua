@@ -866,7 +866,7 @@ local standardizations = {
 	['~'] = 'not',
 }
 
-local function standardize(ast, parent)
+local function standardize(ast)
 	if type(ast) ~= "table" then
 		return ast
 	end
@@ -875,33 +875,27 @@ local function standardize(ast, parent)
 	
 	if kind == "(" or kind == "[" then
 		local ast_2 = ast[2]
-		standardize(ast_2, ast)
-		local parent__i
-		if parent then
-			for i, v in pairs(parent) do -- use pairs, might be kwarg
-				if v == ast then
-					parent__i = i
-					break
-				end
-			end
-		end
+		ast_2 = standardize(ast_2)
 		del(ast)
-		if parent__i then
-			parent[parent__i] = ast_2
-		end
 		return ast_2
 	else
 		ast[1] = standardizations[kind] or kind
 	
 		for i = 2, #ast do
-			standardize(ast[i], ast)
+			ast[i] = standardize(ast[i])
 		end
 		local kwarg = ast.kwarg
 		if kwarg then
 			for k,v in pairs(kwarg) do
-				standardize(v, kwarg)
+				kwarg[k] = standardize(v, kwarg)
 			end
 		end
+	end	
+	
+	if kind == "unm" and type(ast[2]) == "number" then
+		local num = -ast[2]
+		del(ast)
+		return num
 	end
 	
 	return ast

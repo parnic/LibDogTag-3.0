@@ -150,7 +150,7 @@ for name, color in pairs({
 			return "|cff]=] .. color .. [=["
 		end]=],
 		arg = {
-			'value', 'string;nil', false,
+			'value', 'string;undef', "@undef",
 		},
 		ret = "string",
 		doc = L["Return the color or wrap value with %s color"]:format(name),

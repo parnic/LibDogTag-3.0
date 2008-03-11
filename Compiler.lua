@@ -13,7 +13,7 @@ local L = DogTag__L
 
 local FakeGlobals = DogTag.FakeGlobals
 local Tags = DogTag.Tags
-local newList, newDict, newSet, del, deepDel = DogTag.newList, DogTag.newDict, DogTag.newSet, DogTag.del, DogTag.deepDel
+local newList, newDict, newSet, del, deepCopy, deepDel = DogTag.newList, DogTag.newDict, DogTag.newSet, DogTag.del, DogTag.deepCopy, DogTag.deepDel
 
 local getNamespaceList = DogTag.getNamespaceList
 local select2 = DogTag.select2
@@ -402,12 +402,27 @@ local operators = {
 	["unm"] = true,
 }
 
+local allOperators = {
+	[" "] = true,
+	["and"] = true,
+	["or"] = true,
+	["if"] = true,
+	["not"] = true,
+}
+for k in pairs(operators) do
+	allOperators[k] = true
+end
+
 local function forceTypes(storeKey, types, forceToTypes, t)
 	if not storeKey then
 		return nil, types
 	end
 	types = newSet((";"):split(types))
 	forceToTypes = newSet((";"):split(forceToTypes))
+	if forceToTypes["undef"] then
+		forceToTypes["undef"] = nil
+		forceToTypes["nil"] = true
+	end
 	local unfulfilledTypes = newList()
 	local finalTypes = newList()
 	for k in pairs(types) do
@@ -534,7 +549,17 @@ end
 
 function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, forceToTypes, storeKey)
 	local astType = getASTType(ast)
-	if astType == 'string' then
+	if astType == 'nil' or ast == "@undef" then
+		if storeKey then
+			t[#t+1] = storeKey
+			t[#t+1] = [=[ = ]=]
+			t[#t+1] = "nil"
+			t[#t+1] = [=[;]=]
+			return forceTypes(storeKey, "nil", forceToTypes, t)
+		else
+			return forceTypes("nil", "nil", forceToTypes, t)
+		end
+	elseif astType == 'string' then
 		if ast == '' then
 			return compile(nil, nsList, t, cachedTags, globals, events, extraKwargs, forceToTypes, storeKey)
 		else
@@ -557,16 +582,6 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 			return forceTypes(storeKey, "number", forceToTypes, t)
 		else
 			return forceTypes(("%.22f"):format(ast), "number", forceToTypes, t)
-		end
-	elseif astType == 'nil' then
-		if storeKey then
-			t[#t+1] = storeKey
-			t[#t+1] = [=[ = ]=]
-			t[#t+1] = "nil"
-			t[#t+1] = [=[;]=]
-			return forceTypes(storeKey, "nil", forceToTypes, t)
-		else
-			return forceTypes("nil", "nil", forceToTypes, t)
 		end
 	elseif astType == 'tag' or operators[astType] then
 		local tag = ast[astType == 'tag' and 2 or 1]
@@ -631,10 +646,14 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 						end
 					end
 					if not firstAndNonNil then
-						firstAndNonNil = arg_num == 1 and arg_default == "@req" and (argTypes == "number" or argTypes == "string" or argTypes == "number;string") and k
+						local a = newSet((";"):split(argTypes))
+						firstAndNonNil = arg_num == 1 and (arg_default == "@req" or arg_default == "@undef") and not a["nil"] and k
 						if firstAndNonNil then
-							argTypes = "nil;" .. argTypes
+							a["undef"] = nil
+							a["nil"] = true
+							argTypes = joinSet(a, ";")
 						end
+						a = del(a)
 					end
 					local arg, types = compile(v, nsList, t, cachedTags, globals, events, extraKwargs, argTypes)
 					if not arg then
@@ -646,7 +665,10 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 					end
 					if firstAndNonNil == k then
 						local returns = newSet((";"):split(types))
-						if not returns["nil"] then
+						if v == "@undef" then
+							firstAndNonNil = nil
+							firstAndNonNil_t_num = nil
+						elseif not returns["nil"] then
 							firstAndNonNil = nil
 							firstAndNonNil_t_num = nil
 						elseif returns["string"] or returns["number"] then
@@ -1099,6 +1121,65 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 	error(("Unknown astType: %q"):format(tostring(astType or '')))
 end
 
+local unalias
+do
+	local function replaceArg(ast, argName, value)
+		local astType = getASTType(ast)
+		if astType ~= "tag" and not allOperators[astType] then
+			return
+		end
+		local argStart = astType == "tag" and 3 or 2
+		for i = argStart, #ast do
+			local v = ast[i]
+			local astType = getASTType(v)
+			if astType == "tag" and v[2] == argName then
+				deepDel(v)
+				ast[i] = deepCopy(value)
+			else
+				replaceArg(v, argName, value)
+			end
+		end
+	end
+	
+	function unalias(ast, nsList, kwargTypes)
+		local astType = getASTType(ast)
+		if astType ~= "tag" then
+			return ast
+		end
+		local tag = ast[2]
+		local tagData = getTagData(tag, nsList)
+	
+		if not tagData or tagData.code then
+			for i = 3, #ast do
+				ast[i] = unalias(ast[i], nsList, kwargTypes)
+			end
+			return ast
+		end
+	
+		local alias = "[" .. tagData.alias .. "]"
+		local args = newList()
+		local arg = tagData.arg
+		for i = 1, #arg, 3 do
+			local val = ast[(i-1)/3 + 3] or arg[i+2]
+			if val == "@req" then
+				args = del(args)
+				return nil, ("Arg #%d (%s) req'd for %s"):format((i-1)/3+1, arg[i], tag)
+			end
+			args[arg[i]] = ast[(i-1)/3 + 3] or arg[i+2]
+		end
+		local parsedAlias = standardize(parse(alias))
+		for k,v in pairs(args) do
+			replaceArg(parsedAlias, k, v)
+		end
+		deepDel(ast)
+		
+		ast = parsedAlias
+		ast = standardize(ast)
+		correctASTCasing(ast)
+		return unalias(ast, nsList, kwargTypes)
+	end
+end
+
 function DogTag:CreateFunctionFromCode(code, ...)
 	if type(code) ~= "string" then
 		error(("Bad argument #2 to `CreateFunctionFromCode'. Expected %q, got %q."):format("string", type(code)), 2)
@@ -1127,6 +1208,11 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	local ast = parse(code)
 	ast = standardize(ast)
 	correctASTCasing(ast)
+	local err
+	ast, err = unalias(ast, nsList, kwargTypes)
+	if not ast then
+		return ("return function() return %q, nil end"):format(err)
+	end
 	
 	local t = newList()
 	t[#t+1] = ([=[local DogTag = _G.LibStub(%q);]=]):format(MAJOR_VERSION)

@@ -379,6 +379,49 @@ DogTag:AddTag("Base", "Subtract", {
 	category = "Testing"
 })
 
+DogTag:AddTag("Base", "SubtractFive", {
+	alias = [=[Subtract(number, 5)]=],
+	arg = {
+		'number', 'number', '@req',
+	},
+	doc = "Subtract 5 from number",
+	example = '[SubtractFive(10)] => "5"',
+	category = "Testing",
+})
+
+DogTag:AddTag("Base", "SubtractFromFive", {
+	alias = [=[Subtract(5, number)]=],
+	arg = {
+		'number', 'number', 0,
+	},
+	doc = "Subtract number from 5",
+	example = '[SubtractFromFive(10)] => "-5"; [SubtractFromFive] => "5"',
+	category = "Testing",
+})
+
+DogTag:AddTag("Base", "ReverseSubtract", {
+	alias = [=[Subtract(right, left)]=],
+	arg = {
+		'left', 'number', "@req",
+		'right', 'number', "@req"
+	},
+	ret = "number",
+	doc = "Subtract left from right",
+	example = '[ReverseSubtract(1, 2)] => "1"',
+	category = "Testing"
+})
+
+DogTag:AddTag("Base", "AbsAlias", {
+	alias = [=[number < 0 ? -number ! number]=],
+	arg = {
+		'number', 'number', "@req",
+	},
+	ret = "number",
+	doc = "Get the absolute value of number",
+	example = '[AbsAlias(5)] => "5"; [AbsAlias(-5)] => "5"',
+	category = "Testing"
+})
+
 local GlobalCheck_data = "Hello World"
 _G.testfunc = function()
 	return GlobalCheck_data
@@ -961,7 +1004,8 @@ assert_equal(parse("[Class(unit='mouseovertarget'):ClassColor(unit='mouseovertar
 assert_equal(parse("[-MissingHP]"), { "unm", { "tag", "MissingHP" } })
 assert_equal(DogTag:CleanCode("[-MissingHP]"), "[-MissingHP]")
 assert_equal(parse("[-(-1)]"), { "unm", { "(", -1 } })
-assert_equal(standardize(parse("[-(-1)]")), { "unm", -1 })
+assert_equal(standardize(parse("[-(-1)]")), 1)
+assert_equal(standardize(parse("[-(-(-1))]")), -1)
 assert_equal(parse("[AbsoluteValue(-5)]"), { "tag", "AbsoluteValue", -5 })
 assert_equal(parse("[(-5):AbsoluteValue]"), { "mod", "AbsoluteValue", { "(", -5 } })
 assert_equal(parse("[-5:AbsoluteValue]"), { "mod", "AbsoluteValue", -5})
@@ -1606,6 +1650,9 @@ assert_equal(DogTag:Evaluate("['Friend':Color(0, 0, 1)]"), "|cff0000ffFriend|r")
 assert_equal(DogTag:Evaluate("['Broken':Color('00ff00a')]"), "|cffffffffBroken|r")
 assert_equal(DogTag:Evaluate("['Large nums':Color(180, 255, -60)]"), "|cffffff00Large nums|r")
 
+assert_equal(DogTag:Evaluate("[nil:Color('ff0000')]"), nil)
+assert_equal(DogTag:Evaluate("[nil:Color(0, 0, 1)]"), nil)
+
 assert_equal(DogTag:Evaluate("[Color('ff0000')]"), "|cffff0000")
 assert_equal(DogTag:Evaluate("[Color('00ff00')]"), "|cff00ff00")
 assert_equal(DogTag:Evaluate("[Color(0, 0, 1)]"), "|cff0000ff")
@@ -1624,9 +1671,28 @@ for name, color in pairs({
 }) do
 	assert_equal(DogTag:Evaluate("['Hello':" .. name .. "]"), "|cff" .. color .. "Hello|r")
 	assert_equal(DogTag:Evaluate("[" .. name .. " 'Hello']"), "|cff" .. color .. "Hello")
+	assert_equal(DogTag:Evaluate("[nil:" .. name .. "]"), nil)
 end
 
 assert_equal(DogTag:Evaluate("['Hello':Abbreviate]"), "Hello")
 assert_equal(DogTag:Evaluate("['Hello World':Abbreviate]"), "HW")
+
+assert_equal(DogTag:Evaluate("[SubtractFive(10)]"), 5)
+assert_equal(DogTag:Evaluate("[SubtractFive(12)]"), 7)
+assert_equal(DogTag:Evaluate("[SubtractFive(One)]"), -4)
+assert_equal(DogTag:Evaluate("[SubtractFive]"), "Arg #1 (number) req'd for SubtractFive")
+
+assert_equal(DogTag:Evaluate("[SubtractFromFive(10)]"), -5)
+assert_equal(DogTag:Evaluate("[SubtractFromFive(12)]"), -7)
+assert_equal(DogTag:Evaluate("[SubtractFromFive(One)]"), 4)
+assert_equal(DogTag:Evaluate("[SubtractFromFive]"), 5)
+
+assert_equal(DogTag:Evaluate("[ReverseSubtract(4, 2)]"), -2)
+assert_equal(DogTag:Evaluate("[ReverseSubtract(2, 4)]"), 2)
+assert_equal(DogTag:Evaluate("[ReverseSubtract(1)]"), "Arg #2 (right) req'd for ReverseSubtract")
+assert_equal(DogTag:Evaluate("[ReverseSubtract]"), "Arg #1 (left) req'd for ReverseSubtract")
+
+assert_equal(DogTag:Evaluate("[AbsAlias(10)]"), 10)
+assert_equal(DogTag:Evaluate("[AbsAlias(-10)]"), 10)
 
 print("Tests succeeded")
