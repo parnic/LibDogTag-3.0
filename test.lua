@@ -523,6 +523,16 @@ DogTag:AddTag("Base", "CheckNumTuple", {
 	category = "Testing"
 })
 
+DogTag:AddTag("Base", "TupleAlias", {
+	alias = [=[CheckNumTuple(5, ...)]=],
+	arg = {
+		'...', 'list-number', false
+	},
+	doc = "Join ... separated by dashes",
+	example = '[TupleAlias(1)] => "1"; [TupleAlias] => ""',
+	category = "Testing"
+})
+
 DogTag:AddTag("Base", "CheckAnotherNumTuple", {
 	code = [=[return math_max(0, ${...})]=],
 	arg = {
@@ -1681,6 +1691,8 @@ assert_equal(DogTag:Evaluate("[SubtractFive(10)]"), 5)
 assert_equal(DogTag:Evaluate("[SubtractFive(12)]"), 7)
 assert_equal(DogTag:Evaluate("[SubtractFive(One)]"), -4)
 assert_equal(DogTag:Evaluate("[SubtractFive]"), "Arg #1 (number) req'd for SubtractFive")
+assert_equal(DogTag:Evaluate("[SubtractFive(number=10)]"), 5)
+assert_equal(DogTag:Evaluate("[SubtractFive]", { number = 10 }), 5)
 
 assert_equal(DogTag:Evaluate("[SubtractFromFive(10)]"), -5)
 assert_equal(DogTag:Evaluate("[SubtractFromFive(12)]"), -7)
@@ -1694,5 +1706,9 @@ assert_equal(DogTag:Evaluate("[ReverseSubtract]"), "Arg #1 (left) req'd for Reve
 
 assert_equal(DogTag:Evaluate("[AbsAlias(10)]"), 10)
 assert_equal(DogTag:Evaluate("[AbsAlias(-10)]"), 10)
+
+assert_equal(DogTag:Evaluate("[TupleAlias]"), 5)
+assert_equal(DogTag:Evaluate("[TupleAlias(1)]"), "5-1")
+assert_equal(DogTag:Evaluate("[TupleAlias(1, 2, 3)]"), "5-1-2-3")
 
 print("Tests succeeded")

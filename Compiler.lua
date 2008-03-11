@@ -559,6 +559,18 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 		else
 			return forceTypes("nil", "nil", forceToTypes, t)
 		end
+	elseif astType == 'kwarg' then
+		local kwarg = extraKwargs[ast[2]]
+		local arg, types = kwarg[1], kwarg[2]
+		if storeKey then
+			t[#t+1] = storeKey
+			t[#t+1] = [=[ = ]=]
+			t[#t+1] = arg
+			t[#t+1] = [=[;]=]
+			return forceTypes(storeKey, types, forceToTypes, t)
+		else
+			return forceTypes(arg, types, forceToTypes, t)
+		end
 	elseif astType == 'string' then
 		if ast == '' then
 			return compile(nil, nsList, t, cachedTags, globals, events, extraKwargs, forceToTypes, storeKey)
@@ -1141,6 +1153,28 @@ do
 		end
 	end
 	
+	local function replaceTupleArg(ast, tupleArgs)
+		local astType = getASTType(ast)
+		if astType ~= "tag" and not allOperators[astType] then
+			return
+		end
+		local argStart = astType == "tag" and 3 or 2
+		for i = argStart, #ast do
+			local v = ast[i]
+			local astType = getASTType(v)
+			if astType == "tag" and v[2] == "..." then
+				deepDel(v)
+				ast[i] = nil
+				for j, u in ipairs(tupleArgs) do
+					ast[i+j-1] = u
+				end
+				break
+			else
+				replaceTupleArg(v, tupleArgs)
+			end
+		end
+	end
+	
 	function unalias(ast, nsList, kwargTypes)
 		local astType = getASTType(ast)
 		if astType ~= "tag" then
@@ -1155,22 +1189,44 @@ do
 			end
 			return ast
 		end
-	
+		
 		local alias = "[" .. tagData.alias .. "]"
 		local args = newList()
+		local tupleArgs = newList()
 		local arg = tagData.arg
 		for i = 1, #arg, 3 do
-			local val = ast[(i-1)/3 + 3] or arg[i+2]
-			if val == "@req" then
-				args = del(args)
-				return nil, ("Arg #%d (%s) req'd for %s"):format((i-1)/3+1, arg[i], tag)
+			local argName = arg[i]
+			if argName == "..." then
+				local num = 0
+				while true do
+					num = num + 1
+					local val = ast[(i-1)/3 + 2 + num]
+					if not val then
+						break
+					end
+					tupleArgs[num] = val
+				end
+				break
+			else
+				local val = ast[(i-1)/3 + 3] or ast.kwarg and ast.kwarg[argName]
+				if not val and kwargTypes[argName] then
+					val = newList("kwarg", argName)
+				end
+				if not val and arg[i+2] == "@req" then
+					args = del(args)
+					return nil, ("Arg #%d (%s) req'd for %s"):format((i-1)/3+1, argName, tag)
+				end
+				if not val then
+					val = arg[i+2]
+				end
+				args[argName] = val
 			end
-			args[arg[i]] = ast[(i-1)/3 + 3] or arg[i+2]
 		end
 		local parsedAlias = standardize(parse(alias))
 		for k,v in pairs(args) do
 			replaceArg(parsedAlias, k, v)
 		end
+		replaceTupleArg(parsedAlias, tupleArgs)
 		deepDel(ast)
 		
 		ast = parsedAlias

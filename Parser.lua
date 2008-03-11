@@ -148,7 +148,7 @@ function CHUNK_WITH_MODIFIER(tokens, position)
 	end
 end
 
--- GROUPING | STRING | NUMBER | TAG, [ PARAM_LIST ]
+-- GROUPING | STRING | NUMBER | TAG, [ PARAM_LIST ] | "..."
 function CHUNK(tokens, position)
 	local pos, data = GROUPING(tokens, position)
 	if pos then
@@ -168,7 +168,7 @@ function CHUNK(tokens, position)
 		return pos, data
 	end
 	
-	local pos, data = TAG(tokens, position)
+	pos, data = TAG(tokens, position)
 	if pos then
 		if data:lower() == 'nil' then
 			return pos, newList("nil")
@@ -181,6 +181,10 @@ function CHUNK(tokens, position)
 		else
 			return pos, newList("tag", data)
 		end
+	end
+	
+	if tokens[position] == "." and tokens[position+1] == "." and tokens[position+2] == "." then
+		return position+3, newList("tag", "...")
 	end
 	
 	return nil
