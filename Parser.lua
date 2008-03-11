@@ -9,6 +9,8 @@ DogTag_funcs[#DogTag_funcs+1] = function()
 
 local DogTag = _G.DogTag
 
+local L = _G.DogTag__L
+
 local DOGTAG, SEGMENT, TAG_SEQUENCE, CHUNK, SPACE, MULTI_SPACE, EXPONENTIATION, MULTIPLICATION, ADDITION, CONCATENATION, LOGIC, MULTI_DIGIT, ALPHANUM, SIGNED_INTEGER, INNER_PARAM_LIST, COMPARISON, IF_STATEMENT, INNER_TAG_SEQUENCE, TAG, PARAM_LIST, NUMBER, STRING, GROUPING, NEGATION, CHUNK_WITH_MODIFIER
 
 local table_concat = _G.table.concat
@@ -24,6 +26,12 @@ local reserved = {
 	["and"] = true,
 	["or"] = true,
 	["not"] = true,
+}
+
+local reservedTags = {
+	["nil"] = true,
+	["true"] = true,
+	["false"] = true,
 }
 
 -- { SEGMENT }
@@ -148,7 +156,7 @@ function CHUNK_WITH_MODIFIER(tokens, position)
 	end
 end
 
--- GROUPING | STRING | NUMBER | TAG, [ PARAM_LIST ] | "..."
+-- GROUPING | STRING | NUMBER | "nil" | "true" | "false" | TAG, [ PARAM_LIST ] | "..."
 function CHUNK(tokens, position)
 	local pos, data = GROUPING(tokens, position)
 	if pos then
@@ -170,8 +178,9 @@ function CHUNK(tokens, position)
 	
 	pos, data = TAG(tokens, position)
 	if pos then
-		if data:lower() == 'nil' then
-			return pos, newList("nil")
+		local data_lower = data:lower()
+		if reservedTags[data_lower] then
+			return pos, newList(data_lower)
 		end
 		local p, list = PARAM_LIST(tokens, pos)
 		if p then
@@ -230,8 +239,6 @@ function TAG(tokens, position)
 		local tag_lower = tag:lower()
 		if reserved[tag_lower] then
 			return nil
-		elseif tag_lower == "nil" then
-			-- TODO
 		end
 	end
 	return position, tag
@@ -853,7 +860,7 @@ end
 
 local function parse(code)
 	if code == "" then
-		return newList( "nil" )
+		return newList("nil")
 	end
 	local tokens = tokenize(code)
 	local ast = DOGTAG(tokens)
@@ -868,6 +875,25 @@ local standardizations = {
 	['&'] = 'and',
 	['|'] = 'or',
 	['~'] = 'not',
+	['false'] = 'nil',
+}
+
+local unaryNumberCalcs = {
+	['unm'] = function(num) return -num end
+}
+local binaryNumberCalcs = {
+	['+'] = function(alpha, bravo) return alpha + bravo end,
+	['-'] = function(alpha, bravo) return alpha - bravo end,
+	['*'] = function(alpha, bravo) return alpha * bravo end,
+	['/'] = function(alpha, bravo)
+		if alpha == 0 then
+			return 0
+		else
+			return alpha / bravo
+		end
+	end,
+	['%'] = function(alpha, bravo) return alpha % bravo end,
+	['^'] = function(alpha, bravo) return alpha ^ bravo end,
 }
 
 local function standardize(ast)
@@ -882,6 +908,9 @@ local function standardize(ast)
 		ast_2 = standardize(ast_2)
 		del(ast)
 		return ast_2
+	elseif kind == "true" then
+		del(ast)
+		return L["True"]
 	else
 		ast[1] = standardizations[kind] or kind
 	
@@ -894,12 +923,20 @@ local function standardize(ast)
 				kwarg[k] = standardize(v, kwarg)
 			end
 		end
-	end	
+	end
 	
-	if kind == "unm" and type(ast[2]) == "number" then
-		local num = -ast[2]
-		del(ast)
-		return num
+	if #ast == 2 then
+	 	if unaryNumberCalcs[kind] and type(ast[2]) == "number" then
+			local num = unaryNumberCalcs[kind](ast[2])
+			del(ast)
+			return num
+		end
+	elseif #ast == 3 then
+		if binaryNumberCalcs[kind] and type(ast[2]) == "number" and type(ast[3]) == "number" then
+			local num = binaryNumberCalcs[kind](ast[2], ast[3])
+			del(ast)
+			return num
+		end
 	end
 	
 	return ast
@@ -1017,14 +1054,31 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 			if not inner then
 				return
 			else
-				t[#t+1] = "nil"
+				t[#t+1] = type_ast
 				return
 			end
 		else
 			if not inner then
 				return ""
 			else
-				return "nil"
+				return type_ast
+			end
+		end
+	elseif type_ast == "true" or type_ast == "false" then
+		if t then
+			if not inner then
+				t[#t+1] = "["
+			end	
+			t[#t+1] = type_ast
+			if not inner then
+				t[#t+1] = "]"
+			end
+			return
+		else
+			if not inner then
+				return ("[%s]"):format(type_ast)
+			else
+				return type_ast
 			end
 		end
 	end

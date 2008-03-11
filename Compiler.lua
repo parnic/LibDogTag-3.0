@@ -547,6 +547,18 @@ local function forceTypes(storeKey, types, forceToTypes, t)
 	return storeKey, types
 end
 
+local function numberToString(num)
+	if num == 1/0 then
+		return "1/0"
+	elseif num == -1/0 then
+		return "-1/0"
+	elseif math.floor(num) == num then
+		return tostring(num)
+	else
+		return ("%.22f"):format(num)
+	end
+end
+
 function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, forceToTypes, storeKey)
 	local astType = getASTType(ast)
 	if astType == 'nil' or ast == "@undef" then
@@ -589,11 +601,11 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 		if storeKey then
 			t[#t+1] = storeKey
 			t[#t+1] = [=[ = ]=]
-			t[#t+1] = ("%.22f"):format(ast)
+			t[#t+1] = numberToString(ast)
 			t[#t+1] = [=[;]=]
 			return forceTypes(storeKey, "number", forceToTypes, t)
 		else
-			return forceTypes(("%.22f"):format(ast), "number", forceToTypes, t)
+			return forceTypes(numberToString(ast), "number", forceToTypes, t)
 		end
 	elseif astType == 'tag' or operators[astType] then
 		local tag = ast[astType == 'tag' and 2 or 1]
