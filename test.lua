@@ -791,6 +791,8 @@ assert_equal(DogTag:CleanCode("[Alpha(Bravo):Delta]"), "[Alpha(Bravo):Delta]")
 assert_equal(parse("[Alpha(Bravo, Charlie):Delta(Echo, Foxtrot)]"), { "mod", "Delta", { "tag", "Alpha", { "tag", "Bravo"}, {"tag", "Charlie"} }, {"tag", "Echo"}, {"tag", "Foxtrot"} })
 assert_equal(DogTag:CleanCode("[Alpha(Bravo, Charlie):Delta(Echo, Foxtrot)]"), "[Alpha(Bravo, Charlie):Delta(Echo, Foxtrot)]")
 assert_equal(parse("[Alpha:~Delta]"), { "~", { "mod", "Delta", { "tag", "Alpha" } } })
+assert_equal(standardize(parse("[Alpha:~Delta]")), { "not", { "tag", "Delta", { "tag", "Alpha" } } })
+assert_equal(standardize(parse("[not Alpha:Delta]")), { "not", { "tag", "Delta", { "tag", "Alpha" } } })
 assert_equal(DogTag:CleanCode("[Alpha:~Delta]"), "[Alpha:~Delta]")
 assert_equal(parse("[Alpha(Bravo, Charlie):~Delta(Echo, Foxtrot)]"), { "~", { "mod", "Delta", { "tag", "Alpha", { "tag", "Bravo"}, {"tag", "Charlie"} }, {"tag", "Echo"}, {"tag", "Foxtrot"} } })
 assert_equal(DogTag:CleanCode("[Alpha(Bravo, Charlie):~Delta(Echo, Foxtrot)]"), "[Alpha(Bravo, Charlie):~Delta(Echo, Foxtrot)]")
@@ -1786,5 +1788,14 @@ assert_equal(DogTag:Evaluate("['Hello':Contains('There')]"), nil)
 assert_equal(DogTag:Evaluate("['Hello':Contains('ello')]"), "Hello")
 assert_equal(DogTag:Evaluate("['Hello':~Contains('There')]"), "Hello")
 assert_equal(DogTag:Evaluate("['Hello':~Contains('ello')]"), nil)
+
+GlobalCheck_data = "True"
+assert_equal(DogTag:Evaluate("[GlobalCheck ? 'Hello' One ! 'There' Two]"), 'Hello1')
+GlobalCheck_data = nil
+assert_equal(DogTag:Evaluate("[GlobalCheck ? 'Hello' One ! 'There' Two]"), 'There2')
+GlobalCheck_data = "True"
+assert_equal(DogTag:Evaluate("[(GlobalCheck ? 'Hello' One ! 'There' Two) 'Buddy']"), 'Hello1Buddy')
+GlobalCheck_data = nil
+assert_equal(DogTag:Evaluate("[(GlobalCheck ? 'Hello' One ! 'There' Two) 'Buddy']"), 'There2Buddy')
 
 print("Tests succeeded")
