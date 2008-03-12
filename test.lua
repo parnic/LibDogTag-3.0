@@ -1782,4 +1782,9 @@ assert_equal(DogTag:Evaluate("[GlobalCheck:Hide(2):Hide(1):Hide(3)]"), nil)
 assert_equal(DogTag:Evaluate("[5:Hide(6, 7, 8)]"), 5)
 assert_equal(DogTag:Evaluate("[5:Hide(1, 2, 3, 4, 5)]"), nil)
 
+assert_equal(DogTag:Evaluate("['Hello':Contains('There')]"), nil)
+assert_equal(DogTag:Evaluate("['Hello':Contains('ello')]"), "Hello")
+assert_equal(DogTag:Evaluate("['Hello':~Contains('There')]"), "Hello")
+assert_equal(DogTag:Evaluate("['Hello':~Contains('ello')]"), nil)
+
 print("Tests succeeded")

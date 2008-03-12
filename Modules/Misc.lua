@@ -190,4 +190,20 @@ DogTag:AddTag("Base", "Hide", {
 	category = L["Miscellaneous"]
 })
 
+DogTag:AddTag("Base", "Contains", {
+	code = [=[if ${left}:match(${right}) then
+		return ${left}
+	else
+		return nil
+	end]=],
+	arg = {
+		'left', 'string', '@req',
+		'right', 'string', '@req',
+	},
+	ret = "string;nil",
+	doc = L["Return left if left contains right"],
+	example = '["Hello":Contains("There")] => ""; ["Hello"]:Contains("ello") => "Hello"',
+	category = L["Miscellaneous"]
+})
+
 end
