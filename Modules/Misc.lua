@@ -159,4 +159,35 @@ for name, color in pairs({
 	})
 end
 
+DogTag:AddTag("Base", "IsIn", {
+	code = [=[local good = false
+	local val = ${value:string}
+	for i = 1, ${#...} do
+		if val == select(i, ${...}) then
+			good = true
+			break
+		end
+	end
+	return good and ${value} or nil]=],
+	arg = {
+		'value', 'number;string', "@req",
+		'...', 'list-string', "@req",
+	},
+	ret = "nil;number;string",
+	doc = L["Return value if value is within ..."],
+	example = '[1:IsIn(1, 2, 3)] => "1"; ["Alpha":IsIn("Bravo", "Charlie")] => ""',
+	category = L["Miscellaneous"]
+})
+
+DogTag:AddTag("Base", "Hide", {
+	alias = [=[not IsIn(value, ...)]=],
+	arg = {
+		'value', 'number;string', "@req",
+		'...', 'list-string', "@req",
+	},
+	doc = L["Hide value if value is within ..."],
+	example = '[1:Hide(1, 2, 3)] => ""; ["Alpha":Hide("Bravo", "Charlie")] => "Alpha"',
+	category = L["Miscellaneous"]
+})
+
 end
