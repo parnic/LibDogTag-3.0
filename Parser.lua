@@ -9,12 +9,19 @@ DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 
 local L = DogTag.L
 
-local DOGTAG, SEGMENT, TAG_SEQUENCE, CHUNK, SPACE, MULTI_SPACE, EXPONENTIATION, MULTIPLICATION, ADDITION, CONCATENATION, LOGIC, MULTI_DIGIT, ALPHANUM, SIGNED_INTEGER, INNER_PARAM_LIST, COMPARISON, IF_STATEMENT, INNER_TAG_SEQUENCE, TAG, PARAM_LIST, NUMBER, STRING, GROUPING, NEGATION, CHUNK_WITH_MODIFIER
+local DOGTAG, SEGMENT, TAG_SEQUENCE, CHUNK, SPACE, MULTI_SPACE, EXPONENTIATION, MULTIPLICATION, ADDITION, CONCATENATION, LOGIC, MULTI_DIGIT, ALPHANUM, SIGNED_INTEGER, INNER_PARAM_LIST, COMPARISON, IF_STATEMENT, INNER_TAG_SEQUENCE, TAG, PARAM_LIST, NUMBER, STRING, GROUPING, NEGATION, CHUNK_WITH_MODIFIER, UNARY_MINUS
 
+local _G = _G
 local table_concat = _G.table.concat
 local table_insert = _G.table.insert
 local table_sort = _G.table.sort
+local string_char = _G.string.char
 local type = _G.type
+local pairs = _G.pairs
+local ipairs = _G.ipairs
+local tostring = _G.tostring
+local tonumber = _G.tonumber
+local unpack = _G.unpack
 local newList, del, deepDel = DogTag.newList, DogTag.del, DogTag.deepDel
 
 local reserved = {
@@ -32,12 +39,47 @@ local reservedTags = {
 	["false"] = true,
 }
 
+local A_byte = ('A'):byte()
+local a_byte = ('a'):byte()
+local Z_byte = ('Z'):byte()
+local z_byte = ('z'):byte()
+local e_byte = ('e'):byte()
+local zero_byte = ('0'):byte()
+local nine_byte = ('9'):byte()
+local underscore_byte = ('_'):byte()
+local open_bracket_byte = ('['):byte()
+local close_bracket_byte = (']'):byte()
+local open_parenthesis_byte = ('('):byte()
+local close_parenthesis_byte = (')'):byte()
+local colon_byte = (':'):byte()
+local tilde_byte = ('~'):byte()
+local period_byte = ('.'):byte()
+local comma_byte = (','):byte()
+local equals_byte = ('='):byte()
+local left_angle_byte = ('<'):byte()
+local right_angle_byte = ('>'):byte()
+local ampersand_byte = ('&'):byte()
+local pipe_byte = ('|'):byte()
+local plus_byte = ('+'):byte()
+local minus_byte = ('-'):byte()
+local asterix_byte = ('*'):byte()
+local slash_byte = ('/'):byte()
+local percent_byte = ('%'):byte()
+local carat_byte = ('^'):byte()
+local question_mark_byte = ('?'):byte()
+local exclamation_point_byte = ('!'):byte()
+local backslash_byte = ([=[\]=]):byte()
+
+local lower = {}
+for i = 1, 26 do
+	lower[A_byte+i-1] = a_byte+i-1
+end
 
 local function matches(tokens, position, phrase)
 	for i = 1, #phrase do
-		local v = phrase:sub(i, i)
+		local v = phrase:byte(i)
 		local c = tokens[position+i-1]
-		if not c or (c ~= v and c:lower() ~= v) then
+		if not c or (c ~= v and lower[c] ~= v) then
 			return false
 		end
 	end
@@ -70,7 +112,7 @@ function DOGTAG(tokens)
 	return list
 end
 
--- TAG_SEQUENCE | OUTER_STRING;
+-- TAG_SEQUENCE | OUTER_STRING
 function SEGMENT(tokens, position)
 	local pos, data = TAG_SEQUENCE(tokens, position)
 	if pos then
@@ -86,8 +128,8 @@ function SEGMENT(tokens, position)
 	position = position + 1
 	while true do
 		c = tokens[position]
-		if not c or c == "[" then
-			local s = table.concat(t)
+		if not c or c == open_bracket_byte then
+			local s = string_char(unpack(t))
 			t = del(t)
 			return position, s
 		end
@@ -107,7 +149,7 @@ end
 
 -- "[", MULTI_SPACE, INNER_TAG_SEQUENCE, MULTI_SPACE, "]"
 function TAG_SEQUENCE(tokens, position)
-	if tokens[position] ~= "[" then
+	if tokens[position] ~= open_bracket_byte then
 		return nil
 	end
 	
@@ -120,7 +162,7 @@ function TAG_SEQUENCE(tokens, position)
 	
 	position = MULTI_SPACE(tokens, position)
 	
-	if tokens[position] ~= "]" then
+	if tokens[position] ~= close_bracket_byte then
 		data = deepDel(data)
 		return nil
 	end
@@ -137,13 +179,13 @@ function CHUNK_WITH_MODIFIER(tokens, position)
 	while true do
 		local pos = MULTI_SPACE(tokens, position)
 		
-		if tokens[pos] ~= ":" then
+		if tokens[pos] ~= colon_byte then
 			return position, data
 		end
 	
 		pos = MULTI_SPACE(tokens, pos+1)
 	
-		if tokens[pos] == "~" then
+		if tokens[pos] == tilde_byte then
 			pos = MULTI_SPACE(tokens, pos+1)
 		
 			local pos, d = TAG(tokens, pos)
@@ -213,7 +255,7 @@ function CHUNK(tokens, position)
 		end
 	end
 	
-	if tokens[position] == "." and tokens[position+1] == "." and tokens[position+2] == "." then
+	if tokens[position] == period_byte and tokens[position+1] == period_byte and tokens[position+2] == period_byte then
 		return position+3, newList("tag", "...")
 	end
 	
@@ -221,8 +263,8 @@ function CHUNK(tokens, position)
 end
 
 local groupings = {
-	["["] = "]",
-	["("] = ")"
+	[open_bracket_byte] = close_bracket_byte,
+	[open_parenthesis_byte] = close_parenthesis_byte
 }
 
 --   "(", MULTI_SPACE, INNER_TAG_SEQUENCE, MULTI_SPACE, ")"
@@ -247,7 +289,7 @@ function GROUPING(tokens, position)
 		data = deepDel(data)
 		return nil
 	end
-	return position+1, newList(start, data)
+	return position+1, newList(string_char(start), data)
 end
 
 -- ALPHANUM
@@ -269,7 +311,7 @@ end
 function INNER_PARAM_LIST(tokens, position)
 	local pos, key = ALPHANUM(tokens, position)
 	local data
-	if pos and tokens[pos] == "=" and key:lower() == key then
+	if pos and tokens[pos] == equals_byte and key:lower() == key then
 		local value
 		position, value = INNER_TAG_SEQUENCE(tokens, pos+1)
 		if not position then
@@ -287,13 +329,13 @@ function INNER_PARAM_LIST(tokens, position)
 	end
 	while true do
 		position = MULTI_SPACE(tokens, position)
-		if tokens[position] ~= "," then
+		if tokens[position] ~= comma_byte then
 			return position, data
 		end
 		position = MULTI_SPACE(tokens, position+1)
 		local pos, key = ALPHANUM(tokens, position)
-		if pos and tokens[pos] == "=" and key:lower() == key then
-			pos, value = INNER_TAG_SEQUENCE(tokens, pos+1)
+		if pos and tokens[pos] == equals_byte and key:lower() == key then
+			local pos, value = INNER_TAG_SEQUENCE(tokens, pos+1)
 			if not pos then
 				return position, data
 			end
@@ -315,7 +357,7 @@ end
 
 -- "(", MULTI_SPACE, INNER_PARAM_LIST, MULTI_SPACE, ")"
 function PARAM_LIST(tokens, position)
-	if tokens[position] ~= "(" then
+	if tokens[position] ~= open_parenthesis_byte then
 		return nil
 	end
 	
@@ -328,7 +370,7 @@ function PARAM_LIST(tokens, position)
 	
 	position = MULTI_SPACE(tokens, position)
 	
-	if tokens[position] ~= ")" then
+	if tokens[position] ~= close_parenthesis_byte then
 		data = deepDel(data)
 		return nil
 	end
@@ -337,8 +379,8 @@ function PARAM_LIST(tokens, position)
 end
 
 local quotes = {
-	["'"] = true,
-	['"'] = true,
+	[("'"):byte()] = true,
+	[('"'):byte()] = true,
 }
 
 -- '"', ( ANY - '"' ), '"' | "'", ( ANY - "'" ), "'"
@@ -353,10 +395,10 @@ function STRING(tokens, position)
 	while i < #tokens do
 		i = i + 1
 		local v = tokens[i]
-		if v == [=[\]=] then
+		if v == backslash_byte then
 			if lastEscape then
 				lastEscape = false
-				t[#t+1] = [=[\]=]
+				t[#t+1] = backslash_byte
 			else
 				lastEscape = true
 			end
@@ -365,26 +407,26 @@ function STRING(tokens, position)
 				lastEscape = false
 				t[#t+1] = c
 			else
-				local s = table_concat(t)
+				local s = string_char(unpack(t))
 				t = del(t)
 				return i+1, s
 			end
 		else
 			if lastEscape then
 				lastEscape = false
-				if v:match("^%d$") then
-					local num = v+0
-					if tokens[i+1] and tokens[i+1]:match("^%d$") then
-						num = num*10 + tokens[i+1]
-						if tokens[i+2] and tokens[i+2]:match("^%d$") then
-							num = num*10 + tokens[i+2]
+				if v >= zero_byte and v <= nine_byte then
+					local num = v - zero_byte
+					if tokens[i+1] and tokens[i+1] >= zero_byte and tokens[i+1] <= nine_byte then
+						num = num*10 + tokens[i+1] - zero_byte
+						if tokens[i+2] and tokens[i+2] >= zero_byte and tokens[i+2] <= nine_byte then
+							num = num*10 + tokens[i+2] - zero_byte
 							i = i + 1
 						end
 						i = i + 1
 					end
-					t[#t+1] = string.char(num)
+					t[#t+1] = num
 				else
-					t[#t+1] = [=[\]=]
+					t[#t+1] = backslash_byte
 					t[#t+1] = v
 				end
 			else
@@ -404,7 +446,7 @@ function NUMBER(tokens, position)
 	end
 	
 	local c = tokens[pos]
-	if c == "." then
+	if c == period_byte then
 		local pos2, num = MULTI_DIGIT(tokens, pos+1)
 		if pos2 then
 			local negative = number < 0
@@ -412,14 +454,14 @@ function NUMBER(tokens, position)
 				number = -number
 			end
 			for i = 1, #num do
-				number = number + (10^-i)*(num:byte(i) - ('0'):byte())
+				number = number + (10^-i)*(num:byte(i) - zero_byte)
 			end
 			if negative then
 				number = -number
 			end
 			return pos2, number
 		end
-	elseif c == "e" or c == "E" then
+	elseif c == e_byte or lower[c] == e_byte then
 		local pos2, n = SIGNED_INTEGER(tokens, pos+1)
 		if pos2 then
 			return pos2, number * 10^(n+0)
@@ -431,7 +473,7 @@ end
 -- [ "-", ] MULTI_DIGIT
 function SIGNED_INTEGER(tokens, position)
 	local c = tokens[position]
-	if c == "-" then
+	if c == minus_byte then
 		local pos, number = MULTI_DIGIT(tokens, position+1)
 		if pos then
 			return pos, 0-number
@@ -451,17 +493,17 @@ end
 -- ('A'..'Z' | 'a'..'z' | '_'), { '0'..'9' | 'A'..'Z' | 'a'..'z' | '_' }
 function ALPHANUM(tokens, position)
 	local c = tokens[position]
-	if not c or not c:match("^[A-Za-z_]$") then
+	if not c or ((c < A_byte or c > Z_byte) and (c < a_byte or c > z_byte) and c ~= underscore_byte) then
 		return nil
 	end
 	local t = newList(c)
 	position = position + 1
 	while true do
 		local c = tokens[position]
-		if c and c:match("^[0-9A-Za-z_]$") then
+		if c and ((c >= zero_byte and c <= nine_byte) or (c >= A_byte and c <= Z_byte) or (c >= a_byte and c <= z_byte) or c == underscore_byte) then
 			t[#t+1] = c
 		else
-			local s = table.concat(t)
+			local s = string_char(unpack(t))
 			t = del(t)
 			return position, s
 		end
@@ -472,17 +514,17 @@ end
 -- '0'..'9', { '0'..'9' }
 function MULTI_DIGIT(tokens, position)
 	local c = tokens[position]
-	if not c or not c:match("^[0-9]$") then
+	if not c or c < zero_byte or c > nine_byte then
 		return nil
 	end
 	local t = newList(c)
 	position = position + 1
 	while true do
 		local c = tokens[position]
-		if c and c:match("^[0-9]$") then
+		if c and c >= zero_byte and c <= nine_byte then
 			t[#t+1] = c
 		else
-			local s = table.concat(t)
+			local s = string_char(unpack(t))
 			t = del(t)
 			return position, s
 		end
@@ -502,10 +544,17 @@ function MULTI_SPACE(tokens, position)
 	end
 end
 
+local spaces = {
+	[(' '):byte()] = true,
+	[('\t'):byte()] = true,
+	[('\n'):byte()] = true,
+	[('\r'):byte()] = true,
+}
+
 -- " " | "\t" | "\n" | "\r"
 function SPACE(tokens, position)
 	local c = tokens[position]
-	if c == " " or c == "\t" or c == "\n" or c == "\r" then
+	if spaces[c] then
 		return position+1
 	else
 		return nil
@@ -558,7 +607,7 @@ function IF_STATEMENT(tokens, position)
 	
 		local pos = MULTI_SPACE(tokens, position)
 	
-		if tokens[pos] ~= "?" then
+		if tokens[pos] ~= question_mark_byte then
 			return position, data
 		end
 	
@@ -573,7 +622,7 @@ function IF_STATEMENT(tokens, position)
 		
 		pos = MULTI_SPACE(tokens, pos)
 	
-		if tokens[pos] ~= "!" then
+		if tokens[pos] ~= exclamation_point_byte then
 			return position, data
 		end
 	
@@ -601,24 +650,24 @@ function COMPARISON(tokens, position)
 		local pos = MULTI_SPACE(tokens, position)
 		local c = tokens[pos]
 		local op
-		if c == "<" then
-			if tokens[pos+1] == "=" then
+		if c == left_angle_byte then
+			if tokens[pos+1] == equals_byte then
 				op = "<="
 				pos = pos+1
 			else
 				op = "<"
 			end
-		elseif c == ">" then
-			if tokens[pos+1] == "=" then
+		elseif c == right_angle_byte then
+			if tokens[pos+1] == equals_byte then
 				op = ">="
 				pos = pos+1
 			else
 				op = ">"
 			end
-		elseif c == "=" then
+		elseif c == equals_byte then
 			op = "="
-		elseif c == "~" then
-			if tokens[pos+1] ~= "=" then
+		elseif c == tilde_byte then
+			if tokens[pos+1] ~= equals_byte then
 				break
 			end
 			pos = pos+1
@@ -638,7 +687,7 @@ function COMPARISON(tokens, position)
 	return position, data
 end
 
--- CONCATENATION, { MULTI_SPACE, ( "and" | "or" | "&" | "|" ), MULTI_SPACE, CONCATENATION }
+-- CONCATENATION, { MULTI_SPACE, ( "and" | "or" | "&" | "|" | "||" ), MULTI_SPACE, CONCATENATION }
 function LOGIC(tokens, position)
 	local position, data = CONCATENATION(tokens, position)
 	if not position then
@@ -647,18 +696,24 @@ function LOGIC(tokens, position)
 	
 	while true do
 		local pos = MULTI_SPACE(tokens, position)
-		local op
+		local op = tokens[pos]
 		if matches(tokens, pos, "and") then
 			op = "and"
 		elseif matches(tokens, pos, "or") then
 			op = "or"
+		elseif op == ampersand_byte then
+			op = "&"
+		elseif matches(tokens, pos, "||") then
+			op = "||"
+		elseif op == pipe_byte then
+			op = "|"
 		else
-			op = tokens[pos]
-			if op ~= "&" and op ~= "|" then
-				break
-			end
+			break
 		end
 		pos = MULTI_SPACE(tokens, pos+op:len())
+		if op == "||" then
+			op = "|"
+		end
 		local pos, chunk = CONCATENATION(tokens, pos)
 		if not pos then
 			break
@@ -710,7 +765,11 @@ function ADDITION(tokens, position)
 	while true do
 		local pos = MULTI_SPACE(tokens, position)
 		local op = tokens[pos]
-		if op ~= "+" and op ~= "-" then
+		if op == plus_byte then
+			op = "+"
+		elseif op == minus_byte then
+			op = "-"
+		else
 			break
 		end
 		pos = MULTI_SPACE(tokens, pos+1)
@@ -735,7 +794,13 @@ function MULTIPLICATION(tokens, position)
 	while true do
 		local pos = MULTI_SPACE(tokens, position)
 		local op = tokens[pos]
-		if op ~= "*" and op ~= "/" and op ~= "%" then
+		if op == asterix_byte then
+			op = "*"
+		elseif op == slash_byte then
+			op = "/"
+		elseif op == percent_byte then
+			op = "%"
+		else
 			break
 		end
 		pos = MULTI_SPACE(tokens, pos+1)
@@ -757,7 +822,7 @@ function NEGATION(tokens, position)
 		local op
 		if matches(tokens, position, "not") then
 			op = "not"
-		elseif tokens[position] == "~" then
+		elseif tokens[position] == tilde_byte then
 			op = "~"
 		else
 			local data
@@ -789,7 +854,7 @@ function EXPONENTIATION(tokens, position)
 	while true do
 		local pos = MULTI_SPACE(tokens, position)
 		local op = tokens[pos]
-		if op ~= "^" then
+		if op ~= carat_byte then
 			break
 		end
 		pos = MULTI_SPACE(tokens, pos+1)
@@ -798,7 +863,7 @@ function EXPONENTIATION(tokens, position)
 			break
 		end
 		position = pos
-		data = newList(op, data, chunk)
+		data = newList("^", data, chunk)
 	end
 	
 	return position, data
@@ -808,7 +873,7 @@ end
 function UNARY_MINUS(tokens, position)
 	local op = tokens[position]
 
-	if op ~= "-" then
+	if op ~= minus_byte then
 		local position, data = CHUNK_WITH_MODIFIER(tokens, position)
 		if not position then
 			return nil
@@ -818,7 +883,7 @@ function UNARY_MINUS(tokens, position)
 
 	local pos = MULTI_SPACE(tokens, position+1)
 
-	if tokens[pos] == "-" then
+	if tokens[pos] == minus_byte then
 		-- don't have double negatives without parentheses
 		return nil
 	end
@@ -852,19 +917,11 @@ function UNARY_MINUS(tokens, position)
 	end
 end
 
-function tokenize(code)
-	local tokens = newList()
-	for i = 1, #code do
-		tokens[i] = code:sub(i, i)
-	end
-	return tokens
-end
-
 local function parse(code)
 	if code == "" then
 		return newList("nil")
 	end
-	local tokens = tokenize(code)
+	local tokens = newList(code:byte(1, #code))
 	local ast = DOGTAG(tokens)
 	tokens = del(tokens)
 	return ast
@@ -1043,7 +1100,7 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 			if not inner then
 				t[#t+1] = "["
 			end
-			t[#t+1] = tostring(ast)
+			t[#t+1] = ast
 			if not inner then
 				t[#t+1] = "]"
 			end
@@ -1095,7 +1152,7 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 	
 	local operators_type_ast = operators[type_ast]
 	if not operators_type_ast then
-		error(("Unknown operator: %q"):format(type_ast))
+		_G.error(("Unknown operator: %q"):format(type_ast))
 	end
 	local manualGrouping = parentOperatorPrecedence and parentOperatorPrecedence < operators_type_ast
 	if type_ast == " " then
@@ -1157,10 +1214,10 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 		if manualGrouping then
 			t[#t+1] = "("
 		end
-		if groupings[type_ast] then
+		if groupings[type_ast:byte()] then
 			t[#t+1] = type_ast
 			unparse(ast[2], t, true, false, nil)
-			t[#t+1] = groupings[type_ast]
+			t[#t+1] = string_char(groupings[type_ast:byte()])
 		elseif type_ast == "tag" then
 			if negated then
 				t[#t+1] = '~'
@@ -1265,7 +1322,11 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 		elseif operators_type_ast then
 			unparse(ast[2], t, true, false, operators_type_ast)
 			t[#t+1] = ' '
-			t[#t+1] = type_ast
+			if type_ast == "|" then
+				t[#t+1] = "||"
+			else
+				t[#t+1] = type_ast
+			end
 			t[#t+1] = ' '
 			unparse(ast[3], t, true, false, operators_type_ast)
 		end
@@ -1300,7 +1361,7 @@ local function cleanAST(ast)
 			kwarg[k] = cleanAST(v)
 		end
 	end
-	if groupings[astType] then
+	if groupings[astType:byte()] then
 		local ast_2 = ast[2]
 		if type(ast_2) ~= "table" or ast_2[1] == "tag" or ast_2[1] == "mod" then
 			del(ast)
