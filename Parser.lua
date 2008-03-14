@@ -32,6 +32,18 @@ local reservedTags = {
 	["false"] = true,
 }
 
+
+local function matches(tokens, position, phrase)
+	for i = 1, #phrase do
+		local v = phrase:sub(i, i)
+		local c = tokens[position+i-1]
+		if not c or (c ~= v and c:lower() ~= v) then
+			return false
+		end
+	end
+	return true
+end
+
 -- { SEGMENT }
 function DOGTAG(tokens)
 	local position = 1
@@ -58,7 +70,7 @@ function DOGTAG(tokens)
 	return list
 end
 
--- { TAG_SEQUENCE } | { OUTER_STRING };
+-- TAG_SEQUENCE | OUTER_STRING;
 function SEGMENT(tokens, position)
 	local pos, data = TAG_SEQUENCE(tokens, position)
 	if pos then
@@ -66,11 +78,22 @@ function SEGMENT(tokens, position)
 	end
 	
 	local c = tokens[position]
-	if c then
-		return position+1, c
+	if not c then
+		return nil
 	end
 	
-	return nil
+	local t = newList(c)
+	position = position + 1
+	while true do
+		c = tokens[position]
+		if not c or c == "[" then
+			local s = table.concat(t)
+			t = del(t)
+			return position, s
+		end
+		t[#t+1] = c
+		position = position + 1
+	end
 end
 
 -- IF_STATEMENT
@@ -326,7 +349,9 @@ function STRING(tokens, position)
 	end
 	local t = newList()
 	local lastEscape = false
-	for i = position+1, #tokens do
+	local i = position
+	while i < #tokens do
+		i = i + 1
 		local v = tokens[i]
 		if v == [=[\]=] then
 			if lastEscape then
@@ -347,13 +372,17 @@ function STRING(tokens, position)
 		else
 			if lastEscape then
 				lastEscape = false
-				if v:find("^%d+$") then
-					if #v <= 3 then
-						t[#t+1] = string.char(v+0)
-					else
-						t[#t+1] = string.char(v:sub(1, 3)+0)
-						t[#t+1] = v:sub(4)
+				if v:match("^%d$") then
+					local num = v+0
+					if tokens[i+1] and tokens[i+1]:match("^%d$") then
+						num = num*10 + tokens[i+1]
+						if tokens[i+2] and tokens[i+2]:match("^%d$") then
+							num = num*10 + tokens[i+2]
+							i = i + 1
+						end
+						i = i + 1
 					end
+					t[#t+1] = string.char(num)
 				else
 					t[#t+1] = [=[\]=]
 					t[#t+1] = v
@@ -390,15 +419,10 @@ function NUMBER(tokens, position)
 			end
 			return pos2, number
 		end
-	else
-		local pos2, n = ALPHANUM(tokens, pos)
+	elseif c == "e" or c == "E" then
+		local pos2, n = SIGNED_INTEGER(tokens, pos+1)
 		if pos2 then
-		 	if n:match("^[eE][0-9]+$") then
-				return pos2, number * 10^(n:sub(2)+0)
-			elseif n == "e" then
-				pos2, n = SIGNED_INTEGER(tokens, pos2)
-				return pos2, number * 10^n
-			end
+			return pos2, number * 10^(n+0)
 		end
 	end
 	return pos, number
@@ -427,18 +451,42 @@ end
 -- ('A'..'Z' | 'a'..'z' | '_'), { '0'..'9' | 'A'..'Z' | 'a'..'z' | '_' }
 function ALPHANUM(tokens, position)
 	local c = tokens[position]
-	if c:match("^[A-Za-z_][0-9A-Za-z_]*$") then
-		return position+1, c
-	else
+	if not c or not c:match("^[A-Za-z_]$") then
 		return nil
+	end
+	local t = newList(c)
+	position = position + 1
+	while true do
+		local c = tokens[position]
+		if c and c:match("^[0-9A-Za-z_]$") then
+			t[#t+1] = c
+		else
+			local s = table.concat(t)
+			t = del(t)
+			return position, s
+		end
+		position = position + 1
 	end
 end
 
 -- '0'..'9', { '0'..'9' }
 function MULTI_DIGIT(tokens, position)
 	local c = tokens[position]
-	if c:match("^[0-9]+$") then
-		return position+1, c
+	if not c or not c:match("^[0-9]$") then
+		return nil
+	end
+	local t = newList(c)
+	position = position + 1
+	while true do
+		local c = tokens[position]
+		if c and c:match("^[0-9]$") then
+			t[#t+1] = c
+		else
+			local s = table.concat(t)
+			t = del(t)
+			return position, s
+		end
+		position = position + 1
 	end
 end
 
@@ -467,23 +515,18 @@ end
 --   COMPARISON, [ MULTI_SPACE, "?", MULTI_SPACE, COMPARISON, [ MULTI_SPACE, "!", MULTI_SPACE, COMPARISON ] ]
 -- | "if", MULTI_SPACE, COMPARISON, MULTI_SPACE, "then", MULTI_SPACE, COMPARISON, [ MULTI_SPACE, "else", MULTI_SPACE, COMPARISON ]
 function IF_STATEMENT(tokens, position)
-	local c = tokens[position]
-	if type(c) == "string" and c:lower() == "if" then
-		position = MULTI_SPACE(tokens, position+1)
+	if matches(tokens, position, "if") then
+		position = MULTI_SPACE(tokens, position+3)
 		local position, data = COMPARISON(tokens, position)
 		if not position then
 			return nil
 		end
 		position = MULTI_SPACE(tokens, position)
-		c = tokens[position]
-		if type(c) == "string" then
-			c = c:lower()
-		end
-		if c ~= "then" then
+		if not matches(tokens, position, "then") then
 			data = deepDel(data)
 			return nil
 		end
-		position = MULTI_SPACE(tokens, position+1)
+		position = MULTI_SPACE(tokens, position+5)
 		local position, d = COMPARISON(tokens, position)
 		if not position then
 			data = deepDel(data)
@@ -493,15 +536,11 @@ function IF_STATEMENT(tokens, position)
 		
 		local pos = MULTI_SPACE(tokens, position)
 		
-		local c = tokens[pos]
-		if type(c) == "string" then
-			c = c:lower()
-		end
-		if c ~= "else" then
+		if not matches(tokens, pos, "else") then
 			return position, data
 		end
 	
-		pos = MULTI_SPACE(tokens, pos+1)
+		pos = MULTI_SPACE(tokens, pos+5)
 	
 		pos, d = COMPARISON(tokens, pos)
 		if not pos then
@@ -608,14 +647,18 @@ function LOGIC(tokens, position)
 	
 	while true do
 		local pos = MULTI_SPACE(tokens, position)
-		local op = tokens[pos]
-		if type(op) == "string" then
-			op = op:lower()
+		local op
+		if matches(tokens, pos, "and") then
+			op = "and"
+		elseif matches(tokens, pos, "or") then
+			op = "or"
+		else
+			op = tokens[pos]
+			if op ~= "&" and op ~= "|" then
+				break
+			end
 		end
-		if op ~= "and" and op ~= "&" and op ~= "or" and op ~= "|" then
-			break
-		end
-		pos = MULTI_SPACE(tokens, pos+1)
+		pos = MULTI_SPACE(tokens, pos+op:len())
 		local pos, chunk = CONCATENATION(tokens, pos)
 		if not pos then
 			break
@@ -711,9 +754,12 @@ end
 function NEGATION(tokens, position)
 	local nots = newList()
 	while true do
-		local op = tokens[position]
-		
-		if op ~= "not" and op ~= "~" then
+		local op
+		if matches(tokens, position, "not") then
+			op = "not"
+		elseif tokens[position] == "~" then
+			op = "~"
+		else
 			local data
 			position, data = EXPONENTIATION(tokens, position)
 			if not position then
@@ -729,7 +775,7 @@ function NEGATION(tokens, position)
 		
 		nots[#nots+1] = op
 		
-		position = MULTI_SPACE(tokens, position+1)
+		position = MULTI_SPACE(tokens, position+op:len())
 	end
 end
 
@@ -806,53 +852,11 @@ function UNARY_MINUS(tokens, position)
 	end
 end
 
-local function tokenize(code)
-	local next_start = 1
+function tokenize(code)
 	local tokens = newList()
-	while true do
-		local start, finish, literal_left, code_right = code:find("^(.-)(%b[])", next_start)
-		if not start then
-			break
-		end
-		if literal_left ~= "" then
-			tokens[#tokens+1] = literal_left
-		end
-		next_start = finish+1
-		local last_type
-		local alphanum_start
-		for i = 1, #code_right do
-			local b = code_right:byte(i)
-			local b_type
-			if b >= ('0'):byte() and b <= ('9'):byte() then
-				if last_type ~= 'alphanum' and last_type ~= 'number' then
-					alphanum_start = i
-					last_type = 'number'
-				end
-			elseif (b >= ('a'):byte() and b <= ('z'):byte()) or (b >= ('A'):byte() and b <= ('Z'):byte()) or b == ("_"):byte() then
-				if last_type == 'number' then
-					tokens[#tokens+1] = code_right:sub(alphanum_start, i-1)
-				end
-				if last_type ~= 'alphanum' then
-					alphanum_start = i
-					last_type = 'alphanum'
-				end
-			else
-				if last_type == 'alphanum' or last_type == 'number' then
-					tokens[#tokens+1] = code_right:sub(alphanum_start, i-1)
-				end
-				tokens[#tokens+1] = code_right:sub(i, i)
-				last_type = 'symbol'
-			end
-		end
-		if last_type == 'alphanum' or last_type == 'number' then
-			tokens[#tokens+1] = code_right:sub(alphanum_start)
-		end
+	for i = 1, #code do
+		tokens[i] = code:sub(i, i)
 	end
-	local literal_right = code:sub(next_start)
-	if literal_right ~= "" then
-		tokens[#tokens+1] = literal_right
-	end
-	
 	return tokens
 end
 
