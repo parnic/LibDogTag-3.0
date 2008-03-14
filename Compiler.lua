@@ -726,8 +726,8 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 				args = del(args)
 			end
 			
-			for _, step in pairs(compilationSteps.tag[tagNS]) do
-				step(ast, t, tag, tagData, kwargs, extraKwargs)
+			for step in pairs(compilationSteps.tag[tagNS]) do
+				step(ast, t, tag, tagData, kwargs, extraKwargs, compiledKwargs)
 			end
 			
 			local passData = newList() -- data that will be passed into functions like ret, code, etc.
