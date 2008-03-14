@@ -51,7 +51,7 @@ do
 		return t
 	end
 	function del(t)
-		if not t then
+		if type(t) ~= "table" then
 			error("Bad argument #1 to `del'. Expected table, got nil.", 2)
 		end
 		if pool[t] then
@@ -62,17 +62,27 @@ do
 		for k in pairs(t) do
 			t[k] = nil
 		end
+		setmetatable(t, nil)
 		t[''] = true
 		t[''] = nil
 		return nil
 	end
+	local deepDel_data
 	function deepDel(t)
-		if type(t) == "table" then
+		local made_deepDel_data = not deepDel_data
+		if made_deepDel_data then
+			deepDel_data = newList()
+		end
+		if type(t) == "table" and not deepDel_data[t] then
+			deepDel_data[t] = true
 			for k,v in pairs(t) do
 				deepDel(v)
 				deepDel(k)
 			end
 			del(t)
+		end
+		if made_deepDel_data then
+			deepDel_data = del(deepDel_data)
 		end
 		return nil
 	end

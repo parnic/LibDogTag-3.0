@@ -28,6 +28,18 @@ DogTag_funcs[#DogTag_funcs+1] = function()
 	codeToEventList = DogTag.codeToEventList
 end
 
+local compilationSteps = {}
+do
+	local mt = {__index = function(self, ns)
+		self[ns] = newList()
+		return self[ns]
+	end}
+	compilationSteps.pre = setmetatable({}, mt)
+	compilationSteps.start = setmetatable({}, mt)
+	compilationSteps.tag = setmetatable({}, mt)
+	compilationSteps.finish = setmetatable({}, mt)
+end
+
 local correctTagCasing = setmetatable({}, {__index = function(self, tag)
 	for ns, data in pairs(Tags) do
 		if data[tag] then
@@ -237,7 +249,7 @@ local function getTagData(tag, nsList)
 		if Tags_ns then
 			local Tags_ns_tag = Tags_ns[tag]
 			if Tags_ns_tag then
-				return Tags_ns_tag
+				return Tags_ns_tag, ns
 			end
 		end
 	end
@@ -607,7 +619,7 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 		end
 	elseif astType == 'tag' or operators[astType] then
 		local tag = ast[astType == 'tag' and 2 or 1]
-		local tagData = getTagData(tag, nsList)
+		local tagData, tagNS = getTagData(tag, nsList)
 		if not storeKey then
 			storeKey = newUniqueVar()
 		end
@@ -714,7 +726,11 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 				args = del(args)
 			end
 			
-			local passData = newList()
+			for _, step in pairs(compilationSteps.tag[tagNS]) do
+				step(ast, t, tag, tagData, kwargs, extraKwargs)
+			end
+			
+			local passData = newList() -- data that will be passed into functions like ret, code, etc.
 			for k, v in pairs(kwargs) do
 				local passData_k = newList()
 				passData[k] = passData_k
@@ -1336,6 +1352,14 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	if not ast then
 		return ("return function() return %q, nil end"):format(err)
 	end
+	for _, ns in ipairs(unpackNamespaceList[nsList]) do
+		for step in pairs(compilationSteps.pre[ns]) do
+			ast, err = step(ast, kwargTypes)
+			if not ast then
+				return ("return function() return %q, nil end"):format(err)
+			end
+		end
+	end
 	
 	local t = newList()
 	t[#t+1] = ([=[local DogTag = _G.LibStub(%q);]=]):format(MAJOR_VERSION)
@@ -1363,6 +1387,13 @@ function DogTag:CreateFunctionFromCode(code, ...)
 		u[#u+1] = [=["];]=]
 		extraKwargs[k] = newList(arg, v)
 	end
+	
+	for _, ns in ipairs(unpackNamespaceList[nsList]) do
+		for step in pairs(compilationSteps.start[ns]) do
+			step(u, ast, kwargTypes, extraKwargs)
+		end
+	end
+	
 	local globals = newList()
 	globals['table.concat'] = true
 	globals['tonumber'] = true
@@ -1373,8 +1404,6 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	for k, v in pairs(extraKwargs) do
 		extraKwargs[k] = del(v)
 	end
-	extraKwargs = del(extraKwargs)
-	ast = deepDel(ast)
 	local g = newList()
 	for global in pairs(globals) do
 		if global:find("^[A-Za-z0-9%-]+%-%d+%.%d+$") then
@@ -1438,6 +1467,15 @@ function DogTag:CreateFunctionFromCode(code, ...)
 		t[#t+1] = [=[if result == '' then result = nil; elseif tonumber(result) then result = result+0; end;]=]
 	end
 	types = del(types)
+	
+	for _, ns in ipairs(unpackNamespaceList[nsList]) do
+		for step in pairs(compilationSteps.finish[ns]) do
+			step(t, ast, kwargTypes, extraKwargs)
+		end
+	end
+	
+	extraKwargs = del(extraKwargs)
+	ast = deepDel(ast)
 	
 	t[#t+1] = [=[return result, opacity;]=]
 	
@@ -1503,6 +1541,80 @@ function DogTag:Evaluate(code, ...)
 	end
 	local nsList = getNamespaceList(select2(1, n, ...))
 	return evaluate(code, nsList, kwargs)
+end
+
+local function clearCodeToFunctionNamespace(namespace)
+	for nsList, data in pairs(codeToFunction) do
+		for _, ns in ipairs(unpackNamespaceList[nsList]) do
+			if ns == namespace then
+				local codeToFunction_nsList = codeToFunction[nsList]
+				for kwargTypes, d in pairs(codeToFunction[nsList]) do
+					if type(kwargTypes) ~= "number" then
+						codeToFunction_nsList[kwargTypes] = del(d)
+					end
+				end
+				codeToFunction[nsList] = del(codeToFunction_nsList)
+				break
+			end
+		end
+	end
+end
+
+function DogTag:AddCompilationStep(namespace, kind, func)
+	if type(namespace) ~= "string" then
+		error(("Bad argument #2 to `AddCompilationStep'. Expected %q, got %q"):format("string", type(namespace)), 2)
+	end
+	if type(kind) ~= "string" then
+		error(("Bad argument #3 to `AddCompilationStep'. Expected %q, got %q"):format("string", type(kind)), 2)
+	elseif kind ~= "pre" and kind ~= "start" and kind ~= "tag" and kind ~= "finish" then
+		error(("Bad argument #3 to `AddCompilationStep'. Expected %q, %q, %q, or %q, got %q"):format("pre", "start", "tag", "finish", kind), 2)
+	end
+	if type(func) ~= "function" then
+		error(("Bad argument #4 to `AddCompilationStep'. Expected %q, got %q"):format("function", type(func)), 2)
+	end
+	compilationSteps[kind][namespace][func] = true
+	clearCodeToFunctionNamespace(namespace)
+end
+
+function DogTag:RemoveCompilationStep(namespace, kind, func)
+	if type(namespace) ~= "string" then
+		error(("Bad argument #2 to `AddCompilationStep'. Expected %q, got %q"):format("string", type(namespace)), 2)
+	end
+	if type(kind) ~= "string" then
+		error(("Bad argument #3 to `AddCompilationStep'. Expected %q, got %q"):format("string", type(kind)), 2)
+	elseif kind ~= "pre" and kind ~= "start" and kind ~= "tag" and kind ~= "finish" then
+		error(("Bad argument #3 to `AddCompilationStep'. Expected %q, %q, %q, or %q, got %q"):format("pre", "start", "tag", "finish", kind), 2)
+	end
+	if type(func) ~= "function" then
+		error(("Bad argument #4 to `AddCompilationStep'. Expected %q, got %q"):format("function", type(func)), 2)
+	end
+	compilationSteps[kind][namespace][func] = nil
+	clearCodeToFunctionNamespace(namespace)
+end
+
+function DogTag:RemoveAllCompilationSteps(namespace, kind)
+	if type(namespace) ~= "string" then
+		error(("Bad argument #3 to `AddCompilationStep'. Expected %q, got %q"):format("string", type(namespace)), 2)
+	end
+	if kind then
+		if type(kind) ~= "string" then
+			error(("Bad argument #3 to `AddCompilationStep'. Expected %q, got %q"):format("string", type(kind)), 2)
+		elseif kind ~= "pre" and kind ~= "start" and kind ~= "tag" and kind ~= "finish" then
+			error(("Bad argument #3 to `AddCompilationStep'. Expected %q, %q, %q, or %q, got %q"):format("pre", "start", "tag", "finish", kind), 2)
+		end
+		local compilationSteps_kind_namespace = rawget(compilationSteps[kind], namespace)
+		if compilationSteps_kind_namespace then
+			compilationSteps[kind][namespace] = del(compilationSteps_kind_namespace)
+		end
+	else
+		for kind, data in pairs(compilationSteps) do
+			local data_namespace = rawget(data, namespace)
+			if data_namespace then
+				data[namespace] = del(data_namespace)
+			end
+		end
+	end
+	clearCodeToFunctionNamespace(namespace)
 end
 
 end

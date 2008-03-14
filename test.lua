@@ -1,5 +1,14 @@
 -- $Id$
 
+--[=[
+TODO:
+
+For events, the same event but with multiple different args, e.g. MODIFIER_STATE_CHANGED#LALT;MODIFIER_STATE_CHANGED#RALT.
+Compilation steps
+Implement unit-oriented tags
+More comments
+]=]
+
 local function escape_char(c)
 	return ("\\%03d"):format(c:byte())
 end
@@ -353,6 +362,14 @@ DogTag:AddTag("Base", "Two", {
 	ret = "number",
 	doc = "Return the number 2",
 	example = '[Two] => "2"',
+	category = "Testing"
+})
+
+DogTag:AddTag("Base", "FakeOne", {
+	code = [=[return 100]=],
+	ret = "number",
+	doc = "Return the number 100",
+	example = '[FakeOne] => "100"',
 	category = "Testing"
 })
 
@@ -1807,4 +1824,32 @@ assert_equal(DogTag:Evaluate("[(GlobalCheck ? 'Hello' One ! 'There' Two) 'Buddy'
 GlobalCheck_data = nil
 assert_equal(DogTag:Evaluate("[(GlobalCheck ? 'Hello' One ! 'There' Two) 'Buddy']"), 'There2Buddy')
 
+assert_equal(DogTag:Evaluate("[FakeOne]"), 100)
+
+local function fix(ast)
+	if type(ast) == "table" and ast[1] == "tag" and ast[2] == "FakeOne" then
+		ast[2] = "One"
+	end
+	if type(ast) == "table" then
+		for i = 2, #ast do
+			fix(ast[i])
+		end
+	end
+end
+local function func(ast, kwargTypes)
+	fix(ast)
+	return ast
+end
+DogTag:AddCompilationStep("Base", "pre", func)
+assert_equal(DogTag:Evaluate("[FakeOne]"), 1)
+DogTag:RemoveCompilationStep("Base", "pre", func)
+assert_equal(DogTag:Evaluate("[FakeOne]"), 100)
+DogTag:AddCompilationStep("Base", "pre", func)
+assert_equal(DogTag:Evaluate("[FakeOne]"), 1)
+DogTag:RemoveAllCompilationSteps("Base", "pre")
+assert_equal(DogTag:Evaluate("[FakeOne]"), 100)
+DogTag:AddCompilationStep("Base", "pre", func)
+assert_equal(DogTag:Evaluate("[FakeOne]"), 1)
+DogTag:RemoveAllCompilationSteps("Base")
+assert_equal(DogTag:Evaluate("[FakeOne]"), 100)
 print("LibDogTag-3.0: Tests succeeded")
