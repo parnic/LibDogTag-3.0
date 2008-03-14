@@ -5,9 +5,7 @@ if MINOR_VERSION > _G.DogTag_MINOR_VERSION then
 	_G.DogTag_MINOR_VERSION = MINOR_VERSION
 end
 
-DogTag_funcs[#DogTag_funcs+1] = function()
-
-local DogTag = _G.DogTag
+DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 
 local poolNum = 0
 local newList, newDict, newSet, del, deepDel, deepCopy

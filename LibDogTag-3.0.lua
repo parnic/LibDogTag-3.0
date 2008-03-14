@@ -13,14 +13,11 @@ if MINOR_VERSION > _G.DogTag_MINOR_VERSION then
 	_G.DogTag_MINOR_VERSION = MINOR_VERSION
 end
 
-DogTag_funcs[#DogTag_funcs+1] = function()
-
-local DogTag = _G.DogTag
+DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 
 -- #AUTODOC_NAMESPACE DogTag
 
-local L = DogTag__L
-DogTag.L = L
+local L = DogTag.L
 
 local newList, newSet, del, deepCopy = DogTag.newList, DogTag.newSet, DogTag.del, DogTag.deepCopy
 local select2 = DogTag.select2

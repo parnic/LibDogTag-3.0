@@ -10,5 +10,6 @@
 	<Script file="Modules\Operators.lua" />
 	<Script file="Modules\Math.lua" />
 	<Script file="Modules\TextManip.lua" />
+	<Script file="Modules\Misc.lua" />
 	<Script file="Cleanup.lua" />
 </Ui>

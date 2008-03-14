@@ -107,7 +107,7 @@ local function is_equal(alpha, bravo)
 	return true
 end
 
-local function assert_equal(alpha, bravo)
+function assert_equal(alpha, bravo)
 	if not is_equal(alpha, bravo) then
 		error(("Assertion failed: %s == %s"):format(ptostring(alpha), ptostring(bravo)), 2)
 	end
@@ -188,7 +188,7 @@ function GetTime()
 	return currentTime
 end
 
-local function FireOnUpdate(elapsed)
+function FireOnUpdate(elapsed)
 	if not elapsed then
 		elapsed = 1
 	end
@@ -201,7 +201,7 @@ local function FireOnUpdate(elapsed)
 	end
 end
 
-local function FireEvent(event, ...)
+function FireEvent(event, ...)
 	for frame in pairs(frames) do
 		if frameRegisteredEvents[frame][event] or frameRegisteredEvents[frame][ALL_EVENTS] then
 			local OnEvent = frame:GetScript("OnEvent")
@@ -1798,4 +1798,4 @@ assert_equal(DogTag:Evaluate("[(GlobalCheck ? 'Hello' One ! 'There' Two) 'Buddy'
 GlobalCheck_data = nil
 assert_equal(DogTag:Evaluate("[(GlobalCheck ? 'Hello' One ! 'There' Two) 'Buddy']"), 'There2Buddy')
 
-print("Tests succeeded")
+print("LibDogTag-3.0: Tests succeeded")

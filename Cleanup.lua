@@ -20,10 +20,8 @@ if next(DogTag) ~= nil then
 end
 DogTag.oldLib = oldLib
 
-_G.DogTag = DogTag
-
-for _,v in ipairs(DogTag_funcs) do
-	v()
+for _,v in ipairs(_G.DogTag_funcs) do
+	v(DogTag)
 end
 
-_G.DogTag = nil
+_G.DogTag_funcs = nil

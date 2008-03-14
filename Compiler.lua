@@ -5,11 +5,9 @@ if MINOR_VERSION > _G.DogTag_MINOR_VERSION then
 	_G.DogTag_MINOR_VERSION = MINOR_VERSION
 end
 
-DogTag_funcs[#DogTag_funcs+1] = function()
+DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 
-local DogTag = _G.DogTag
-
-local L = DogTag__L
+local L = DogTag.L
 
 local FakeGlobals = DogTag.FakeGlobals
 local Tags = DogTag.Tags
