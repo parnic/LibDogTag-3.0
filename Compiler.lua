@@ -653,7 +653,7 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 			local firstAndNonNil
 			for k,v in pairs(kwargs) do
 				if v == extraKwargs then
-					compiledKwargs[k] = newList(("kwargs[%q]"):format(k), extraKwargs[k])
+					compiledKwargs[k] = newList(unpack(extraKwargs[k]))
 				else
 					local argTypes = "nil;number;string"
 					local arg_num
@@ -789,10 +789,10 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 									error(("Unknown event parameter %q for tag %s. Please inform ckknight."):format(param, tag))
 								end
 								local compiledKwargs_real_param_1 = compiledKwargs_real_param[1]
-								if not compiledKwargs_real_param_1:match("^kwargs%[\"[a-z]+\"%]$") then
+								if not compiledKwargs_real_param_1:match("^kwargs_[a-z]+$") then
 									local kwargs_real_param = kwargs[real_param]
 									if type(kwargs_real_param) == "table" then
-										param = unparse(kwargs[real_param])
+										param = unparse(kwargs_real_param)
 									else
 										param = kwargs_real_param or true
 									end
@@ -1380,7 +1380,8 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	local u = newList()
 	local extraKwargs = newList()
 	for k, v in pairs(kwargTypes) do
-		local arg = newUniqueVar()
+		local arg = "kwargs_" .. k
+		u[#u+1] = [=[local ]=]
 		u[#u+1] = arg
 		u[#u+1] = [=[ = kwargs["]=]
 		u[#u+1] = k
