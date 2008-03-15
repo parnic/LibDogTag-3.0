@@ -1206,6 +1206,9 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 				return forceTypes("nil", "nil", forceToTypes, t)
 			end
 		end
+	elseif astType == '...' then
+		t[#t+1] = [=[do return "... used inappropriately" end;]=]
+		return "nil", "nil"
 	end
 	error(("Unknown astType: %q"):format(tostring(astType or '')))
 end
@@ -1239,7 +1242,7 @@ do
 		for i = argStart, #ast do
 			local v = ast[i]
 			local astType = getASTType(v)
-			if astType == "tag" and v[2] == "..." then
+			if astType == "..." then
 				deepDel(v)
 				ast[i] = nil
 				for j, u in ipairs(tupleArgs) do

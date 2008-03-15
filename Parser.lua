@@ -20,7 +20,7 @@ GROUPING            = "(", MULTI_SPACE, INNER_TAG_SEQUENCE, MULTI_SPACE, ")"
 TAG                 = ALPHANUM
 PARAM_LIST          = "(", MULTI_SPACE, INNER_PARAM_LIST, MULTI_SPACE, ")"
 INNER_PARAM_LIST    = INNER_TAG_SEQUENCE, { MULTI_SPACE, ",", MULTI_SPACE, INNER_TAG_SEQUENCE }, { MULTI_SPACE, ",", MULTI_SPACE, ALPHANUM, "=", INNER_TAG_SEQUENCE }
-STRING              = '"', ( ANY - '"' ), '"' | "'", ( ANY - "'" ), "'"
+STRING              = '"', ( ANY - '"' ), '"' | "'", ( ANY - "'" ), "'" -- actually more complicated, as it supports backslashes and escaping.
 NUMBER              = SIGNED_INTEGER, [ ".", MULTI_DIGIT | ("e" | "E"), SIGNED_INTEGER ]
 SIGNED_INTEGER      = [ "-", ] MULTI_DIGIT
 ALPHANUM            = ('A'..'Z' | 'a'..'z' | '_'), { '0'..'9' | 'A'..'Z' | 'a'..'z' | '_' }
@@ -62,12 +62,6 @@ local reserved = {
 	["and"] = true,
 	["or"] = true,
 	["not"] = true,
-}
-
-local reservedTags = {
-	["nil"] = true,
-	["true"] = true,
-	["false"] = true,
 }
 
 local A_byte = ('A'):byte()
@@ -292,12 +286,25 @@ function CHUNK(tokens, position)
 		return pos, data
 	end
 	
+	if matches(tokens, position, "nil") then
+		return position+3, newList("nil")
+	end
+	
+	if matches(tokens, position, "true") then
+		return position+4, newList("true")
+	end
+	
+	if matches(tokens, position, "false") then
+		return position+5, newList("false")
+	end
+	
+	if matches(tokens, position, "...") then
+		return position+3, newList("...")
+	end
+	
 	pos, data = TAG(tokens, position)
 	if pos then
 		local data_lower = data:lower()
-		if reservedTags[data_lower] then
-			return pos, newList(data_lower)
-		end
 		local p, list = PARAM_LIST(tokens, pos)
 		if p then
 			table_insert(list, 1, "tag")
@@ -306,10 +313,6 @@ function CHUNK(tokens, position)
 		else
 			return pos, newList("tag", data)
 		end
-	end
-	
-	if tokens[position] == period_byte and tokens[position+1] == period_byte and tokens[position+2] == period_byte then
-		return position+3, newList("tag", "...")
 	end
 	
 	return nil
