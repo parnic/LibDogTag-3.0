@@ -4,7 +4,6 @@
 TODO:
 
 For events, the same event but with multiple different args, e.g. MODIFIER_STATE_CHANGED#LALT;MODIFIER_STATE_CHANGED#RALT.
-Compilation steps
 Implement unit-oriented tags
 More comments
 ]=]
@@ -773,6 +772,31 @@ DogTag:AddTag("Base", "OtherBlizzEventTest", {
 	category = "Testing"
 })
 
+local LibToProvideExtraFunctionality
+DogTag:AddAddonFinder("Base", "LibStub", "LibToProvideExtraFunctionality", function(lib)
+	LibToProvideExtraFunctionality = lib
+end)
+
+DogTag:AddTag("Base", "ExtraFunctionalityWithLib", {
+	code = function(args)
+		if LibToProvideExtraFunctionality then
+			return [=[return "True"]=]
+		else
+			return [=[return nil]=]
+		end
+	end,
+	ret = function(args)
+		if LibToProvideExtraFunctionality then
+			return "string"
+		else
+			return "nil"
+		end
+	end,
+	doc = "Return True if LibToProvideExtraFunctionality is present",
+	example = '[ExtraFunctionalityWithLib] => ""; [ExtraFunctionalityWithLib] => "True"',
+	category = "Testing",
+})
+
 assert_equal(parse("[MyTag]"), { "tag", "MyTag" })
 assert_equal(DogTag:CleanCode("[MyTag]"), "[MyTag]")
 assert_equal(parse("Alpha [MyTag]"), {" ", "Alpha ", { "tag", "MyTag" } })
@@ -1401,6 +1425,15 @@ assert_equal(fired, false)
 FireEvent("FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, true)
 fired = false
+DogTag.clearCodes("Base")
+FireEvent("FAKE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, true)
+fired = false
+FireEvent("FAKE_BLIZZARD_EVENT", 'pet')
+assert_equal(fired, false)
+FireEvent("FAKE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, true)
+fired = false
 
 local fired = false
 local function func(code, kwargs)
@@ -1409,6 +1442,15 @@ local function func(code, kwargs)
 	fired = true
 end
 DogTag:AddCallback("[BlizzEventTest]", func, { value = "player" })
+FireEvent("FAKE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, true)
+fired = false
+FireEvent("FAKE_BLIZZARD_EVENT", 'pet')
+assert_equal(fired, false)
+FireEvent("FAKE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, true)
+fired = false
+DogTag.clearCodes("Base")
 FireEvent("FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, true)
 fired = false
@@ -1492,6 +1534,13 @@ assert_equal(fs:GetText(), 3)
 FireOnUpdate(0.05)
 assert_equal(fs:GetText(), 4)
 FireOnUpdate(0.01)
+assert_equal(fs:GetText(), 4)
+DogTag.clearCodes()
+FireOnUpdate(0)
+assert_equal(fs:GetText(), 5)
+FireEvent("OTHER_FAKE_BLIZZARD_EVENT")
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 6)
 
 _G.BlizzEventTest_num = 1
 GlobalCheck_data = 'player'
@@ -1852,4 +1901,38 @@ DogTag:AddCompilationStep("Base", "pre", func)
 assert_equal(DogTag:Evaluate("[FakeOne]"), 1)
 DogTag:RemoveAllCompilationSteps("Base")
 assert_equal(DogTag:Evaluate("[FakeOne]"), 100)
+
+local fired = false
+DogTag:AddAddonFinder("Base", "_G", "MyAddonToBeFound", function(MyAddonToBeFound)
+	assert_equal(MyAddonToBeFound, _G.MyAddonToBeFound)
+	fired = true
+end)
+assert_equal(fired, false)
+FireEvent("ADDON_LOADED")
+assert_equal(fired, false)
+_G.MyAddonToBeFound = {}
+FireEvent("ADDON_LOADED")
+assert_equal(fired, true)
+
+local fired = false
+DogTag:AddAddonFinder("Base", "LibStub", "MyLibToBeFound", function(MyLibToBeFound)
+	assert_equal(MyLibToBeFound, LibStub("MyLibToBeFound"))
+	fired = true
+end)
+assert_equal(fired, false)
+FireEvent("ADDON_LOADED")
+assert_equal(fired, false)
+LibStub:NewLibrary("MyLibToBeFound", 1)
+FireEvent("ADDON_LOADED")
+assert_equal(fired, true)
+
+DogTag:AddFontString(fs, f, "[ExtraFunctionalityWithLib]")
+assert_equal(fs:GetText(), nil)
+assert_equal(DogTag:Evaluate("[ExtraFunctionalityWithLib]"), nil)
+LibStub:NewLibrary("LibToProvideExtraFunctionality", 1)
+FireEvent("ADDON_LOADED")
+FireOnUpdate(0)
+assert_equal(fs:GetText(), "True")
+assert_equal(DogTag:Evaluate("[ExtraFunctionalityWithLib]"), "True")
+
 print("LibDogTag-3.0: Tests succeeded")

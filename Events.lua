@@ -68,10 +68,10 @@ do
 		return t
 	end})
 end
-DogTag.callbacks = nil
+DogTag.callbacks = callbacks
 
 local eventData = setmetatable({}, {__index = function(self, key)
-	local t = {}
+	local t = newList()
 	self[key] = t
 	return t
 end})
@@ -160,7 +160,10 @@ function DogTag:RemoveCallback(code, callback, ...)
 	end
 end
 
-local function OnEvent(this, event, arg1)
+local function OnEvent(this, event, arg1, ...)
+	if DogTag[event] then
+		DogTag[event](DogTag, event, arg1, ...)
+	end
 	for nsList, codeToEventList_nsList in pairs(codeToEventList) do
 		for kwargTypes, codeToEventList_nsList_kwargTypes in pairs(codeToEventList_nsList) do
 			for code, eventList in pairs(codeToEventList_nsList_kwargTypes) do

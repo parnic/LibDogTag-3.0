@@ -20,12 +20,13 @@ local unpackNamespaceList = DogTag.unpackNamespaceList
 local getASTType = DogTag.getASTType
 local kwargsToKwargTypes = DogTag.kwargsToKwargTypes
 local memoizeTable = DogTag.memoizeTable
-local unparse, parse, standardize, codeToEventList
+local unparse, parse, standardize, codeToEventList, clearCodes
 DogTag_funcs[#DogTag_funcs+1] = function()
 	unparse = DogTag.unparse
 	parse = DogTag.parse
 	standardize = DogTag.standardize
 	codeToEventList = DogTag.codeToEventList
+	clearCodes = DogTag.clearCodes
 end
 
 local compilationSteps = {}
@@ -1547,23 +1548,6 @@ function DogTag:Evaluate(code, ...)
 	return evaluate(code, nsList, kwargs)
 end
 
-local function clearCodeToFunctionNamespace(namespace)
-	for nsList, data in pairs(codeToFunction) do
-		for _, ns in ipairs(unpackNamespaceList[nsList]) do
-			if ns == namespace then
-				local codeToFunction_nsList = codeToFunction[nsList]
-				for kwargTypes, d in pairs(codeToFunction[nsList]) do
-					if type(kwargTypes) ~= "number" then
-						codeToFunction_nsList[kwargTypes] = del(d)
-					end
-				end
-				codeToFunction[nsList] = del(codeToFunction_nsList)
-				break
-			end
-		end
-	end
-end
-
 function DogTag:AddCompilationStep(namespace, kind, func)
 	if type(namespace) ~= "string" then
 		error(("Bad argument #2 to `AddCompilationStep'. Expected %q, got %q"):format("string", type(namespace)), 2)
@@ -1577,7 +1561,7 @@ function DogTag:AddCompilationStep(namespace, kind, func)
 		error(("Bad argument #4 to `AddCompilationStep'. Expected %q, got %q"):format("function", type(func)), 2)
 	end
 	compilationSteps[kind][namespace][func] = true
-	clearCodeToFunctionNamespace(namespace)
+	clearCodes(namespace)
 end
 
 function DogTag:RemoveCompilationStep(namespace, kind, func)
@@ -1593,7 +1577,7 @@ function DogTag:RemoveCompilationStep(namespace, kind, func)
 		error(("Bad argument #4 to `AddCompilationStep'. Expected %q, got %q"):format("function", type(func)), 2)
 	end
 	compilationSteps[kind][namespace][func] = nil
-	clearCodeToFunctionNamespace(namespace)
+	clearCodes(namespace)
 end
 
 function DogTag:RemoveAllCompilationSteps(namespace, kind)
@@ -1618,7 +1602,7 @@ function DogTag:RemoveAllCompilationSteps(namespace, kind)
 			end
 		end
 	end
-	clearCodeToFunctionNamespace(namespace)
+	clearCodes(namespace)
 end
 
 end

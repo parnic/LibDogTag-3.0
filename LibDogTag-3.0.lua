@@ -24,13 +24,14 @@ local select2 = DogTag.select2
 local getNamespaceList = DogTag.getNamespaceList
 local memoizeTable = DogTag.memoizeTable
 local kwargsToKwargTypes = DogTag.kwargsToKwargTypes
-local fsNeedUpdate, fsNeedQuickUpdate, codeToFunction, codeToEventList, eventData
+local fsNeedUpdate, fsNeedQuickUpdate, codeToFunction, codeToEventList, eventData, clearCodes
 DogTag_funcs[#DogTag_funcs+1] = function()
 	fsNeedUpdate = DogTag.fsNeedUpdate
 	fsNeedQuickUpdate = DogTag.fsNeedQuickUpdate
 	codeToFunction = DogTag.codeToFunction
 	codeToEventList = DogTag.codeToEventList
 	eventData = DogTag.eventData
+	clearCodes = DogTag.clearCodes
 end
 
 local fsToFrame = {}
@@ -46,6 +47,8 @@ local FakeGlobals = { ["Base"] = {} }
 DogTag.FakeGlobals = FakeGlobals
 local Tags = { ["Base"] = {} }
 DogTag.Tags = Tags
+local AddonFinders = { ["Base"] = {} }
+DogTag.AddonFinders = AddonFinders
 
 local sortStringList = DogTag.sortStringList
 
@@ -288,6 +291,83 @@ function DogTag:AddFakeGlobal(namespace, key, value)
 		FakeGlobals[namespace] = newList()
 	end
 	FakeGlobals[namespace]["__" .. key] = value
+end
+
+function DogTag:AddAddonFinder(namespace, kind, name, func)
+	if type(namespace) ~= "string" then
+		error(("Bad argument #2 to `AddAddonFinder'. Expected %q, got %q"):format("string", type(namespace)), 2)
+	end
+	if type(kind) ~= "string" then
+		error(("Bad argument #3 to `AddAddonFinder'. Expected %q, got %q"):format("string", type(kind)), 2)
+	end
+	if kind ~= "_G" and kind ~= "LibStub" and kind ~= "Rock" and kind ~= "AceLibrary" then
+		error(("Bad argument #3 to `AddAddonFinder'. Expected %q, %q, %q or %q, got %q"):format("_G", "LibStub", "Rock", "AceLibrary", kind), 2)
+	end
+	if type(name) ~= "string" then
+		error(("Bad argument #4 to `AddAddonFinder'. Expected %q, got %q"):format("string", type(name)), 2)
+	end
+	if type(func) ~= "function" then
+		error(("Bad argument #5 to `AddAddonFinder'. Expected %q, got %q"):format("function", type(func)), 2)
+	end
+	if not AddonFinders[namespace] then
+		AddonFinders[namespace] = newList()
+	end
+	AddonFinders[namespace][newList(kind, name, func)] = true
+end
+
+function DogTag:ADDON_LOADED()
+	AceLibrary = _G.AceLibrary
+	for namespace, data in pairs(AddonFinders) do
+		local refresh = false
+		local tmp_data = data
+		data = newList()
+		AddonFinders[namespace] = data
+		for k in pairs(tmp_data) do
+			local kind, name, func = k[1], k[2], k[3]
+			if kind == "_G" then
+				if _G[name] then
+					tmp_data[k] = nil
+					del(k)
+					func(_G[name])
+					refresh = true
+				end
+			elseif kind == "AceLibrary" then
+				if AceLibrary and AceLibrary:HasInstance(name) then
+					tmp_data[k] = nil
+					del(k)
+					func(AceLibrary(name))
+					refresh = true
+				end
+			elseif kind == "Rock" then
+				if Rock and Rock:HasLibrary(name) then
+					tmp_data[k] = nil
+					del(k)
+					func(Rock:GetLibrary(name))
+					refresh = true
+				end
+			elseif kind == "LibStub" then
+				if Rock then
+					Rock:HasLibrary(name) -- try to load
+				end
+				if AceLibrary then
+					AceLibrary:HasInstance(name) -- try to load
+				end
+				if LibStub:GetLibrary(name, true) then
+					tmp_data[k] = nil
+					del(k)
+					func(LibStub:GetLibrary(name))
+					refresh = true
+				end
+			end
+		end
+		for k in pairs(tmp_data) do
+			data[k] = true
+		end
+		tmp_data = del(tmp_data)
+		if refresh then
+			clearCodes(namespace)
+		end
+	end
 end
 
 end

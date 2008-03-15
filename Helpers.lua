@@ -359,4 +359,91 @@ local kwargsToKwargTypes = setmetatable({}, { __index = function(self, kwargs)
 end, __mode='kv' })
 DogTag.kwargsToKwargTypes = kwargsToKwargTypes
 
+local codeToFunction, codeToEventList, callbacks, eventData
+local fsToNSList, fsToKwargs, fsToCode, fsNeedQuickUpdate
+DogTag_funcs[#DogTag_funcs+1] = function()
+	codeToFunction = DogTag.codeToFunction
+	codeToEventList = DogTag.codeToEventList
+	callbacks = DogTag.callbacks
+	eventData = DogTag.eventData
+	fsToNSList = DogTag.fsToNSList
+	fsToKwargs = DogTag.fsToKwargs
+	fsToCode = DogTag.fsToCode
+	fsNeedQuickUpdate = DogTag.fsNeedQuickUpdate
+end
+
+local function clearCodes(namespace)
+	for nsList, codeToFunction_nsList in pairs(codeToFunction) do
+		for _, ns in ipairs(unpackNamespaceList[nsList]) do
+			if ns == namespace then
+				for kwargTypes, d in pairs(codeToFunction_nsList) do
+					if type(kwargTypes) ~= "number" then
+						codeToFunction_nsList[kwargTypes] = del(d)
+					end
+				end
+				codeToFunction[nsList] = del(codeToFunction_nsList)
+				break
+			end
+		end
+	end
+	for nsList, codeToEventList_nsList in pairs(codeToEventList) do
+		for _, ns in ipairs(unpackNamespaceList[nsList]) do
+			if ns == namespace then
+				for kwargTypes, d in pairs(codeToEventList_nsList) do
+					if type(kwargTypes) ~= "number" then
+						codeToEventList_nsList[kwargTypes] = del(d)
+					end
+				end
+				codeToEventList[nsList] = del(codeToEventList_nsList)
+				break
+			end
+		end
+	end
+	for event, eventData_event in pairs(eventData) do
+		eventData[event] = del(eventData_event)
+	end
+	
+	for nsList, callbacks_nsList in pairs(callbacks) do
+		for _, ns in ipairs(unpackNamespaceList[nsList]) do
+			if ns == namespace then
+				for kwargTypes, callbacks_nsList_kwargTypes in pairs(callbacks_nsList) do
+					local codeToEventList_nsList_kwargTypes = codeToEventList[nsList][kwargTypes]
+					for kwargs, data in pairs(callbacks_nsList_kwargTypes) do
+						for code, func in pairs(data) do
+							local eventList = codeToEventList_nsList_kwargTypes[code]
+							if eventList == nil then
+								local _ = codeToFunction[nsList][kwargTypes][code]
+								eventList = codeToEventList_nsList_kwargTypes[code]
+								assert(eventList ~= nil)
+							end
+						end
+					end
+				end
+				break
+			end
+		end
+	end
+	
+	for fs, nsList in pairs(fsToNSList) do
+		local kwargs = fsToKwargs[fs]
+		local code = fsToCode[fs]
+		
+		local kwargTypes = kwargsToKwargTypes[kwargs]
+		
+		local codeToEventList_nsList_kwargTypes_code = codeToEventList[nsList][kwargTypes][code]
+		if codeToEventList_nsList_kwargTypes_code == nil then
+			local _ = codeToFunction[nsList][kwargTypes][code]
+			codeToEventList_nsList_kwargTypes_code = codeToEventList[nsList][kwargTypes][code]
+			assert(codeToEventList_nsList_kwargTypes_code ~= nil)
+		end
+		if codeToEventList_nsList_kwargTypes_code then
+			for event, arg in pairs(codeToEventList_nsList_kwargTypes_code) do
+				eventData[event][fs] = arg
+			end
+		end
+		fsNeedQuickUpdate[fs] = true
+	end
+end
+DogTag.clearCodes = clearCodes
+
 end
