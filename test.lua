@@ -1459,6 +1459,9 @@ assert_equal(fired, false)
 FireEvent("FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, true)
 fired = false
+DogTag:RemoveCallback("[BlizzEventTest('player')]")
+FireEvent("FAKE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, false)
 
 local fired = false
 local function func(code, kwargs)
@@ -2036,6 +2039,8 @@ assert_equal(DogTag:Evaluate("[(GlobalCheck ? 'Hello' One ! 'There' Two) 'Buddy'
 
 assert_equal(DogTag:Evaluate("[FakeOne]"), 100)
 
+DogTag:RemoveFontString(fs)
+
 local function fix(ast)
 	if type(ast) == "table" and ast[1] == "tag" then
 	 	if ast[2] == "FakeOne" then
@@ -2074,6 +2079,75 @@ DogTag:AddCompilationStep("Base", "pre", func)
 assert_equal(DogTag:Evaluate("[PlusOne(number=FakeOne)]"), 2)
 assert_equal(DogTag:Evaluate("[PlusOne(FakeOne)]"), 2)
 DogTag:RemoveAllCompilationSteps("Base")
+
+local function func(t, ast, kwargTypes, extraKwargs)
+	t[#t+1] = [=[result = '`' .. tostring(result) .. '`']=]
+end
+DogTag:AddCompilationStep("Base", "finish", func)
+assert_equal(DogTag:Evaluate("Hello"), '`Hello`')
+DogTag:RemoveCompilationStep("Base", "finish", func)
+
+local function func(t, ast, kwargTypes, extraKwargs)
+	t[#t+1] = [=[result = '`' .. tostring(result) .. '`']=]
+end
+assert_equal(DogTag:Evaluate("Hello"), 'Hello')
+DogTag:AddCompilationStep("Base", "finish", func)
+assert_equal(DogTag:Evaluate("Hello"), '`Hello`')
+DogTag:RemoveCompilationStep("Base", "finish", func)
+assert_equal(DogTag:Evaluate("Hello"), 'Hello')
+
+local function func(t, ast, kwargTypes, extraKwargs)
+	t[#t+1] = [=[do assert(result == nil) return 'omgpants' end;]=]
+end
+assert_equal(DogTag:Evaluate("Hello"), 'Hello')
+DogTag:AddCompilationStep("Base", "start", func)
+assert_equal(DogTag:Evaluate("Hello"), 'omgpants')
+DogTag:RemoveCompilationStep("Base", "start", func)
+assert_equal(DogTag:Evaluate("Hello"), 'Hello')
+
+local function func(ast, t, tag, tagData, kwargs, extraKwargs, compiledKwargs)
+	if kwargs.number then
+		t[#t+1] = [=[if ]=]
+		t[#t+1] = compiledKwargs.number[1]
+		t[#t+1] = [=[ < 10 then return ("Bad number: %d"):format(]=]
+		t[#t+1] = compiledKwargs.number[1]
+		t[#t+1] = [=[), nil;end;]=]
+	end
+end
+assert_equal(DogTag:Evaluate("[PlusOne(One)]"), 2)
+DogTag:AddCompilationStep("Base", "tag", func)
+assert_equal(DogTag:Evaluate("[PlusOne(One)]"), "Bad number: 1")
+assert_equal(DogTag:Evaluate("[PlusOne(1)]"), "Bad number: 1")
+assert_equal(DogTag:Evaluate("[PlusOne(10)]"), 11)
+assert_equal(DogTag:Evaluate("[PlusOne(One * 10)]"), 11)
+assert_equal(DogTag:Evaluate("[PlusOne(4 * 2)]"), "Bad number: 8")
+DogTag:RemoveCompilationStep("Base", "tag", func)
+assert_equal(DogTag:Evaluate("[PlusOne(One)]"), 2)
+
+local function func(ast, t, tag, tagData, kwargs, extraKwargs, compiledKwargs, events)
+	if kwargs.number then
+		events["SOME_EVENT"] = true
+	end
+end
+
+DogTag:AddCompilationStep("Base", "tagevents", func)
+BlizzEventTest_num = 0
+DogTag:AddFontString(fs, f, "[BlizzEventTest('never')]")
+assert_equal(fs:GetText(), 1)
+FireEvent("SOME_EVENT")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 1)
+DogTag:AddFontString(fs, f, "[BlizzEventTest('never') + PlusOne(-1)]")
+assert_equal(fs:GetText(), 2)
+FireEvent("SOME_EVENT")
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 3)
+DogTag:RemoveCompilationStep("Base", "tagevents", func)
+FireOnUpdate(0)
+assert_equal(fs:GetText(), 4)
+FireEvent("SOME_EVENT")
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 4)
 
 local fired = false
 DogTag:AddAddonFinder("Base", "_G", "MyAddonToBeFound", function(MyAddonToBeFound)

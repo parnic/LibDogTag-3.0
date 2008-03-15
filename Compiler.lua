@@ -38,6 +38,7 @@ do
 	compilationSteps.pre = setmetatable({}, mt)
 	compilationSteps.start = setmetatable({}, mt)
 	compilationSteps.tag = setmetatable({}, mt)
+	compilationSteps.tagevents = setmetatable({}, mt)
 	compilationSteps.finish = setmetatable({}, mt)
 end
 
@@ -750,55 +751,58 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 			end
 			globs = del(globs)
 		end
-		if evs then
-			evs = newSet((";"):split(evs))
-			for k in pairs(evs) do
-				local ev, param = ("#"):split(k, 2)
-				local events_ev = events[ev]
-				if events_ev ~= true then
-					if param then
-						if param:match("^%$") then
-							local real_param = param:sub(2)
-							local compiledKwargs_real_param = compiledKwargs[real_param]
-							if not compiledKwargs_real_param then
-								error(("Unknown event parameter %q for tag %s. Please inform ckknight."):format(real_param, tag))
-							end
-							local compiledKwargs_real_param_1 = compiledKwargs_real_param[1]
-							if not compiledKwargs_real_param_1:match("^kwargs_[a-z]+$") then
-								local kwargs_real_param = kwargs[real_param]
-								if type(kwargs_real_param) == "table" then
-									param = unparse(kwargs_real_param)
-								else
-									param = kwargs_real_param or true
-								end
+		
+		local evs = evs and newSet((";"):split(evs)) or newSet()
+		for step in pairs(compilationSteps.tagevents[tagNS]) do
+			step(ast, t, tag, tagData, kwargs, extraKwargs, compiledKwargs, evs)
+		end
+		
+		for k in pairs(evs) do
+			local ev, param = ("#"):split(k, 2)
+			local events_ev = events[ev]
+			if events_ev ~= true then
+				if param then
+					if param:match("^%$") then
+						local real_param = param:sub(2)
+						local compiledKwargs_real_param = compiledKwargs[real_param]
+						if not compiledKwargs_real_param then
+							error(("Unknown event parameter %q for tag %s. Please inform ckknight."):format(real_param, tag))
+						end
+						local compiledKwargs_real_param_1 = compiledKwargs_real_param[1]
+						if not compiledKwargs_real_param_1:match("^kwargs_[a-z]+$") then
+							local kwargs_real_param = kwargs[real_param]
+							if type(kwargs_real_param) == "table" then
+								param = unparse(kwargs_real_param)
+							else
+								param = kwargs_real_param or true
 							end
 						end
-						if type(events_ev) == "table" then
-							if param == true then
-								del(events_ev)
-								events[ev] = true
-							else
-								events_ev[param] = true
-							end
-						elseif events_ev and events_ev ~= param then
-							if param == true then
-								events[ev] = true
-							else
-								events[ev] = newSet(events_ev, param)
-							end
+					end
+					if type(events_ev) == "table" then
+						if param == true then
+							del(events_ev)
+							events[ev] = true
 						else
-							events[ev] = param
+							events_ev[param] = true
+						end
+					elseif events_ev and events_ev ~= param then
+						if param == true then
+							events[ev] = true
+						else
+							events[ev] = newSet(events_ev, param)
 						end
 					else
-						if type(events_ev) == "table" then
-							del(events_ev)
-						end
-						events[ev] = true
+						events[ev] = param
 					end
+				else
+					if type(events_ev) == "table" then
+						del(events_ev)
+					end
+					events[ev] = true
 				end
 			end
-			evs = del(evs)
 		end
+		evs = del(evs)
 		
 		interpolationHandler__compiledKwargs = compiledKwargs
 		code = code:gsub(",%s*${%.%.%.}", tuple_interpolationHandler)
@@ -1406,22 +1410,26 @@ function DogTag:CreateFunctionFromCode(code, ...)
 		nsList = getNamespaceList(select2(1, n, ...))
 	end
 	
+	
 	local ast = parse(code)
 	ast = standardize(ast)
 	correctASTCasing(ast)
 	local err
 	ast, err = unalias(ast, nsList, kwargTypes)
 	if not ast then
+		codeToEventList[nsList][kwargTypes][code] = false
 		return ("return function() return %q, nil end"):format(err)
 	end
 	ast, err = readjustKwargs(ast, nsList, kwargTypes)
 	if not ast then
+		codeToEventList[nsList][kwargTypes][code] = false
 		return ("return function() return %q, nil end"):format(err)
 	end
 	for _, ns in ipairs(unpackNamespaceList[nsList]) do
 		for step in pairs(compilationSteps.pre[ns]) do
 			ast, err = step(ast, kwargTypes)
 			if not ast then
+				codeToEventList[nsList][kwargTypes][code] = false
 				return ("return function() return %q, nil end"):format(err)
 			end
 		end
@@ -1503,6 +1511,7 @@ function DogTag:CreateFunctionFromCode(code, ...)
 		table.insert(t, i + globals_t_num, v)
 	end
 	g = del(g)
+	
 	if not next(events) then
 		events = del(events)
 		codeToEventList[nsList][kwargTypes][code] = false
@@ -1616,8 +1625,8 @@ function DogTag:AddCompilationStep(namespace, kind, func)
 	end
 	if type(kind) ~= "string" then
 		error(("Bad argument #3 to `AddCompilationStep'. Expected %q, got %q"):format("string", type(kind)), 2)
-	elseif kind ~= "pre" and kind ~= "start" and kind ~= "tag" and kind ~= "finish" then
-		error(("Bad argument #3 to `AddCompilationStep'. Expected %q, %q, %q, or %q, got %q"):format("pre", "start", "tag", "finish", kind), 2)
+	elseif kind ~= "pre" and kind ~= "start" and kind ~= "tag" and kind ~= "tagevents" and kind ~= "finish" then
+		error(("Bad argument #3 to `AddCompilationStep'. Expected %q, %q, %q, %q, or %q, got %q"):format("pre", "start", "tag", "tagevents", "finish", kind), 2)
 	end
 	if type(func) ~= "function" then
 		error(("Bad argument #4 to `AddCompilationStep'. Expected %q, got %q"):format("function", type(func)), 2)
@@ -1632,8 +1641,8 @@ function DogTag:RemoveCompilationStep(namespace, kind, func)
 	end
 	if type(kind) ~= "string" then
 		error(("Bad argument #3 to `AddCompilationStep'. Expected %q, got %q"):format("string", type(kind)), 2)
-	elseif kind ~= "pre" and kind ~= "start" and kind ~= "tag" and kind ~= "finish" then
-		error(("Bad argument #3 to `AddCompilationStep'. Expected %q, %q, %q, or %q, got %q"):format("pre", "start", "tag", "finish", kind), 2)
+	elseif kind ~= "pre" and kind ~= "start" and kind ~= "tag" and kind ~= "tagevents" and kind ~= "finish" then
+		error(("Bad argument #3 to `AddCompilationStep'. Expected %q, %q, %q, %q, or %q, got %q"):format("pre", "start", "tag", "tagevents", "finish", kind), 2)
 	end
 	if type(func) ~= "function" then
 		error(("Bad argument #4 to `AddCompilationStep'. Expected %q, got %q"):format("function", type(func)), 2)
@@ -1649,8 +1658,8 @@ function DogTag:RemoveAllCompilationSteps(namespace, kind)
 	if kind then
 		if type(kind) ~= "string" then
 			error(("Bad argument #3 to `AddCompilationStep'. Expected %q, got %q"):format("string", type(kind)), 2)
-		elseif kind ~= "pre" and kind ~= "start" and kind ~= "tag" and kind ~= "finish" then
-			error(("Bad argument #3 to `AddCompilationStep'. Expected %q, %q, %q, or %q, got %q"):format("pre", "start", "tag", "finish", kind), 2)
+		elseif kind ~= "pre" and kind ~= "start" and kind ~= "tag" and kind ~= "tagevents" and kind ~= "finish" then
+			error(("Bad argument #3 to `AddCompilationStep'. Expected %q, %q, %q, %q, or %q, got %q"):format("pre", "start", "tag", "tagevents", "finish", kind), 2)
 		end
 		local compilationSteps_kind_namespace = rawget(compilationSteps[kind], namespace)
 		if compilationSteps_kind_namespace then
