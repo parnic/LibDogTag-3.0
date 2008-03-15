@@ -7,6 +7,37 @@ end
 
 DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 
+--[=[
+DOGTAG              = { SEGMENT }
+SEGMENT             = TAG_SEQUENCE | OUTER_STRING
+TAG_SEQUENCE        = "[", MULTI_SPACE, INNER_TAG_SEQUENCE, MULTI_SPACE, "]"
+INNER_TAG_SEQUENCE  = IF_STATEMENT
+CHUNK_WITH_MODIFIER = UNARY_MINUS, { MULTI_SPACE, ":", [ "~", ] TAG, [ PARAM_LIST ] }
+UNARY_MINUS         = [ "-", MULTI_SPACE, ] CHUNK
+CHUNK               = GROUPING | STRING | NUMBER | "nil" | "true" | "false" | TAG, [ PARAM_LIST ] | "..."
+GROUPING            = "(", MULTI_SPACE, INNER_TAG_SEQUENCE, MULTI_SPACE, ")"
+                    | "[", MULTI_SPACE, INNER_TAG_SEQUENCE, MULTI_SPACE, "]"
+TAG                 = ALPHANUM
+PARAM_LIST          = "(", MULTI_SPACE, INNER_PARAM_LIST, MULTI_SPACE, ")"
+INNER_PARAM_LIST    = INNER_TAG_SEQUENCE, { MULTI_SPACE, ",", MULTI_SPACE, INNER_TAG_SEQUENCE }, { MULTI_SPACE, ",", MULTI_SPACE, ALPHANUM, "=", INNER_TAG_SEQUENCE }
+STRING              = '"', ( ANY - '"' ), '"' | "'", ( ANY - "'" ), "'"
+NUMBER              = SIGNED_INTEGER, [ ".", MULTI_DIGIT | ("e" | "E"), SIGNED_INTEGER ]
+SIGNED_INTEGER      = [ "-", ] MULTI_DIGIT
+ALPHANUM            = ('A'..'Z' | 'a'..'z' | '_'), { '0'..'9' | 'A'..'Z' | 'a'..'z' | '_' }
+MULTI_DIGIT         = '0'..'9', { '0'..'9' }
+MULTI_SPACE         = { SPACE }
+SPACE               = " " | "\t" | "\n" | "\r"
+IF_STATEMENT        = COMPARISON, [ MULTI_SPACE, "?", MULTI_SPACE, COMPARISON, [ MULTI_SPACE, "!", MULTI_SPACE, COMPARISON ] ]
+                    | "if", MULTI_SPACE, COMPARISON, MULTI_SPACE, "then", MULTI_SPACE, COMPARISON, [ MULTI_SPACE, "else", MULTI_SPACE, COMPARISON ]
+COMPARISON          = LOGIC, { MULTI_SPACE, ("<=" | "<" | ">" | ">=" | "=" | "~="), MULTI_SPACE, LOGIC }
+LOGIC               = CONCATENATION, { MULTI_SPACE, ( "and" | "or" | "&" | "|" | "||" ), MULTI_SPACE, CONCATENATION }
+CONCATENATION       = ADDITION, { SPACE, MULTI_SPACE, ADDITION }
+ADDITION            = MULTIPLICATION, { MULTI_SPACE, ( "+" | "-" ), MULTIPLICATION }
+MULTIPLICATION      = NEGATION, { MULTI_SPACE, ( "*" | "/" | "%" ), MULTI_SPACE, NEGATION }
+NEGATION            = { ( "not" | "~" ), MULTI_SPACE, } EXPONENTIATION
+EXPONENTIATION      = CHUNK_WITH_MODIFIER, { MULTI_SPACE, "^", MULTI_SPACE CHUNK_WITH_MODIFIER }
+]=]
+
 local L = DogTag.L
 
 local DOGTAG, SEGMENT, TAG_SEQUENCE, CHUNK, SPACE, MULTI_SPACE, EXPONENTIATION, MULTIPLICATION, ADDITION, CONCATENATION, LOGIC, MULTI_DIGIT, ALPHANUM, SIGNED_INTEGER, INNER_PARAM_LIST, COMPARISON, IF_STATEMENT, INNER_TAG_SEQUENCE, TAG, PARAM_LIST, NUMBER, STRING, GROUPING, NEGATION, CHUNK_WITH_MODIFIER, UNARY_MINUS
@@ -86,7 +117,6 @@ local function matches(tokens, position, phrase)
 	return true
 end
 
--- { SEGMENT }
 function DOGTAG(tokens)
 	local position = 1
 	local isConcatList = false
@@ -112,7 +142,6 @@ function DOGTAG(tokens)
 	return list
 end
 
--- TAG_SEQUENCE | OUTER_STRING
 function SEGMENT(tokens, position)
 	local pos, data = TAG_SEQUENCE(tokens, position)
 	if pos then
@@ -138,7 +167,6 @@ function SEGMENT(tokens, position)
 	end
 end
 
--- IF_STATEMENT
 function INNER_TAG_SEQUENCE(tokens, position)
 	local position, data = IF_STATEMENT(tokens, position)
 	if not position then
@@ -147,7 +175,6 @@ function INNER_TAG_SEQUENCE(tokens, position)
 	return position, data
 end
 
--- "[", MULTI_SPACE, INNER_TAG_SEQUENCE, MULTI_SPACE, "]"
 function TAG_SEQUENCE(tokens, position)
 	if tokens[position] ~= open_bracket_byte then
 		return nil
@@ -169,9 +196,8 @@ function TAG_SEQUENCE(tokens, position)
 	return position+1, data
 end
 
--- CHUNK, { MULTI_SPACE, ":", [ "~" ], TAG, [ PARAM_LIST ] }
 function CHUNK_WITH_MODIFIER(tokens, position)
-	local position, data = CHUNK(tokens, position)
+	local position, data = UNARY_MINUS(tokens, position)
 	if not position then
 		return nil
 	end
@@ -219,7 +245,34 @@ function CHUNK_WITH_MODIFIER(tokens, position)
 	end
 end
 
--- GROUPING | STRING | NUMBER | "nil" | "true" | "false" | TAG, [ PARAM_LIST ] | "..."
+function UNARY_MINUS(tokens, position)
+	local op = tokens[position]
+
+	if op ~= minus_byte then
+		local position, data = CHUNK(tokens, position)
+		if not position then
+			return nil
+		end
+		return position, data
+	end
+
+	local pos = MULTI_SPACE(tokens, position+1)
+
+	if tokens[pos] == minus_byte then
+		-- don't have double negatives without parentheses
+		return nil
+	end
+	local position, data = CHUNK(tokens, pos)
+	if not position then
+		return nil
+	end
+	if type(data) == "number" then
+		return position, -data
+	else
+		return position, newList("unm", data)
+	end
+end
+
 function CHUNK(tokens, position)
 	local pos, data = GROUPING(tokens, position)
 	if pos then
@@ -267,8 +320,6 @@ local groupings = {
 	[open_parenthesis_byte] = close_parenthesis_byte
 }
 
---   "(", MULTI_SPACE, INNER_TAG_SEQUENCE, MULTI_SPACE, ")"
--- | "[", MULTI_SPACE, INNER_TAG_SEQUENCE, MULTI_SPACE, "]"
 function GROUPING(tokens, position)
 	local start = tokens[position]
 	local shouldFinish = groupings[start]
@@ -292,7 +343,6 @@ function GROUPING(tokens, position)
 	return position+1, newList(string_char(start), data)
 end
 
--- ALPHANUM
 function TAG(tokens, position)
 	local position, tag = ALPHANUM(tokens, position)
 	if not position then
@@ -307,7 +357,6 @@ function TAG(tokens, position)
 	return position, tag
 end
 
--- INNER_TAG_SEQUENCE, { MULTI_SPACE, ",", MULTI_SPACE, INNER_TAG_SEQUENCE }, { MULTI_SPACE, ",", MULTI_SPACE, ALPHANUM, "=", INNER_TAG_SEQUENCE }
 function INNER_PARAM_LIST(tokens, position)
 	local pos, key = ALPHANUM(tokens, position)
 	local data
@@ -355,7 +404,6 @@ function INNER_PARAM_LIST(tokens, position)
 	end
 end
 
--- "(", MULTI_SPACE, INNER_PARAM_LIST, MULTI_SPACE, ")"
 function PARAM_LIST(tokens, position)
 	if tokens[position] ~= open_parenthesis_byte then
 		return nil
@@ -383,7 +431,6 @@ local quotes = {
 	[('"'):byte()] = true,
 }
 
--- '"', ( ANY - '"' ), '"' | "'", ( ANY - "'" ), "'"
 function STRING(tokens, position)
 	local c = tokens[position]
 	if not quotes[c] then
@@ -438,7 +485,6 @@ function STRING(tokens, position)
 	return nil
 end
 
--- SIGNED_INTEGER, [ ".", MULTI_DIGIT | ("e" | "E"), SIGNED_INTEGER ]
 function NUMBER(tokens, position)
 	local pos, number = SIGNED_INTEGER(tokens, position)
 	if not pos then
@@ -470,7 +516,6 @@ function NUMBER(tokens, position)
 	return pos, number
 end
 
--- [ "-", ] MULTI_DIGIT
 function SIGNED_INTEGER(tokens, position)
 	local c = tokens[position]
 	if c == minus_byte then
@@ -490,7 +535,6 @@ function SIGNED_INTEGER(tokens, position)
 	end
 end
 
--- ('A'..'Z' | 'a'..'z' | '_'), { '0'..'9' | 'A'..'Z' | 'a'..'z' | '_' }
 function ALPHANUM(tokens, position)
 	local c = tokens[position]
 	if not c or ((c < A_byte or c > Z_byte) and (c < a_byte or c > z_byte) and c ~= underscore_byte) then
@@ -511,7 +555,6 @@ function ALPHANUM(tokens, position)
 	end
 end
 
--- '0'..'9', { '0'..'9' }
 function MULTI_DIGIT(tokens, position)
 	local c = tokens[position]
 	if not c or c < zero_byte or c > nine_byte then
@@ -532,7 +575,6 @@ function MULTI_DIGIT(tokens, position)
 	end
 end
 
--- { SPACE }
 function MULTI_SPACE(tokens, position)
 	while true do
 		local pos = SPACE(tokens, position)
@@ -551,7 +593,6 @@ local spaces = {
 	[('\r'):byte()] = true,
 }
 
--- " " | "\t" | "\n" | "\r"
 function SPACE(tokens, position)
 	local c = tokens[position]
 	if spaces[c] then
@@ -561,8 +602,6 @@ function SPACE(tokens, position)
 	end
 end
 
---   COMPARISON, [ MULTI_SPACE, "?", MULTI_SPACE, COMPARISON, [ MULTI_SPACE, "!", MULTI_SPACE, COMPARISON ] ]
--- | "if", MULTI_SPACE, COMPARISON, MULTI_SPACE, "then", MULTI_SPACE, COMPARISON, [ MULTI_SPACE, "else", MULTI_SPACE, COMPARISON ]
 function IF_STATEMENT(tokens, position)
 	if matches(tokens, position, "if") then
 		position = MULTI_SPACE(tokens, position+3)
@@ -639,7 +678,6 @@ function IF_STATEMENT(tokens, position)
 	end
 end
 
--- LOGIC, { MULTI_SPACE, ("<=" | "<" | ">" | ">=" | "=" | "~="), MULTI_SPACE, LOGIC }
 function COMPARISON(tokens, position)
 	local position, data = LOGIC(tokens, position)
 	if not position then
@@ -687,7 +725,6 @@ function COMPARISON(tokens, position)
 	return position, data
 end
 
--- CONCATENATION, { MULTI_SPACE, ( "and" | "or" | "&" | "|" | "||" ), MULTI_SPACE, CONCATENATION }
 function LOGIC(tokens, position)
 	local position, data = CONCATENATION(tokens, position)
 	if not position then
@@ -725,7 +762,6 @@ function LOGIC(tokens, position)
 	return position, data
 end
 
--- ADDITION, { SPACE, MULTI_SPACE, ADDITION }
 function CONCATENATION(tokens, position)
 	local position, data = ADDITION(tokens, position)
 	if not position then
@@ -755,7 +791,6 @@ function CONCATENATION(tokens, position)
 	return position, list or data
 end
 
--- MULTIPLICATION, { MULTI_SPACE, ( "+" | "-" ), MULTIPLICATION }
 function ADDITION(tokens, position)
 	local position, data = MULTIPLICATION(tokens, position)
 	if not position then
@@ -784,7 +819,6 @@ function ADDITION(tokens, position)
 	return position, data
 end
 
--- NEGATION, { MULTI_SPACE, ( "*" | "/" | "%" ), MULTI_SPACE, NEGATION }
 function MULTIPLICATION(tokens, position)
 	local position, data = NEGATION(tokens, position)
 	if not position then
@@ -815,7 +849,6 @@ function MULTIPLICATION(tokens, position)
 	return position, data
 end
 
--- { ( "not" | "~" ), MULTI_SPACE, } EXPONENTIATION
 function NEGATION(tokens, position)
 	local nots = newList()
 	while true do
@@ -844,9 +877,8 @@ function NEGATION(tokens, position)
 	end
 end
 
--- UNARY_MINUS, { MULTI_SPACE, "^", MULTI_SPACE UNARY_MINUS }
 function EXPONENTIATION(tokens, position)
-	local position, data = UNARY_MINUS(tokens, position)
+	local position, data = CHUNK_WITH_MODIFIER(tokens, position)
 	if not position then
 		return nil
 	end
@@ -858,7 +890,7 @@ function EXPONENTIATION(tokens, position)
 			break
 		end
 		pos = MULTI_SPACE(tokens, pos+1)
-		local pos, chunk = UNARY_MINUS(tokens, pos)
+		local pos, chunk = CHUNK_WITH_MODIFIER(tokens, pos)
 		if not pos then
 			break
 		end
@@ -869,53 +901,6 @@ function EXPONENTIATION(tokens, position)
 	return position, data
 end
 
--- [ "-", MULTI_SPACE, ] CHUNK_WITH_MODIFIER
-function UNARY_MINUS(tokens, position)
-	local op = tokens[position]
-
-	if op ~= minus_byte then
-		local position, data = CHUNK_WITH_MODIFIER(tokens, position)
-		if not position then
-			return nil
-		end
-		return position, data
-	end
-
-	local pos = MULTI_SPACE(tokens, position+1)
-
-	if tokens[pos] == minus_byte then
-		-- don't have double negatives without parentheses
-		return nil
-	end
-	local position, data = CHUNK_WITH_MODIFIER(tokens, pos)
-	if not position then
-		return nil
-	end
-	if type(data) == "number" then
-		return position, -data
-	else
-		-- TODO: this should not be this way.
-		local current, next_ = nil, data
-		while type(next_) == "table" do
-			if next_[1] == "mod" then
-				current = next_
-				next_ = next_[3]
-			else
-				break
-			end
-		end
-		if current and current[1] == "mod" then
-			if type(next_) == "number" then
-				current[3] = -current[3]
-				return position, data
-			elseif type(next_) == "table" and next_[1] == "tag" then
-				current[3] = newList("unm", next_)
-				return position, data
-			end
-		end
-		return position, newList("unm", data)
-	end
-end
 
 local function parse(code)
 	if code == "" then
@@ -1296,7 +1281,6 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 				unparse(ast[2], t, true, false, operators_type_ast)
 			end
 		elseif type_ast == "not" then
-			-- TODO: Test
 			t[#t+1] = 'not '
 			unparse(ast[2], t, true, false, operators_type_ast)
 		elseif type_ast == "?" then
