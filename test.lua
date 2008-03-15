@@ -633,7 +633,11 @@ DogTag:AddTag("Base", "OtherReverse", {
 })
 
 DogTag:AddTag("Base", "KwargAndTuple", {
-	code = [=[return ${value} * math_max(${...})]=],
+	code = [=[local num = 0
+		for i = 1, ${#...} do
+			num = num + select(i, ${...})
+		end
+		return ${value} * num]=],
 	arg = {
 		'value', 'number', '@req',
 		'...', 'list-number', false
@@ -645,7 +649,11 @@ DogTag:AddTag("Base", "KwargAndTuple", {
 })
 
 DogTag:AddTag("Base", "TupleAndKwarg", {
-	code = [=[return ${value} * math_max(${...})]=],
+	code = [=[local num = 0
+		for i = 1, ${#...} do
+			num = num + select(i, ${...})
+		end
+		return ${value} * num]=],
 	arg = {
 		'...', 'list-number', false,
 		'value', 'number', '@req'
@@ -1078,7 +1086,7 @@ assert_equal(parse("[Alpha((key=Bravo))]"), { "tag", "Alpha", { "(", { "=", { "t
 assert_equal(DogTag:CleanCode("[Alpha(key = Bravo)]"), "[Alpha(key = Bravo)]")
 assert_equal(DogTag:CleanCode("[Alpha((key=Bravo))]"), "[Alpha((key = Bravo))]")
 assert_equal(parse("[Class(unit='mouseovertarget')]"), { "tag", "Class", kwarg = { unit = "mouseovertarget" } })
-assert_equal(parse("[Alpha(key=Bravo, Charlie)]"), { "tag", "Alpha", { "tag", "Charlie" }, kwarg = { key = { "tag", "Bravo" } } })
+assert_equal(parse("[Alpha(key=Bravo, Charlie)]"), "[Alpha(key=Bravo, Charlie)]") -- syntax error
 assert_equal(parse("[Alpha(Bravo Charlie)]"), { "tag", "Alpha", { " ", { "tag", "Bravo"}, { "tag", "Charlie" } } })
 assert_equal(parse("[Alpha(Bravo ' ' Charlie)]"), { "tag", "Alpha", { " ", { "tag", "Bravo"}, " ", { "tag", "Charlie" } } })
 assert_equal(DogTag:CleanCode("[Alpha(Bravo ' ' Charlie)]"), "[Alpha(Bravo \" \" Charlie)]")
@@ -1213,7 +1221,7 @@ assert_equal(DogTag:Evaluate("[One + One]"), 2)
 assert_equal(DogTag:Evaluate("[Subtract(1, 2)]"), -1)
 assert_equal(DogTag:Evaluate("[Subtract(2, 1)]"), 1)
 assert_equal(DogTag:Evaluate("[Subtract(1, right=2)]"), -1)
-assert_equal(DogTag:Evaluate("[Subtract(right=1, 2)]"), 1)
+assert_equal(DogTag:Evaluate("[Subtract(2, right=1)]"), 1)
 assert_equal(DogTag:Evaluate("[Subtract(left=1, right=2)]"), -1)
 assert_equal(DogTag:Evaluate("[Subtract(right=1, left=2)]"), 1)
 assert_equal(DogTag:Evaluate("[1:Subtract(2)]"), -1)
@@ -1315,12 +1323,11 @@ assert_equal(DogTag:Evaluate("[PlusOne]", { number = 6 }), 7)
 assert_equal(DogTag:Evaluate("[PlusOne]", { number = 7 }), 8)
 
 assert_equal(DogTag:Evaluate("[KwargAndTuple]"), [=[Arg #1 (value) req'd for KwargAndTuple]=])
-assert_equal(DogTag:Evaluate("[KwargAndTuple(5, 1, 2, 3)]"), 15)
-assert_equal(DogTag:Evaluate("[KwargAndTuple(0.5, 2, 3, 4)]"), 2)
-assert_equal(DogTag:Evaluate("[KwargAndTuple(value=0.5, 2, 3, 4)]"), 2)
-assert_equal(DogTag:Evaluate("[TupleAndKwarg]"), [=[Arg #2 (value) req'd for TupleAndKwarg]=])
-assert_equal(DogTag:Evaluate("[TupleAndKwarg(value=1/4, 2, 3, 4)]"), 1)
-assert_equal(DogTag:Evaluate("[TupleAndKwarg(2, 3, 4, value=0.5)]"), 2)
+assert_equal(DogTag:Evaluate("[KwargAndTuple(5, 1, 2, 3)]"), 30)
+assert_equal(DogTag:Evaluate("[KwargAndTuple(0.5, 2, 3, 4)]"), 4.5)
+assert_equal(DogTag:Evaluate("[TupleAndKwarg]"), [=[Keyword-Arg value req'd for TupleAndKwarg]=])
+assert_equal(DogTag:Evaluate("[TupleAndKwarg(2, 3, 4, value=1/4)]"), 9/4)
+assert_equal(DogTag:Evaluate("[TupleAndKwarg(2, 3, 4, value=0.5)]"), 9/2)
 
 assert_equal(parse([=[['Alpha\'Bravo']]=]), "Alpha'Bravo")
 assert_equal(parse([=[["Alpha\"Bravo"]]=]), 'Alpha"Bravo')
@@ -2027,12 +2034,20 @@ assert_equal(DogTag:Evaluate("[(GlobalCheck ? 'Hello' One ! 'There' Two) 'Buddy'
 assert_equal(DogTag:Evaluate("[FakeOne]"), 100)
 
 local function fix(ast)
-	if type(ast) == "table" and ast[1] == "tag" and ast[2] == "FakeOne" then
-		ast[2] = "One"
+	if type(ast) == "table" and ast[1] == "tag" then
+	 	if ast[2] == "FakeOne" then
+			ast[2] = "One"
+		end
+		assert(#ast == 2) -- don't show normal args, just kwargs
 	end
 	if type(ast) == "table" then
 		for i = 2, #ast do
 			fix(ast[i])
+		end
+		if ast.kwarg then
+			for _,v in pairs(ast.kwarg) do
+				fix(v)
+			end
 		end
 	end
 end
@@ -2052,6 +2067,10 @@ DogTag:AddCompilationStep("Base", "pre", func)
 assert_equal(DogTag:Evaluate("[FakeOne]"), 1)
 DogTag:RemoveAllCompilationSteps("Base")
 assert_equal(DogTag:Evaluate("[FakeOne]"), 100)
+DogTag:AddCompilationStep("Base", "pre", func)
+assert_equal(DogTag:Evaluate("[PlusOne(number=FakeOne)]"), 2)
+assert_equal(DogTag:Evaluate("[PlusOne(FakeOne)]"), 2)
+DogTag:RemoveAllCompilationSteps("Base")
 
 local fired = false
 DogTag:AddAddonFinder("Base", "_G", "MyAddonToBeFound", function(MyAddonToBeFound)

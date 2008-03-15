@@ -145,7 +145,7 @@ do
 		end
 		local astType = ast[1]
 		if astType == 'tag' then
-			if #ast == 2 and not ast.kwarg then
+			if not ast.kwarg then
 				local tagName = ast[2]
 				cachedTags[tagName] = (cachedTags[tagName] or 0) + 1
 			else
@@ -260,19 +260,14 @@ local function getKwargsForAST(ast, nsList, extraKwargs)
 	if type(ast) ~= "table" then
 		return nil, ("%s is not a tag"):format(tostring(ast))
 	end
-	local tag, startArgs
+	local tag
 	if ast[1] == "tag" then
 		tag = ast[2]
-		startArgs = 3
 	else
 		tag = ast[1]
-		startArgs = 2
 	end
 	
 	local tagData = getTagData(tag, nsList)
-	if not tagData then
-		return nil, ("Unknown tag %s"):format(tag)
-	end
 	
 	local arg = tagData.arg
 	if not arg then
@@ -287,39 +282,9 @@ local function getKwargsForAST(ast, nsList, extraKwargs)
 		end
 	end
 	
-	for i = startArgs, #ast do
-		local argName = arg[(i-startArgs)*3 + 1]
-		local argTypes = arg[(i-startArgs)*3 + 2]
-		if argTypes == "list-string" or argTypes == "list-number" then
-			for j = i, #ast do
-				kwargs[argName .. (j-i+1)] = ast[j]
-			end
-			break
-		end
-		if not argName then
-			kwargs = del(kwargs)
-			return nil, ("Too many args for %s"):format(tag)
-		end
-		kwargs[argName] = ast[i]
-	end
-	
 	if ast.kwarg then
 		for k,v in pairs(ast.kwarg) do
 			kwargs[k] = v
-		end
-	end
-	
-	-- validate all args are met
-	for i = 1, #arg, 3 do
-		local argName, argType, default = arg[i], arg[i+1], arg[i+2]
-		
-		if not kwargs[argName] and argType ~= "list-string" and argType ~= "list-number"then
-			if default == "@req" then
-				kwargs = del(kwargs)
-				return nil, ("Arg #%d (%s) req'd for %s"):format((i-1)/3+1, argName, tag)
-			else
-				kwargs[argName] = default
-			end
 		end
 	end
 	
@@ -634,263 +599,259 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 		if not storeKey then
 			storeKey = newUniqueVar()
 		end
-		if tagData then
-			local caching, cachingFirst
-			if astType == 'tag' and #ast == 2 and not ast.kwarg and cachedTags[tag] then
-				caching = true
-				cachingFirst = cachedTags[tag] == 1
-				cachedTags[tag] = 2
-			end
-			if caching and not cachingFirst then
-				t[#t+1] = [=[if cache_]=]
-				t[#t+1] = tag
-				t[#t+1] = [=[ ~= NIL then ]=]
-				t[#t+1] = storeKey
-				t[#t+1] = [=[ = cache_]=]
-				t[#t+1] = tag
-				t[#t+1] = [=[; else ]=]
+		local caching, cachingFirst
+		if astType == 'tag' and not ast.kwarg and cachedTags[tag] then
+			caching = true
+			cachingFirst = cachedTags[tag] == 1
+			cachedTags[tag] = 2
+		end
+		if caching and not cachingFirst then
+			t[#t+1] = [=[if cache_]=]
+			t[#t+1] = tag
+			t[#t+1] = [=[ ~= NIL then ]=]
+			t[#t+1] = storeKey
+			t[#t+1] = [=[ = cache_]=]
+			t[#t+1] = tag
+			t[#t+1] = [=[; else ]=]
+		else
+			t[#t+1] = [=[do ]=]
+		end
+		local kwargs, errMessage = getKwargsForAST(ast, nsList, extraKwargs)
+		if not kwargs then
+			return nil, errMessage
+		end
+		
+		local arg = tagData.arg
+		
+		local firstAndNonNil_t_num = #t
+		local compiledKwargs = newList()
+		local firstAndNonNil
+		for k,v in pairs(kwargs) do
+			if v == extraKwargs then
+				compiledKwargs[k] = newList(unpack(extraKwargs[k]))
 			else
-				t[#t+1] = [=[do ]=]
-			end
-			local kwargs, errMessage = getKwargsForAST(ast, nsList, extraKwargs)
-			if not kwargs then
-				return nil, errMessage
-			end
-			
-			local arg = tagData.arg
-			
-			local firstAndNonNil_t_num = #t
-			local compiledKwargs = newList()
-			local firstAndNonNil
-			for k,v in pairs(kwargs) do
-				if v == extraKwargs then
-					compiledKwargs[k] = newList(unpack(extraKwargs[k]))
+				local argTypes = "nil;number;string"
+				local arg_num
+				local arg_default = false
+				if not k:match("^%.%.%.%d+$") then
+					for i = 1, #arg, 3 do
+						if arg[i] == k then
+							argTypes = arg[i+1]
+							arg_num = (i-1)/3 + 1
+							arg_default = arg[i+2]
+							break
+						end
+					end
 				else
-					local argTypes = "nil;number;string"
-					local arg_num
-					local arg_default = false
-					if not k:match("^%.%.%.%d+$") then
-						for i = 1, #arg, 3 do
-							if arg[i] == k then
-								argTypes = arg[i+1]
-								arg_num = (i-1)/3 + 1
-								arg_default = arg[i+2]
+					for i = 1, #arg, 3 do
+						if arg[i] == "..." then
+							arg_num = (i-1)/3 + 1
+							if arg[i+1] == "list-string" then
+								argTypes = "string"
+							elseif arg[i+1] == "list-number" then
+								argTypes = "number"
+							else
 								break
 							end
 						end
-					else
-						for i = 1, #arg, 3 do
-							if arg[i] == "..." then
-								arg_num = (i-1)/3 + 1
-								if arg[i+1] == "list-string" then
-									argTypes = "string"
-								elseif arg[i+1] == "list-number" then
-									argTypes = "number"
+					end
+				end
+				if not firstAndNonNil then
+					local a = newSet((";"):split(argTypes))
+					firstAndNonNil = arg_num == 1 and (arg_default == "@req" or arg_default == "@undef") and not a["nil"] and k
+					if firstAndNonNil then
+						a["undef"] = nil
+						a["nil"] = true
+						argTypes = joinSet(a, ";")
+					end
+					a = del(a)
+				end
+				local arg, types = compile(v, nsList, t, cachedTags, globals, events, extraKwargs, argTypes)
+				if not arg then
+					for k,v in pairs(compiledKwargs) do
+						compiledKwargs[k] = del(v)
+					end
+					compiledKwargs = del(compiledKwargs)
+					return nil, types
+				end
+				if firstAndNonNil == k then
+					local returns = newSet((";"):split(types))
+					if v == "@undef" then
+						firstAndNonNil = nil
+						firstAndNonNil_t_num = nil
+					elseif not returns["nil"] then
+						firstAndNonNil = nil
+						firstAndNonNil_t_num = nil
+					elseif returns["string"] or returns["number"] then
+						firstAndNonNil_t_num = nil
+					end
+					returns = del(returns)
+				end
+				compiledKwargs[k] = newList(arg, types)
+			end
+		end
+		if firstAndNonNil then
+			local compiledKwargs_firstAndNonNil = compiledKwargs[firstAndNonNil]
+			t[#t+1] = [=[if ]=]
+			t[#t+1] = compiledKwargs_firstAndNonNil[1]
+			t[#t+1] = [=[ then ]=]
+			local args = newSet((';'):split(compiledKwargs_firstAndNonNil[2]))
+			args['nil'] = nil
+			compiledKwargs_firstAndNonNil[2] = joinSet(args, ';')
+			args = del(args)
+		end
+		
+		for step in pairs(compilationSteps.tag[tagNS]) do
+			step(ast, t, tag, tagData, kwargs, extraKwargs, compiledKwargs)
+		end
+		
+		local passData = newList() -- data that will be passed into functions like ret, code, etc.
+		for k, v in pairs(kwargs) do
+			local passData_k = newList()
+			passData[k] = passData_k
+			if type(v) ~= "table" or v[1] == "nil" then
+				local value = type(v) ~= "table" and v or nil
+				passData_k.isLiteral = true
+				passData_k.value = value
+				passData_k.types = type(value)
+			else
+				passData_k.isLiteral = false
+				passData_k.value = v
+				passData_k.types = compiledKwargs[k][2]
+			end
+		end
+		
+		local code = tagData.code
+		local ret = tagData.ret
+		local globs = tagData.globals
+		local evs = tagData.events
+		
+		if type(ret) == "function" then
+			ret = ret(passData)
+		end
+		if type(code) == "function" then
+			code = code(passData)
+		end
+		if type(globs) == "function" then
+			globs = globs(passData)
+		end
+		if type(evs) == "function" then
+			evs = evs(passData)
+		end
+		for k, v in pairs(passData) do
+			passData[k] = del(v)
+		end
+		passData = del(passData)
+		
+		if globs then
+			globs = newSet((";"):split(globs))
+			for k in pairs(globs) do
+				globals[k] = true
+			end
+			globs = del(globs)
+		end
+		if evs then
+			evs = newSet((";"):split(evs))
+			for k in pairs(evs) do
+				local ev, param = ("#"):split(k, 2)
+				local events_ev = events[ev]
+				if events_ev ~= true then
+					if param then
+						if param:match("^%$") then
+							local real_param = param:sub(2)
+							local compiledKwargs_real_param = compiledKwargs[real_param]
+							if not compiledKwargs_real_param then
+								error(("Unknown event parameter %q for tag %s. Please inform ckknight."):format(real_param, tag))
+							end
+							local compiledKwargs_real_param_1 = compiledKwargs_real_param[1]
+							if not compiledKwargs_real_param_1:match("^kwargs_[a-z]+$") then
+								local kwargs_real_param = kwargs[real_param]
+								if type(kwargs_real_param) == "table" then
+									param = unparse(kwargs_real_param)
 								else
-									break
+									param = kwargs_real_param or true
 								end
 							end
 						end
-					end
-					if not firstAndNonNil then
-						local a = newSet((";"):split(argTypes))
-						firstAndNonNil = arg_num == 1 and (arg_default == "@req" or arg_default == "@undef") and not a["nil"] and k
-						if firstAndNonNil then
-							a["undef"] = nil
-							a["nil"] = true
-							argTypes = joinSet(a, ";")
-						end
-						a = del(a)
-					end
-					local arg, types = compile(v, nsList, t, cachedTags, globals, events, extraKwargs, argTypes)
-					if not arg then
-						for k,v in pairs(compiledKwargs) do
-							compiledKwargs[k] = del(v)
-						end
-						compiledKwargs = del(compiledKwargs)
-						return nil, types
-					end
-					if firstAndNonNil == k then
-						local returns = newSet((";"):split(types))
-						if v == "@undef" then
-							firstAndNonNil = nil
-							firstAndNonNil_t_num = nil
-						elseif not returns["nil"] then
-							firstAndNonNil = nil
-							firstAndNonNil_t_num = nil
-						elseif returns["string"] or returns["number"] then
-							firstAndNonNil_t_num = nil
-						end
-						returns = del(returns)
-					end
-					compiledKwargs[k] = newList(arg, types)
-				end
-			end
-			if firstAndNonNil then
-				local compiledKwargs_firstAndNonNil = compiledKwargs[firstAndNonNil]
-				t[#t+1] = [=[if ]=]
-				t[#t+1] = compiledKwargs_firstAndNonNil[1]
-				t[#t+1] = [=[ then ]=]
-				local args = newSet((';'):split(compiledKwargs_firstAndNonNil[2]))
-				args['nil'] = nil
-				compiledKwargs_firstAndNonNil[2] = joinSet(args, ';')
-				args = del(args)
-			end
-			
-			for step in pairs(compilationSteps.tag[tagNS]) do
-				step(ast, t, tag, tagData, kwargs, extraKwargs, compiledKwargs)
-			end
-			
-			local passData = newList() -- data that will be passed into functions like ret, code, etc.
-			for k, v in pairs(kwargs) do
-				local passData_k = newList()
-				passData[k] = passData_k
-				if type(v) ~= "table" or v[1] == "nil" then
-					local value = type(v) ~= "table" and v or nil
-					passData_k.isLiteral = true
-					passData_k.value = value
-					passData_k.types = type(value)
-				else
-					passData_k.isLiteral = false
-					passData_k.value = v
-					passData_k.types = compiledKwargs[k][2]
-				end
-			end
-			
-			local code = tagData.code
-			local ret = tagData.ret
-			local globs = tagData.globals
-			local evs = tagData.events
-			
-			if type(ret) == "function" then
-				ret = ret(passData)
-			end
-			if type(code) == "function" then
-				code = code(passData)
-			end
-			if type(globs) == "function" then
-				globs = globs(passData)
-			end
-			if type(evs) == "function" then
-				evs = evs(passData)
-			end
-			for k, v in pairs(passData) do
-				passData[k] = del(v)
-			end
-			passData = del(passData)
-			
-			if globs then
-				globs = newSet((";"):split(globs))
-				for k in pairs(globs) do
-					globals[k] = true
-				end
-				globs = del(globs)
-			end
-			if evs then
-				evs = newSet((";"):split(evs))
-				for k in pairs(evs) do
-					local ev, param = ("#"):split(k, 2)
-					local events_ev = events[ev]
-					if events_ev ~= true then
-						if param then
-							if param:match("^%$") then
-								local real_param = param:sub(2)
-								local compiledKwargs_real_param = compiledKwargs[real_param]
-								if not compiledKwargs_real_param then
-									error(("Unknown event parameter %q for tag %s. Please inform ckknight."):format(real_param, tag))
-								end
-								local compiledKwargs_real_param_1 = compiledKwargs_real_param[1]
-								if not compiledKwargs_real_param_1:match("^kwargs_[a-z]+$") then
-									local kwargs_real_param = kwargs[real_param]
-									if type(kwargs_real_param) == "table" then
-										param = unparse(kwargs_real_param)
-									else
-										param = kwargs_real_param or true
-									end
-								end
-							end
-							if type(events_ev) == "table" then
-								if param == true then
-									del(events_ev)
-									events[ev] = true
-								else
-									events_ev[param] = true
-								end
-							elseif events_ev and events_ev ~= param then
-								if param == true then
-									events[ev] = true
-								else
-									events[ev] = newSet(events_ev, param)
-								end
+						if type(events_ev) == "table" then
+							if param == true then
+								del(events_ev)
+								events[ev] = true
 							else
-								events[ev] = param
+								events_ev[param] = true
+							end
+						elseif events_ev and events_ev ~= param then
+							if param == true then
+								events[ev] = true
+							else
+								events[ev] = newSet(events_ev, param)
 							end
 						else
-							if type(events_ev) == "table" then
-								del(events_ev)
-							end
-							events[ev] = true
+							events[ev] = param
 						end
-					end
-				end
-				evs = del(evs)
-			end
-			
-			interpolationHandler__compiledKwargs = compiledKwargs
-			code = code:gsub(",%s*${%.%.%.}", tuple_interpolationHandler)
-			interpolationHandler__compiledKwargs = compiledKwargs
-			code = code:gsub("${(.-)}", interpolationHandler)
-			interpolationHandler__compiledKwargs = nil
-			
-			code = code:gsub("return ", storeKey .. " = ")
-			t[#t+1] = code
-			t[#t+1] = [=[;]=]
-			
-			local savedArg, savedArgTypes
-			for k,v in pairs(compiledKwargs) do
-				if saveFirstArg and k == arg[1] then
-					savedArg = v[1]
-					savedArgTypes = v[2]
-				elseif v[1]:match("^arg%d+$") then
-					t[#t+1] = v[1]
-					delUniqueVar(v[1])
-					t[#t+1] = [=[ = nil;]=]
-				end
-				compiledKwargs[k] = del(v)
-			end
-			compiledKwargs = del(compiledKwargs)
-			
-			if firstAndNonNil then
-				t[#t+1] = [=[end;]=]
-				local returns = newSet((";"):split(ret))
-				returns["nil"] = true
-				ret = joinSet(returns, ";")
-				returns = del(returns)
-				if firstAndNonNil_t_num then
-					for i = firstAndNonNil_t_num+1, #t do
-						t[i] = nil
+					else
+						if type(events_ev) == "table" then
+							del(events_ev)
+						end
+						events[ev] = true
 					end
 				end
 			end
-			
-			if caching then
-				t[#t+1] = [=[cache_]=]
-				t[#t+1] = tag
-				t[#t+1] = [=[ = ]=]
-				t[#t+1] = storeKey
-				t[#t+1] = [=[;]=]
+			evs = del(evs)
+		end
+		
+		interpolationHandler__compiledKwargs = compiledKwargs
+		code = code:gsub(",%s*${%.%.%.}", tuple_interpolationHandler)
+		interpolationHandler__compiledKwargs = compiledKwargs
+		code = code:gsub("${(.-)}", interpolationHandler)
+		interpolationHandler__compiledKwargs = nil
+		
+		code = code:gsub("return ", storeKey .. " = ")
+		t[#t+1] = code
+		t[#t+1] = [=[;]=]
+		
+		local savedArg, savedArgTypes
+		for k,v in pairs(compiledKwargs) do
+			if saveFirstArg and k == arg[1] then
+				savedArg = v[1]
+				savedArgTypes = v[2]
+			elseif v[1]:match("^arg%d+$") then
+				t[#t+1] = v[1]
+				delUniqueVar(v[1])
+				t[#t+1] = [=[ = nil;]=]
 			end
+			compiledKwargs[k] = del(v)
+		end
+		compiledKwargs = del(compiledKwargs)
+		
+		if firstAndNonNil then
 			t[#t+1] = [=[end;]=]
-			
-			kwargs = del(kwargs)
-			local a, b = forceTypes(storeKey, ret, forceToTypes, t)
-			if not a or not savedArg then
-				return a, b
-			else
-				return a, b, savedArg, savedArgTypes
+			local returns = newSet((";"):split(ret))
+			returns["nil"] = true
+			ret = joinSet(returns, ";")
+			returns = del(returns)
+			if firstAndNonNil_t_num then
+				for i = firstAndNonNil_t_num+1, #t do
+					t[i] = nil
+				end
 			end
+		end
+		
+		if caching then
+			t[#t+1] = [=[cache_]=]
+			t[#t+1] = tag
+			t[#t+1] = [=[ = ]=]
+			t[#t+1] = storeKey
+			t[#t+1] = [=[;]=]
+		end
+		t[#t+1] = [=[end;]=]
+		
+		kwargs = del(kwargs)
+		local a, b = forceTypes(storeKey, ret, forceToTypes, t)
+		if not a or not savedArg then
+			return a, b
 		else
-			return nil, ("Unknown tag %s"):format(tag)
+			return a, b, savedArg, savedArgTypes
 		end
 	elseif astType == ' ' then
 		local t_num = #t
@@ -1344,6 +1305,82 @@ do
 	end
 end
 
+local function readjustKwargs(ast, nsList, kwargTypes)
+	if type(ast) ~= "table" then
+		return ast
+	end
+	local astType = ast[1]
+	for i = 2, #ast do
+		local ast_i, err = readjustKwargs(ast[i], nsList, kwargTypes)
+		if not ast_i then
+			return ast_i, err
+		end
+		ast[i] = ast_i
+	end
+	if astType == "tag" or operators[astType] then
+		local start = astType == "tag" and 3 or 2
+		local tag = astType == "tag" and ast[2] or astType
+		local tagData = getTagData(tag, nsList)
+		if not tagData then
+			return nil, ("Unknown tag %s"):format(tostring(tag))
+		end
+		local arg = tagData.arg
+		if not ast.kwarg then
+			ast.kwarg = newList()
+		end
+		if arg then
+			local ast_len = #ast
+			local hitTuple = false
+			for i = 1, #arg, 3 do
+				local argName = arg[i]
+				local default = arg[i+2]
+				if argName == "..." then
+					hitTuple = true
+					for j = start + ((i-1)/3), ast_len do
+						local num = j - start - ((i-1)/3) + 1
+						ast.kwarg["..." .. num] = ast[j]
+						ast[j] = nil
+					end
+					for j = i+3, #arg, 3 do
+						argName = arg[j]
+						default = arg[j+2]
+						if not ast.kwarg[argName] and not kwargTypes[argName] then
+							if default == "@req" then
+								return nil, ("Keyword-Arg %s req'd for %s"):format(argName, tag)
+							end
+							ast.kwarg[argName] = default
+						end
+					end
+					break
+				else
+					local astVar = ast[start + ((i-1)/3)]
+					if not astVar then
+						if not ast.kwarg[argName] and not kwargTypes[argName] then
+							if default == "@req" then
+								return nil, ("Arg #%d (%s) req'd for %s"):format((i-1)/3 + 1, argName, tag)
+							end
+							ast.kwarg[argName] = default
+						end
+					else
+						ast.kwarg[argName] = astVar
+						ast[start + ((i-1)/3)] = nil
+					end
+				end
+			end
+			if not hitTuple then
+				if #arg/3 < (ast_len - start + 1) then
+					return nil, ("Too many args for %s"):format(tag)
+				end
+			end
+		end
+		if not next(ast.kwarg) then
+			ast.kwarg = del(ast.kwarg)
+		end
+		assert(#ast == start-1)
+	end
+	return ast
+end
+
 function DogTag:CreateFunctionFromCode(code, ...)
 	if type(code) ~= "string" then
 		error(("Bad argument #2 to `CreateFunctionFromCode'. Expected %q, got %q."):format("string", type(code)), 2)
@@ -1374,6 +1411,10 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	correctASTCasing(ast)
 	local err
 	ast, err = unalias(ast, nsList, kwargTypes)
+	if not ast then
+		return ("return function() return %q, nil end"):format(err)
+	end
+	ast, err = readjustKwargs(ast, nsList, kwargTypes)
 	if not ast then
 		return ("return function() return %q, nil end"):format(err)
 	end

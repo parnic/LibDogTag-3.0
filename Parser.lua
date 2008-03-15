@@ -360,6 +360,7 @@ function TAG(tokens, position)
 	return position, tag
 end
 
+-- INNER_TAG_SEQUENCE, { MULTI_SPACE, ",", MULTI_SPACE, INNER_TAG_SEQUENCE }, { MULTI_SPACE, ",", MULTI_SPACE, ALPHANUM, "=", INNER_TAG_SEQUENCE }
 function INNER_PARAM_LIST(tokens, position)
 	local pos, key = ALPHANUM(tokens, position)
 	local data
@@ -379,6 +380,7 @@ function INNER_PARAM_LIST(tokens, position)
 		end
 		data = newList(data)
 	end
+	
 	while true do
 		position = MULTI_SPACE(tokens, position)
 		if tokens[position] ~= comma_byte then
@@ -396,7 +398,7 @@ function INNER_PARAM_LIST(tokens, position)
 				data.kwarg = newList()
 			end
 			data.kwarg[key] = value
-		else
+		elseif not data.kwarg then
 			local pos, chunk = INNER_TAG_SEQUENCE(tokens, position)
 			if not pos then
 				return position, data
