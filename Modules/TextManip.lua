@@ -349,4 +349,15 @@ DogTag:AddTag("Base", "Abbreviate", {
 	category = L["Text Manipulation"],
 })
 
+DogTag:AddTag("Base", "Append", {
+	code = [=[return ${left} .. ${right}]=],
+	arg = {
+		'left', 'string', '@req',
+		'right', 'string', '@req',
+	},
+	ret = "string",
+	doc = L["Append right to left"],
+	example = '["Hello":Append(" World")] => "Hello World"'
+})
+
 end

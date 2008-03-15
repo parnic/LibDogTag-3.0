@@ -499,12 +499,22 @@ local function forceTypes(storeKey, types, forceToTypes, t)
 		-- we have a possible unrequested number
 		if forceToTypes['string'] then
 			if type(storeKey) == "string" and storeKey:match("^arg%d+$") then
+				if forceToTypes['nil'] then
+					t[#t+1] = [=[if ]=]
+					t[#t+1] = storeKey
+					t[#t+1] = [=[ then ]=]
+				end
 				t[#t+1] = storeKey
 				t[#t+1] = [=[ = tostring(]=]
 				t[#t+1] = storeKey
-				t[#t+1] = [=[)]=]
+				t[#t+1] = [=[);]=]
+				if forceToTypes['nil'] then
+					t[#t+1] = [=[end;]=]
+				end
 			else
-				storeKey = ("%q"):format(tostring(storeKey+0))
+				if not forceToTypes['nil'] and storeKey ~= 'nil' then
+					storeKey = ("%q"):format(tostring(storeKey+0))
+				end
 			end
 			finalTypes['string'] = true
 		elseif forceToTypes['nil'] then
@@ -1230,6 +1240,17 @@ do
 				ast[i] = deepCopy(value)
 			else
 				replaceArg(v, argName, value)
+			end
+		end
+		if ast.kwarg then
+			for k, v in pairs(ast.kwarg) do
+				local astType = getASTType(v)
+				if astType == "tag" and v[2] == argName then
+					deepDel(v)
+					ast.kwarg[k] = deepCopy(value)
+				else
+					replaceArg(v, argName, value)
+				end
 			end
 		end
 	end

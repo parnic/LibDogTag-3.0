@@ -407,7 +407,7 @@ DogTag:AddTag("Base", "SubtractFive", {
 })
 
 DogTag:AddTag("Base", "SubtractFromFive", {
-	alias = [=[Subtract(5, number)]=],
+	alias = [=[Subtract(right=number, left=5)]=],
 	arg = {
 		'number', 'number', 0,
 	},
@@ -1832,12 +1832,21 @@ assert_equal(DogTag:Evaluate("[-1666:Romanize]"), "-MDCLXVI")
 assert_equal(DogTag:Evaluate("[-1666666:Romanize]"), "-(MDCLXV)MDCLXVI")
 assert_equal(DogTag:Evaluate("[-4999999:Romanize]"), "-(MMMMCMXCIX)CMXCIX")
 
+assert_equal(DogTag:Evaluate("['Hello':Append(' World')]"), "Hello World")
+assert_equal(DogTag:Evaluate("[nil:Append(' World')]"), nil)
+GlobalCheck_data = nil
+assert_equal(DogTag:Evaluate("[GlobalCheck:Append(' World')]"), nil)
+assert_equal(DogTag:Evaluate("[Append(false, ' World')]"), nil)
+assert_equal(DogTag:Evaluate("[Append('Hello', nil)]"), "Hello")
+
 assert_equal(DogTag:Evaluate("[nil:Length]"), nil)
 assert_equal(DogTag:Evaluate("[false:Length]"), nil)
+assert_equal(DogTag:Evaluate("[GlobalCheck:Length]"), nil)
 assert_equal(DogTag:Evaluate("[true:Length]"), 4)
 
 assert_equal(DogTag:Evaluate("[nil:Short]"), nil)
 assert_equal(DogTag:Evaluate("[false:Short]"), nil)
+assert_equal(DogTag:Evaluate("[GlobalCheck:Short]"), nil)
 
 IsAltKeyDown_data = nil
 assert_equal(DogTag:Evaluate("[Alt]"), nil)
