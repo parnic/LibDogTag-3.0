@@ -72,7 +72,7 @@ DogTag:AddTag("Base", "IsMouseOver", {
 
 DogTag:AddTag("Base", "Color", {
 	code = [=[local value, color, r, g, b
-		if ${red:type} == "nil" or (${red:type} == "number" and ${blue:type} == "nil") then
+		if ${value} and (${red:type} == "nil" or (${red:type} == "number" and ${blue:type} == "nil")) then
 			-- tag
 			if ${value:type} == "string" then
 				color = ${value}
@@ -81,7 +81,7 @@ DogTag:AddTag("Base", "Color", {
 			end
 		else
 			-- modifier
-			value = ${value:string}
+			value = ${value} and ${value:string}
 			if ${red:type} == "string" then
 				color = ${red}
 			else
@@ -110,7 +110,7 @@ DogTag:AddTag("Base", "Color", {
 			else
 				return ("|cff%02x%02x%02x"):format(r*255, g*255, b*255)
 			end
-		else
+		elseif color then
 			if not color:match("^%x%x%x%x%x%x$") then
 				color = "ffffff"
 			end
@@ -119,10 +119,12 @@ DogTag:AddTag("Base", "Color", {
 			else
 				return "|cff" .. color
 			end
+		else
+			return "|r"
 		end
 	]=],
 	arg = {
-		'value', 'string;number', '@req',
+		'value', 'string;number;undef', '@undef',
 		'red', 'string;number;nil', false,
 		'green', 'number;nil', false,
 		'blue', 'number;nil', false,
@@ -144,15 +146,10 @@ for name, color in pairs({
 	Gray = "afafaf",
 }) do
 	DogTag:AddTag("Base", name, {
-		code = [=[if ${value} then
-			return "|cff]=] .. color .. [=[" .. ${value} .. "|r"
-		else
-			return "|cff]=] .. color .. [=["
-		end]=],
+		alias = ([=[Color(value, %q)]=]):format(color),
 		arg = {
 			'value', 'string;undef', "@undef",
 		},
-		ret = "string",
 		doc = L["Return the color or wrap value with %s color"]:format(name),
 		example = ('["Hello":%s] => "|cff%sHello|r"; [%s "Hello"] => "|cff%sHello"'):format(name, color, name, color),
 		category = L["Miscellaneous"]

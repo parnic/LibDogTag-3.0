@@ -1942,9 +1942,12 @@ assert_equal(DogTag:Evaluate("[nil:Color(0, 0, 1)]"), nil)
 assert_equal(DogTag:Evaluate("[false:Color(0, 0, 1)]"), nil)
 assert_equal(DogTag:Evaluate("[true:Color(0, 0, 1)]"), "|cff0000ffTrue|r")
 
+assert_equal(DogTag:Evaluate("[Color]"), "|r")
 assert_equal(DogTag:Evaluate("[Color('ff0000')]"), "|cffff0000")
 assert_equal(DogTag:Evaluate("[Color('00ff00')]"), "|cff00ff00")
 assert_equal(DogTag:Evaluate("[Color(0, 0, 1)]"), "|cff0000ff")
+assert_equal(DogTag:Evaluate("[Color(red=0, green=0, blue=1)]"), "|cff0000ff")
+assert_equal(DogTag:Evaluate("[Color(nil, red=0, green=0, blue=1)]"), nil)
 assert_equal(DogTag:Evaluate("[Color('00ff00a')]"), "|cffffffff")
 assert_equal(DogTag:Evaluate("[Color(180, 255, -60)]"), "|cffffff00")
 
