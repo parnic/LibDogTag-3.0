@@ -12,7 +12,7 @@ local L = DogTag.L
 DogTag:AddTag("Base", "Alt", {
 	code = ([[return IsAltKeyDown() and %q]]):format(L["True"]),
 	ret = "string;nil",
-	events = "MODIFIER_STATE_CHANGED",
+	events = "MODIFIER_STATE_CHANGED#ALT;MODIFIER_STATE_CHANGED#LALT;MODIFIER_STATE_CHANGED#RALT",
 	globals = "IsAltKeyDown",
 	doc = L["Return True if the Alt key is held down"],
 	example = ('[Alt] => %q; [Alt] => ""'):format(L["True"]),
@@ -22,7 +22,7 @@ DogTag:AddTag("Base", "Alt", {
 DogTag:AddTag("Base", "Shift", {
 	code = ([[return IsShiftKeyDown() and %q]]):format(L["True"]),
 	ret = "string;nil",
-	events = "MODIFIER_STATE_CHANGED",
+	events = "MODIFIER_STATE_CHANGED#SHIFT;MODIFIER_STATE_CHANGED#LSHIFT;MODIFIER_STATE_CHANGED#RSHIFT",
 	globals = "IsShiftKeyDown",
 	doc = L["Return True if the Shift key is held down"],
 	example = ('[Shift] => %q; [Shift] => ""'):format(L["True"]),
@@ -32,7 +32,7 @@ DogTag:AddTag("Base", "Shift", {
 DogTag:AddTag("Base", "Ctrl", {
 	code = ([[return IsControlKeyDown() and %q]]):format(L["True"]),
 	ret = "string;nil",
-	events = "MODIFIER_STATE_CHANGED",
+	events = "MODIFIER_STATE_CHANGED#CTRL;MODIFIER_STATE_CHANGED#LCTRL;MODIFIER_STATE_CHANGED#RCTRL",
 	globals = "IsControlKeyDown",
 	doc = L["Return True if the Ctrl key is held down"],
 	example = ('[Ctrl] => %q; [Ctrl] => ""'):format(L["True"]),

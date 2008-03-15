@@ -4,8 +4,9 @@
 TODO:
 
 For events, the same event but with multiple different args, e.g. MODIFIER_STATE_CHANGED#LALT;MODIFIER_STATE_CHANGED#RALT.
-Implement unit-oriented tags
+Unit-oriented tags
 More comments
+Event and timer registratio
 ]=]
 
 local function escape_char(c)
@@ -769,6 +770,23 @@ DogTag:AddTag("Base", "OtherBlizzEventTest", {
 	events = "OTHER_FAKE_BLIZZARD_EVENT",
 	doc = "Return the results of OtherBlizzEventTest_num after incrementing",
 	example = '[OtherBlizzEventTest] => "1"',
+	category = "Testing"
+})
+
+_G.DoubleBlizzEventTest_num = 0
+DogTag:AddTag("Base", "DoubleBlizzEventTest", {
+	code = [=[
+		_G.DoubleBlizzEventTest_num = _G.DoubleBlizzEventTest_num + 1
+		return _G.DoubleBlizzEventTest_num
+	]=],
+	arg = {
+		'alpha', 'string', "@req",
+		'bravo', 'string', "@req",
+	},
+	ret = "number",
+	events = "DOUBLE_BLIZZARD_EVENT#$alpha;DOUBLE_BLIZZARD_EVENT#$bravo",
+	doc = "Return the results of BlizzEventTest_num after incrementing",
+	example = '[BlizzEventTest] => "1"',
 	category = "Testing"
 })
 
@@ -1575,6 +1593,95 @@ FireEvent("FAKE_BLIZZARD_EVENT", "player")
 FireOnUpdate(0.05)
 assert_equal(fs:GetText(), 6)
 
+_G.BlizzEventTest_num = 1
+DogTag:AddFontString(fs, f, "[BlizzEventTest]", { value = 'player' })
+assert_equal(fs:GetText(), 2)
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 2)
+FireEvent("OTHER_FAKE_BLIZZARD_EVENT")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 2)
+FireEvent("FAKE_BLIZZARD_EVENT", "player")
+assert_equal(fs:GetText(), 2)
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 3)
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 3)
+FireEvent("FAKE_BLIZZARD_EVENT", "pet")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 3)
+FireEvent("FAKE_BLIZZARD_EVENT", "player")
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 4)
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 4)
+
+
+local fired = false
+local function func(code, kwargs)
+	assert_equal(code, "[DoubleBlizzEventTest]")
+	assert_equal(kwargs, { alpha = "player", bravo = "pet" })
+	fired = true
+end
+DogTag:AddCallback("[DoubleBlizzEventTest]", func, { alpha = "player", bravo = "pet" })
+FireEvent("DOUBLE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, true)
+fired = false
+FireEvent("DOUBLE_BLIZZARD_EVENT", 'pet')
+assert_equal(fired, true)
+fired = false
+FireEvent("DOUBLE_BLIZZARD_EVENT", 'focus')
+assert_equal(fired, false)
+FireEvent("DOUBLE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, true)
+fired = false
+FireEvent("DOUBLE_BLIZZARD_EVENT", 'pet')
+assert_equal(fired, true)
+fired = false
+DogTag.clearCodes("Base")
+FireEvent("DOUBLE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, true)
+fired = false
+FireEvent("DOUBLE_BLIZZARD_EVENT", 'pet')
+assert_equal(fired, true)
+fired = false
+FireEvent("DOUBLE_BLIZZARD_EVENT", 'focus')
+assert_equal(fired, false)
+FireEvent("DOUBLE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, true)
+fired = false
+FireEvent("DOUBLE_BLIZZARD_EVENT", 'pet')
+assert_equal(fired, true)
+fired = false
+DogTag:RemoveCallback("[DoubleBlizzEventTest]", func, { alpha = "player", bravo = "pet" })
+FireEvent("DOUBLE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, false)
+FireEvent("DOUBLE_BLIZZARD_EVENT", 'pet')
+assert_equal(fired, false)
+
+DoubleBlizzEventTest_num = 0
+DogTag:AddFontString(fs, f, "[DoubleBlizzEventTest]", { alpha = "pet", bravo = "player" })
+assert_equal(fs:GetText(), 1)
+FireEvent("DOUBLE_BLIZZARD_EVENT", "player")
+FireOnUpdate(0)
+assert_equal(fs:GetText(), 1)
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 2)
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 2)
+FireOnUpdate(1000)
+FireEvent("DOUBLE_BLIZZARD_EVENT", "pet")
+FireOnUpdate(0.04)
+assert_equal(fs:GetText(), 2)
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 3)
+FireOnUpdate(0.01)
+assert_equal(fs:GetText(), 3)
+FireEvent("DOUBLE_BLIZZARD_EVENT", "focus")
+assert_equal(fs:GetText(), 3)
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 3)
+
 -- Test Math module
 assert_equal(DogTag:Evaluate("[Round(0)]"), 0)
 assert_equal(DogTag:Evaluate("[Round(0.5)]"), 0)
@@ -1736,16 +1843,51 @@ IsAltKeyDown_data = nil
 assert_equal(DogTag:Evaluate("[Alt]"), nil)
 IsAltKeyDown_data = 1
 assert_equal(DogTag:Evaluate("[Alt]"), "True")
+IsAltKeyDown_data = nil
 
 IsShiftKeyDown_data = nil
 assert_equal(DogTag:Evaluate("[Shift]"), nil)
 IsShiftKeyDown_data = 1
 assert_equal(DogTag:Evaluate("[Shift]"), "True")
+IsShiftKeyDown_data = nil
 
 IsControlKeyDown_data = nil
 assert_equal(DogTag:Evaluate("[Ctrl]"), nil)
 IsControlKeyDown_data = 1
 assert_equal(DogTag:Evaluate("[Ctrl]"), "True")
+IsControlKeyDown_data = nil
+
+BlizzEventTest_num = 0
+DogTag:AddFontString(fs, f, "[Alt ? BlizzEventTest('never')]")
+assert_equal(fs:GetText(), nil)
+IsAltKeyDown_data = 1
+FireEvent("MODIFIER_STATE_CHANGED", "LALT")
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 1)
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 1)
+FireEvent("MODIFIER_STATE_CHANGED", "LSHIFT")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 1)
+FireEvent("MODIFIER_STATE_CHANGED", "LCTRL")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 1)
+IsAltKeyDown_data = nil
+FireEvent("MODIFIER_STATE_CHANGED", "LALT")
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), nil)
+IsAltKeyDown_data = 1
+FireEvent("MODIFIER_STATE_CHANGED", "RALT")
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 2)
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 2)
+FireEvent("MODIFIER_STATE_CHANGED", "RSHIFT")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 2)
+FireEvent("MODIFIER_STATE_CHANGED", "RCTRL")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 2)
 
 local now = GetTime()
 FireOnUpdate(1)

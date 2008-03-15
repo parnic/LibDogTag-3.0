@@ -173,8 +173,12 @@ local function OnEvent(this, event, arg1, ...)
 						local good = false
 						local checkKwargs = false
 						local mustEvaluate = false
+						local checkTable = false
 						if eventList_event == true then
 							good = true
+						elseif type(eventList_event) == "table" then
+							good = true
+							checkTable = true
 						elseif eventList_event == arg1 then
 							good = true
 						elseif eventList_event:match("^%$") then
@@ -188,7 +192,21 @@ local function OnEvent(this, event, arg1, ...)
 							local callbacks_nsList_kwargTypes = callbacks[nsList][kwargTypes]
 							for kwargs, callbacks_nsList_kwargTypes_kwargs in pairs(callbacks_nsList_kwargTypes) do
 								good = true
-								if mustEvaluate then
+								if checkTable then
+									good = false
+									for k in pairs(eventList_event) do
+										if k == arg1 then
+											good = true
+										elseif k:match("^%$") then
+											good = kwargs[k:sub(2)] == arg1
+										elseif k:match("^%[.*%]$") then
+											good = evaluate(k, nsList, kwargs) == arg1
+										end
+										if good then
+											break
+										end
+									end
+								elseif mustEvaluate then
 									good = evaluate(mustEvaluate, nsList, kwargs) == arg1
 								elseif checkKwargs then
 									good = kwargs[checkKwargs] == arg1
@@ -221,20 +239,41 @@ local function OnEvent(this, event, arg1, ...)
 		local good = false
 		local checkKwargs = false
 		local mustEvaluate = false
+		local checkTable = false
 		if arg == true then
 			good = true
+		elseif type(arg) == "table" then
+			good = true
+			checkTable = true
 		elseif arg == arg1 then
 			good = true
 		elseif arg:match("^%$") then
 			good = true
-			checkKwargs = eventList_event:sub(2)
+			checkKwargs = arg:sub(2)
 		elseif arg:match("^%[.*%]$") then
 			good = true
 			mustEvaluate = arg
 		end
 		if good then
 			good = true
-			if mustEvaluate then
+			if checkTable then
+				good = false
+				for k in pairs(arg) do
+					if k == arg1 then
+						good = true
+					elseif k:match("^%$") then
+						local kwargs = fsToKwargs[fs]
+						good = kwargs[k:sub(2)] == arg1
+					elseif k:match("^%[.*%]$") then
+						local kwargs = fsToKwargs[fs]
+						local nsList = fsToNSList[fs]
+						good = evaluate(k, nsList, kwargs) == arg1
+					end
+					if good then
+						break
+					end
+				end
+			elseif mustEvaluate then
 				local kwargs = fsToKwargs[fs]
 				local nsList = fsToNSList[fs]
 				good = evaluate(mustEvaluate, nsList, kwargs) == arg1

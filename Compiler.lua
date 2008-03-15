@@ -787,7 +787,7 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 								local real_param = param:sub(2)
 								local compiledKwargs_real_param = compiledKwargs[real_param]
 								if not compiledKwargs_real_param then
-									error(("Unknown event parameter %q for tag %s. Please inform ckknight."):format(param, tag))
+									error(("Unknown event parameter %q for tag %s. Please inform ckknight."):format(real_param, tag))
 								end
 								local compiledKwargs_real_param_1 = compiledKwargs_real_param[1]
 								if not compiledKwargs_real_param_1:match("^kwargs_[a-z]+$") then
@@ -806,7 +806,7 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 								else
 									events_ev[param] = true
 								end
-							elseif events_ev then
+							elseif events_ev and events_ev ~= param then
 								if param == true then
 									events[ev] = true
 								else
