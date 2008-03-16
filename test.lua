@@ -3,10 +3,10 @@
 --[=[
 TODO:
 
-'boolean' argument/ret
 Unit-oriented tags
 More comments
 More documentation
+TagWhichTakesAndReturnsString(number) => number
 ]=]
 
 local function escape_char(c)
@@ -558,6 +558,20 @@ DogTag:AddTag("Base", "CheckBooleanTuple", {
 	category = "Testing"
 })
 
+DogTag:AddTag("Base", "CheckNilTuple", {
+	code = [=[for i = 1, ${#...} do
+		assert(not select(i, ${...}))
+	end
+	return ${#...}]=],
+	arg = {
+		'...', 'list-nil', false
+	},
+	ret = "number",
+	doc = "Return the number of nils provided",
+	example = '[CheckNilTuple(nil, nil, nil)] => "3"; [CheckNilTuple] => "0"',
+	category = "Testing"
+})
+
 DogTag:AddTag("Base", "TupleAlias", {
 	alias = [=[CheckNumTuple(5, ...)]=],
 	arg = {
@@ -621,6 +635,26 @@ DogTag:AddTag("Base", "CheckAnotherStrTuple", {
 	ret = "string",
 	doc = "Join ..., replacing vowels with 'y'",
 	example = '[CheckAnotherStrTuple("Hello")] => "Hylly"; [CheckAnotherStrTuple] => ""',
+	category = "Testing"
+})
+
+DogTag:AddTag("Base", "CheckAnyTuple", {
+	code = [=[
+		local x = ''
+		for i = 1, ${#...} do
+			if i > 1 then
+				x = x .. ";"
+			end
+			x = x .. type(select(i, ${...})) .. ":" .. tostring(select(i, ${...}))
+		end
+		return x
+	]=],
+	arg = {
+		'...', 'list-string;number;nil', false
+	},
+	ret = "string",
+	doc = "Join ..., showing its type and value",
+	example = '[CheckAnyTuple("Hello")] => "string:Hello"; [CheckAnyTuple(1, nil)] => "number:1;nil:nil"',
 	category = "Testing"
 })
 
@@ -1368,6 +1402,19 @@ assert_equal(DogTag:Evaluate("[CheckBooleanTuple]"), 0)
 assert_equal(DogTag:Evaluate("[CheckBooleanTuple(true, false, true)]"), 5)
 assert_equal(DogTag:Evaluate("[CheckBooleanTuple(true, true, false, true)]"), 11)
 
+assert_equal(DogTag:Evaluate("[CheckNilTuple]"), 0)
+assert_equal(DogTag:Evaluate("[CheckNilTuple(true, false, true)]"), 3)
+assert_equal(DogTag:Evaluate("[CheckNilTuple(true, true, false, true)]"), 4)
+
+assert_equal(DogTag:Evaluate("[CheckAnyTuple]"), nil)
+assert_equal(DogTag:Evaluate("[CheckAnyTuple(true, false, true)]"), "string:True;nil:nil;string:True")
+assert_equal(DogTag:Evaluate("[CheckAnyTuple(1, 'Hello', nil)]"), "number:1;string:Hello;nil:nil")
+GlobalCheck_data = 'Hello'
+GlobalCheckBoolean_data = false
+assert_equal(DogTag:Evaluate("[CheckAnyTuple(One, GlobalCheck, GlobalCheckBoolean)]"), "number:1;string:Hello;nil:nil")
+GlobalCheckBoolean_data = true
+assert_equal(DogTag:Evaluate("[CheckAnyTuple(One, GlobalCheck, GlobalCheckBoolean)]"), "number:1;string:Hello;string:True")
+
 assert_equal(DogTag:Evaluate("[Reverse('Hello')]"), "olleH")
 assert_equal(DogTag:Evaluate("[Reverse('Hello'):Reverse]"), "Hello")
 assert_equal(DogTag:Evaluate("[OtherReverse('Hello')]"), "olleH")
@@ -1427,6 +1474,9 @@ assert_equal(DogTag:Evaluate("[Type('Hello')]"), "string")
 assert_equal(DogTag:Evaluate("[Type(5)]"), "number")
 assert_equal(DogTag:Evaluate("[Type(false)]"), "nil")
 assert_equal(DogTag:Evaluate("[Type(true)]"), "string")
+assert_equal(DogTag:Evaluate("[Type(nil nil)]"), "nil")
+assert_equal(DogTag:Evaluate("[Type(5 10)]"), "number")
+assert_equal(DogTag:Evaluate("[Type(5.5 10.5)]"), "string")
 
 GlobalCheck_data = nil
 assert_equal(DogTag:Evaluate("[Type(GlobalCheck)]"), "nil")
