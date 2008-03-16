@@ -207,6 +207,76 @@ DogTag:AddTag("Base", "Truncate", {
 	category = L["Text manipulation"]
 })
 
+DogTag:AddTag("Base", "Substring", {
+	code = [=[local start, finish = ${start}, ${finish}
+	if not finish then
+		finish = -1
+	end
+	if start < 0 or finish < 0 then
+		local length = 0
+		local i = 0
+		while i < #${value} do
+			local b = ${value}:byte(i+1)
+			if not b then
+				break
+			elseif b <= 127 then
+				i = i + 1
+			elseif b <= 223 then
+				i = i + 2
+			elseif b <= 239 then
+				i = i + 3
+			else
+				i = i + 4
+			end
+			length = length + 1
+		end
+		if start < 0 then
+			start = start + length + 1
+		end
+		if finish < 0 then
+			finish = finish + length + 1
+		end
+	end
+	if finish < start then
+		return nil
+	else
+		local finishByte = 0
+		local startByte
+		for i = 1, finish do
+			if i == start then
+				startByte = finishByte+1
+			end
+			local b = ${value}:byte(finishByte+1)
+			if not b then
+				shortened = false
+				break
+			elseif b <= 127 then
+				finishByte = finishByte + 1
+			elseif b <= 223 then
+				finishByte = finishByte + 2
+			elseif b <= 239 then
+				finishByte = finishByte + 3
+			else
+				finishByte = finishByte + 4
+			end
+		end
+		if not startByte then
+			return ${value}
+		else
+			return ${value}:sub(startByte, finishByte)
+		end
+	end]=],
+	arg = {
+		'value', 'string', '@req',
+		'start', 'number', '@req',
+		'finish', 'number;nil', false,
+	},
+	ret = "nil;string",
+	doc = L["Truncate value to the length specified by number, adding ellipses by default"],
+	example = '["Hello":Truncate(3)] => "Hel..."; ["Hello":Truncate(3, nil)] => "Hel"',
+	category = L["Text manipulation"]
+})
+
 DogTag:AddTag("Base", "Repeat", {
 	code = [=[local val = ${value}:rep(${number})
 	if val == "" then
