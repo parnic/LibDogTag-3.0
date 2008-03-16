@@ -88,22 +88,25 @@ function DogTag:AddTag(namespace, tag, data)
 			if type(types) ~= "string" then
 				error("arg must have its types as strings", 2)
 			end
-			if types ~= "list-number" and types ~= "list-string" then
+			if types ~= "list-number" and types ~= "list-string" and types ~= "list-boolean" then
 				if not key:match("^[a-z]+$") then
 					error("arg must have its key be a string of lowercase letters.", 2)
 				end
 				local t = newSet((';'):split(types))
 				for k in pairs(t) do
-					if k ~= "nil" and k ~= "number" and k ~= "string" and k ~= "undef" then
-						error("arg must have nil, number, string, undef, list-number, or list-string", 2)
+					if k ~= "nil" and k ~= "number" and k ~= "string" and k ~= "undef" and k ~= "boolean" then
+						error("arg must have nil, number, string, undef, boolean, list-number, list-string, or list-boolean", 2)
 					end
 				end
 				if t["nil"] and t["undef"] then
 					error("arg cannot specify both nil and undef", 2)
 				end
+				if t["boolean"] and (next(t, "boolean") or next(t) ~= "boolean") then
+					error("arg cannot specify both boolean and something else", 2)
+				end
 				t = del(t)
 			elseif key ~= "..." then
-				error("arg must have its key be ... if a list-number or list-string.", 2)
+				error("arg must have its key be ... if a list-number, list-string, or list-boolean.", 2)
 			end
 			arg[i+1] = sortStringList(types)
 		end
@@ -123,8 +126,8 @@ function DogTag:AddTag(namespace, tag, data)
 			if ret then
 				local rets = newSet((";"):split(ret))
 				for k in pairs(rets) do
-					if k ~= "nil" and k ~= "number" and k ~= "string" then
-						error("ret must have nil, number, or string", 2)
+					if k ~= "nil" and k ~= "number" and k ~= "string" and k ~= "boolean" then
+						error("ret must have nil, number, string, or boolean", 2)
 					end
 				end
 				rets = del(rets)

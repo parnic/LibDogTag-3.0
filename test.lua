@@ -3,10 +3,10 @@
 --[=[
 TODO:
 
-For events, the same event but with multiple different args, e.g. MODIFIER_STATE_CHANGED#LALT;MODIFIER_STATE_CHANGED#RALT.
+'boolean' argument/ret
 Unit-oriented tags
 More comments
-Event and timer registratio
+More documentation
 ]=]
 
 local function escape_char(c)
@@ -540,6 +540,24 @@ DogTag:AddTag("Base", "CheckNumTuple", {
 	category = "Testing"
 })
 
+DogTag:AddTag("Base", "CheckBooleanTuple", {
+	code = [=[local num = 0
+	for i = 1, ${#...} do
+		assert(type(select(i, ${...})) == "boolean")
+		if select(i, ${...}) then
+			num = num + 2^(i - 1)
+		end
+	end
+	return num]=],
+	arg = {
+		'...', 'list-boolean', false
+	},
+	ret = "number",
+	doc = "Return the integer formed by the bits of ...",
+	example = '[CheckBooleanTuple(true, false, true)] => "5"; [CheckBooleanTuple] => "0"',
+	category = "Testing"
+})
+
 DogTag:AddTag("Base", "TupleAlias", {
 	alias = [=[CheckNumTuple(5, ...)]=],
 	arg = {
@@ -672,6 +690,44 @@ DogTag:AddTag("Base", "Type", {
 	ret = 'string',
 	doc = "Return the type of value",
 	example = '[Type(nil)] => "nil"; [Type("Hello")] => "string"; [Type(5)] => "number"',
+})
+
+DogTag:AddTag("Base", "BooleanToString", {
+	code = [=[return tostring(${value})]=],
+	arg = {
+		'value', 'boolean', false
+	},
+	ret = 'string',
+	doc = "Return true or false",
+	example = '[BooleanToString(nil)] => "false"; [BooleanToString("Hello")] => "true"; [BooleanToString(5)] => "true"',
+})
+
+DogTag:AddTag("Base", "BooleanOtherToString", {
+	code = [=[return ${value:string}]=],
+	arg = {
+		'value', 'boolean', false
+	},
+	ret = 'string',
+	doc = "Return True or blank",
+	example = '[BooleanOtherToString(nil)] => ""; [BooleanOtherToString("Hello")] => "True"; [BooleanOtherToString(5)] => ""',
+})
+
+DogTag:AddTag("Base", "RetNil", {
+	code = [=[return nil]=],
+	arg = {
+		'value', 'nil;number;string', false
+	},
+	ret = 'nil',
+	doc = "Return nil",
+	example = '[RetNil] => ""; [RetNil(Anything)] => ""',
+})
+
+_G.GlobalCheckBoolean_data = true
+DogTag:AddTag("Base", "GlobalCheckBoolean", {
+	code = [=[return _G.GlobalCheckBoolean_data]=],
+	ret = 'boolean',
+	doc = "Return True or blank",
+	example = '[GlobalCheckBoolean] => ""; [GlobalCheckBoolean] => "True"',
 })
 
 DogTag:AddTag("Base", "ToString", {
@@ -1307,6 +1363,11 @@ assert_equal(DogTag:Evaluate("[CheckAnotherStrTuple(One)]"), 1)
 assert_equal(DogTag:Evaluate("[CheckAnotherStrTuple('Hello', \"There\", 'Friend')]"), 'HyllyThyryFryynd')
 assert_equal(DogTag:Evaluate("[CheckAnotherStrTuple]"), nil)
 assert_equal(DogTag:Evaluate("[CheckAnotherStrTuple('Hello', 52, 'Friend', One)]"), 'Hylly52Fryynd1')
+
+assert_equal(DogTag:Evaluate("[CheckBooleanTuple]"), 0)
+assert_equal(DogTag:Evaluate("[CheckBooleanTuple(true, false, true)]"), 5)
+assert_equal(DogTag:Evaluate("[CheckBooleanTuple(true, true, false, true)]"), 11)
+
 assert_equal(DogTag:Evaluate("[Reverse('Hello')]"), "olleH")
 assert_equal(DogTag:Evaluate("[Reverse('Hello'):Reverse]"), "Hello")
 assert_equal(DogTag:Evaluate("[OtherReverse('Hello')]"), "olleH")
@@ -1861,6 +1922,48 @@ assert_equal(DogTag:Evaluate("[nil:Short]"), nil)
 assert_equal(DogTag:Evaluate("[false:Short]"), nil)
 assert_equal(DogTag:Evaluate("[GlobalCheck:Short]"), nil)
 
+assert_equal(DogTag:Evaluate("[BooleanToString(nil)]"), "false")
+assert_equal(DogTag:Evaluate("[BooleanToString(false)]"), "false")
+assert_equal(DogTag:Evaluate("[BooleanToString(true)]"), "true")
+assert_equal(DogTag:Evaluate("[BooleanToString('Hello')]"), "true")
+assert_equal(DogTag:Evaluate("[BooleanToString(5)]"), "true")
+GlobalCheck_data = nil
+assert_equal(DogTag:Evaluate("[BooleanToString(GlobalCheck)]"), "false")
+GlobalCheck_data = 'Hello'
+assert_equal(DogTag:Evaluate("[BooleanToString(GlobalCheck)]"), "true")
+
+assert_equal(DogTag:Evaluate("[BooleanOtherToString(nil)]"), nil)
+assert_equal(DogTag:Evaluate("[BooleanOtherToString(false)]"), nil)
+assert_equal(DogTag:Evaluate("[BooleanOtherToString(true)]"), "True")
+assert_equal(DogTag:Evaluate("[BooleanOtherToString('Hello')]"), "True")
+assert_equal(DogTag:Evaluate("[BooleanOtherToString(5)]"), "True")
+GlobalCheck_data = nil
+assert_equal(DogTag:Evaluate("[BooleanOtherToString(GlobalCheck)]"), nil)
+GlobalCheck_data = 'Hello'
+assert_equal(DogTag:Evaluate("[BooleanOtherToString(GlobalCheck)]"), "True")
+
+GlobalCheckBoolean_data = true
+assert_equal(DogTag:Evaluate("[GlobalCheckBoolean]"), "True")
+assert_equal(DogTag:Evaluate("[GlobalCheckBoolean & 'Hello']"), "Hello")
+assert_equal(DogTag:Evaluate("[GlobalCheckBoolean ? 'Hello']"), "Hello")
+assert_equal(DogTag:Evaluate("[GlobalCheckBoolean | 'Hello']"), "True")
+assert_equal(DogTag:Evaluate("[GlobalCheckBoolean ? 'Hello' ! 'There']"), "Hello")
+GlobalCheckBoolean_data = false
+assert_equal(DogTag:Evaluate("[GlobalCheckBoolean]"), nil)
+assert_equal(DogTag:Evaluate("[GlobalCheckBoolean & 'Hello']"), nil)
+assert_equal(DogTag:Evaluate("[GlobalCheckBoolean ? 'Hello']"), nil)
+assert_equal(DogTag:Evaluate("[GlobalCheckBoolean | 'Hello']"), "Hello")
+assert_equal(DogTag:Evaluate("[GlobalCheckBoolean ? 'Hello' ! 'There']"), "There")
+
+GlobalCheckBoolean_data = true
+assert_equal(DogTag:Evaluate("[GlobalCheckBoolean:PlusOne]"), 2)
+GlobalCheckBoolean_data = false
+assert_equal(DogTag:Evaluate("[GlobalCheckBoolean:PlusOne]"), nil)
+GlobalCheckBoolean_data = true
+assert_equal(DogTag:Evaluate("[GlobalCheckBoolean:Append('!')]"), "True!")
+GlobalCheckBoolean_data = false
+assert_equal(DogTag:Evaluate("[GlobalCheckBoolean:Append('!')]"), nil)
+
 IsAltKeyDown_data = nil
 assert_equal(DogTag:Evaluate("[Alt]"), nil)
 IsAltKeyDown_data = 1
@@ -2013,6 +2116,8 @@ assert_equal(DogTag:Evaluate("[OtherTupleAlias(5)]"), "Arg #2 (right) req'd for 
 assert_equal(DogTag:Evaluate("[5:IsIn]"), nil)
 assert_equal(DogTag:Evaluate("[5:IsIn(6, 7, 8)]"), nil)
 assert_equal(DogTag:Evaluate("[5:IsIn(1, 2, 3, 4, 5)]"), 5)
+
+assert_equal(DogTag:Evaluate("[not One:RetNil]"), 1)
 
 assert_equal(DogTag:Evaluate("[One:Hide(6, 7, 8)]"), 1)
 assert_equal(DogTag:Evaluate("[One:Hide(1, 6, 7, 8)]"), nil)

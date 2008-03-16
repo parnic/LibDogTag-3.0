@@ -327,8 +327,13 @@ local function OnUpdate(this, elapsed)
 			DogTag:FireEvent("SlowUpdate")
 		end
 		nextTime = currentTime + 0.05
-		for func in pairs(TimerHandlers) do
-			func(num, currentTime)
+		for i = 1, 9 do
+			local TimerHandlers_i = TimerHandlers[i]
+			if TimerHandlers_i then
+				for func in pairs(TimerHandlers_i) do
+					func(num, currentTime)
+				end
+			end
 		end
 		
 		for fs in pairs(fsNeedUpdate) do
@@ -375,19 +380,36 @@ function DogTag:FireEvent(event, ...)
 	OnEvent(frame, event, ...)
 end
 
-
-function DogTag:AddTimerHandler(func)
+function DogTag:AddTimerHandler(func, priority)
 	if type(func) ~= "function" then
-		error(("Bad argument #2 to `AddEventHandler'. Expected %q, got %q"):format("function", type(func)), 2)
+		error(("Bad argument #2 to `AddTimerHandler'. Expected %q, got %q"):format("function", type(func)), 2)
 	end
-	TimerHandlers[func] = true
+	if not priority then
+		priority = 5
+	elseif type(priority) ~= "number" then
+		error(("Bad argument #3 to `AddTimerHandler'. Expected %q, got %q"):format("number", type(priority)), 2)
+	elseif math.floor(priority) ~= priority then
+		error("Bad argument #3 to `AddTimerHandler'. Expected integer, got number", 2)
+	elseif priority < 1 or priority > 9 then
+		error(("Bad argument #3 to `AddTimerHandler'. Expected [1, 9], got %d"):format(priority), 2)
+	end
+	self:RemoveTimerHandler(func)
+	if not TimerHandlers[priority] then
+		TimerHandlers[priority] = newList()
+	end
+	TimerHandlers[priority][func] = true
 end
 
 function DogTag:RemoveTimerHandler(func)
 	if type(func) ~= "function" then
-		error(("Bad argument #2 to `RemoveEventHandler'. Expected %q, got %q"):format("function", type(func)), 2)
+		error(("Bad argument #2 to `RemoveTimerHandler'. Expected %q, got %q"):format("function", type(func)), 2)
 	end
-	TimerHandlers[func] = nil
+	for k, v in pairs(TimerHandlers) do
+		v[func] = nil
+		if not next(v) then
+			TimerHandlers[k] = del(v)
+		end
+	end
 end
 
 end

@@ -199,7 +199,7 @@ DogTag:AddTag("Base", "Truncate", {
 	arg = {
 		'value', 'string', '@req',
 		'number', 'number', '@req',
-		'ellipses', 'nil;string', L["True"],
+		'ellipses', 'boolean', true,
 	},
 	ret = "string",
 	doc = L["Truncate value to the length specified by number, adding ellipses by default"],

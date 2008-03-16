@@ -10,8 +10,8 @@ DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 local L = DogTag.L
 
 DogTag:AddTag("Base", "Alt", {
-	code = ([[return IsAltKeyDown() and %q]]):format(L["True"]),
-	ret = "string;nil",
+	code = [[return IsAltKeyDown()]],
+	ret = "boolean",
 	events = "MODIFIER_STATE_CHANGED#ALT;MODIFIER_STATE_CHANGED#LALT;MODIFIER_STATE_CHANGED#RALT",
 	globals = "IsAltKeyDown",
 	doc = L["Return True if the Alt key is held down"],
@@ -20,8 +20,8 @@ DogTag:AddTag("Base", "Alt", {
 })
 
 DogTag:AddTag("Base", "Shift", {
-	code = ([[return IsShiftKeyDown() and %q]]):format(L["True"]),
-	ret = "string;nil",
+	code = [[return IsShiftKeyDown()]],
+	ret = "boolean",
 	events = "MODIFIER_STATE_CHANGED#SHIFT;MODIFIER_STATE_CHANGED#LSHIFT;MODIFIER_STATE_CHANGED#RSHIFT",
 	globals = "IsShiftKeyDown",
 	doc = L["Return True if the Shift key is held down"],
@@ -30,8 +30,8 @@ DogTag:AddTag("Base", "Shift", {
 })
 
 DogTag:AddTag("Base", "Ctrl", {
-	code = ([[return IsControlKeyDown() and %q]]):format(L["True"]),
-	ret = "string;nil",
+	code = [[return IsControlKeyDown()]],
+	ret = "boolean",
 	events = "MODIFIER_STATE_CHANGED#CTRL;MODIFIER_STATE_CHANGED#LCTRL;MODIFIER_STATE_CHANGED#RCTRL",
 	globals = "IsControlKeyDown",
 	doc = L["Return True if the Ctrl key is held down"],
@@ -62,8 +62,8 @@ DogTag:AddTag("Base", "Alpha", {
 })
 
 DogTag:AddTag("Base", "IsMouseOver", {
-	code = ([[return DogTag.__isMouseOver and %q or nil]]):format(L["True"]),
-	ret = "string;nil",
+	code = [[return DogTag.__isMouseOver]],
+	ret = "boolean",
 	events = "Mouseover",
 	doc = L["Return True if currently mousing over the Frame the FontString is harbored in"],
 	example = ('[IsMouseOver] => %q; [IsMouseOver] => ""'):format(L["True"]),
