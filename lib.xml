@@ -7,9 +7,9 @@
 	<Script file="Parser.lua" />
 	<Script file="Compiler.lua" />
 	<Script file="Events.lua" />
-	<Script file="Modules\Operators.lua" />
-	<Script file="Modules\Math.lua" />
-	<Script file="Modules\TextManip.lua" />
-	<Script file="Modules\Misc.lua" />
+	<Script file="Categories\Operators.lua" />
+	<Script file="Categories\Math.lua" />
+	<Script file="Categories\TextManip.lua" />
+	<Script file="Categories\Misc.lua" />
 	<Script file="Cleanup.lua" />
 </Ui>
