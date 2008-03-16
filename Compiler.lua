@@ -1605,6 +1605,7 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	globals['table.concat'] = true
 	globals['tonumber'] = true
 	globals['tostring'] = true
+	globals['unpack'] = true
 	globals['type'] = true
 	globals['DogTag.__mytonumber'] = true
 	local events = newList()
