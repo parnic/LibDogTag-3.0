@@ -160,10 +160,18 @@ function DogTag:RemoveCallback(code, callback, ...)
 	end
 end
 
-local function OnEvent(this, event, arg1, ...)
+local EventHandlers = {}
+
+local function OnEvent(this, event, ...)
 	if DogTag[event] then
-		DogTag[event](DogTag, event, arg1, ...)
+		DogTag[event](DogTag, event, ...)
 	end
+	if EventHandlers[event] then
+		for func in pairs(EventHandlers[event]) do
+			func(event, ...)
+		end
+	end
+	local arg1 = (...)
 	for nsList, codeToEventList_nsList in pairs(codeToEventList) do
 		for kwargTypes, codeToEventList_nsList_kwargTypes in pairs(codeToEventList_nsList) do
 			for code, eventList in pairs(codeToEventList_nsList_kwargTypes) do
@@ -314,5 +322,39 @@ local function OnUpdate(this, elapsed)
 	end
 end
 frame:SetScript("OnUpdate", OnUpdate)
+
+function DogTag:AddEventHandler(event, func)
+	if type(event) ~= "string" then
+		error(("Bad argument #2 to `AddEventHandler'. Expected %q, got %q"):format("string", type(event)), 2)
+	end
+	if type(func) ~= "function" then
+		error(("Bad argument #3 to `AddEventHandler'. Expected %q, got %q"):format("function", type(func)), 2)
+	end
+	if not EventHandlers[event] then
+		EventHandlers[event] = newList()
+	end
+	EventHandlers[event][func] = true
+end
+
+function DogTag:RemoveEventHandler(event, func)
+	if type(event) ~= "string" then
+		error(("Bad argument #2 to `RemoveEventHandler'. Expected %q, got %q"):format("string", type(event)), 2)
+	end
+	if type(func) ~= "function" then
+		error(("Bad argument #3 to `RemoveEventHandler'. Expected %q, got %q"):format("function", type(func)), 2)
+	end
+	local EventHandlers_event = EventHandlers[event]
+	if not EventHandlers_event then
+		return
+	end
+	EventHandlers_event[func] = nil
+	if not next(EventHandlers_event) then
+		EventHandlers[event] = del(EventHandlers_event)
+	end
+end
+
+function DogTag:FireEvent(event, ...)
+	OnEvent(frame, event, ...)
+end
 
 end

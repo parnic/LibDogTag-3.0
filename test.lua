@@ -2182,4 +2182,40 @@ FireOnUpdate(0)
 assert_equal(fs:GetText(), "True")
 assert_equal(DogTag:Evaluate("[ExtraFunctionalityWithLib]"), "True")
 
+local fired = false
+local expectedArg = nil
+local expectedNumArgs = 0
+local function func(event, ...)
+	assert_equal(event, "MY_EVENT")
+	assert_equal(..., expectedArg)
+	assert_equal(select('#', ...), expectedNumArgs)
+	
+	fired = true
+end
+DogTag:AddEventHandler("MY_EVENT", func)
+FireEvent("MY_EVENT")
+assert_equal(fired, true)
+fired = false
+expectedArg = 'alpha'
+expectedNumArgs = 2
+FireEvent("MY_EVENT", 'alpha', 'bravo')
+assert_equal(fired, true)
+fired = false
+expectedArg = nil
+expectedNumArgs = 0
+DogTag:FireEvent("MY_EVENT")
+assert_equal(fired, true)
+fired = false
+expectedArg = 'alpha'
+expectedNumArgs = 2
+DogTag:FireEvent("MY_EVENT", 'alpha', 'bravo')
+assert_equal(fired, true)
+fired = false
+DogTag:RemoveEventHandler("MY_EVENT", func)
+FireEvent("MY_EVENT")
+FireEvent("MY_EVENT", 'alpha', 'bravo')
+DogTag:FireEvent("MY_EVENT")
+DogTag:FireEvent("MY_EVENT", 'alpha', 'bravo')
+assert_equal(fired, false)
+
 print("LibDogTag-3.0: Tests succeeded")
