@@ -2165,7 +2165,6 @@ end
 DogTag:RemoveCompilationStep("Base", "tagevents", func)
 
 FireOnUpdate(0.05)
-FireOnUpdate(0.05)
 
 local function func(ast, t, tag, tagData, kwargs, extraKwargs, compiledKwargs, events)
 	events["Update"] = true
@@ -2176,18 +2175,12 @@ DogTag:RemoveFontString(fs)
 DogTag:AddFontString(fs, f, "[BlizzEventTest('never')]")
 assert_equal(fs:GetText(), 1)
 for i = 2, 100 do
-	FireOnUpdate(0.05)
-	assert_equal(fs:GetText(), i-1)
-	FireOnUpdate(0.05)
+	FireOnUpdate(0.1)
 	assert_equal(fs:GetText(), i-1)
 	FireOnUpdate(0.05)
 	assert_equal(fs:GetText(), i)
 end
 DogTag:RemoveCompilationStep("Base", "tagevents", func)
-
-for i = 1, 150 do
-	FireOnUpdate(0.05)
-end
 
 local function func(ast, t, tag, tagData, kwargs, extraKwargs, compiledKwargs, events)
 	events["SlowUpdate"] = true
@@ -2198,11 +2191,9 @@ DogTag:RemoveFontString(fs)
 DogTag:AddFontString(fs, f, "[BlizzEventTest('never')]")
 assert_equal(fs:GetText(), 1)
 for i = 2, 100 do
-	for j = 1, 199 do
-		FireOnUpdate(0.05)
-		assert_equal(fs:GetText(), i-1)
-	end
 	FireOnUpdate(0.05)
+	assert_equal(fs:GetText(), i)
+	FireOnUpdate(9.95)
 	assert_equal(fs:GetText(), i)
 end
 DogTag:RemoveCompilationStep("Base", "tagevents", func)

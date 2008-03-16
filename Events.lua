@@ -299,6 +299,8 @@ frame:SetScript("OnEvent", OnEvent)
 
 local TimerHandlers = {}
 local nextTime = 0
+local nextUpdateTime = 0
+local nextSlowUpdateTime = 0
 local num = 0
 local function OnUpdate(this, elapsed)
 	num = num + 1
@@ -316,10 +318,12 @@ local function OnUpdate(this, elapsed)
 	end
 	if currentTime >= nextTime then
 		DogTag:FireEvent("FastUpdate")
-		if num%3 == 0 then
+		if currentTime >= nextUpdateTime then
+			nextUpdateTime = currentTime + 0.15
 			DogTag:FireEvent("Update")
 		end
-		if num%200 == 0 then
+		if currentTime >= nextSlowUpdateTime then
+			nextSlowUpdateTime = currentTime + 10
 			DogTag:FireEvent("SlowUpdate")
 		end
 		nextTime = currentTime + 0.05
