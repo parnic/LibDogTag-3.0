@@ -449,7 +449,7 @@ local function forceTypes(storeKey, types, forceToTypes, t)
 		local types = joinSet(finalTypes, ';')
 		finalTypes = del(finalTypes)
 		forceToTypes = del(forceToTypes)
-		if type(storeKey) ~= "string" or (not storeKey:match("^arg%d+$") and storeKey ~= "result") then
+		if type(storeKey) ~= "string" or (not storeKey:match("^arg%d+$") and storeKey ~= "result" and not storeKey:match("^%(.*%)$")) then
 			storeKey = "(" .. storeKey .. ")"
 		end
 		return storeKey, types
@@ -469,7 +469,7 @@ local function forceTypes(storeKey, types, forceToTypes, t)
 					t[#t+1] = [=[false;]=]
 				end
 			else
-				assert(storeKey == "nil")
+				assert(storeKey == "nil" or storeKey == "(nil)")
 				storeKey = "false"
 			end
 			finalTypes['boolean'] = true
@@ -536,8 +536,13 @@ local function forceTypes(storeKey, types, forceToTypes, t)
 					t[#t+1] = [=[end;]=]
 				end
 			else
-				if not forceToTypes['nil'] and storeKey ~= 'nil' then
-					storeKey = ("%q"):format(tostring(storeKey+0))
+				if not forceToTypes['nil'] and storeKey ~= 'nil' and storeKey ~= '(nil)' then
+					if storeKey:match("^%(.*%)$") then
+						storeKey = storeKey:sub(2, -2)+0
+					else
+						storeKey = storeKey+0
+					end
+					storeKey = ("%q"):format(tostring(storeKey))
 				end
 			end
 			finalTypes['string'] = true
@@ -634,7 +639,7 @@ local function forceTypes(storeKey, types, forceToTypes, t)
 	forceToTypes = del(forceToTypes)
 	local types = joinSet(finalTypes, ';')
 	finalTypes = del(finalTypes)
-	if type(storeKey) ~= "string" or (not storeKey:match("^arg%d+$") and storeKey ~= "result") then
+	if type(storeKey) ~= "string" or (not storeKey:match("^arg%d+$") and storeKey ~= "result" and not storeKey:match("^%(.*%)$")) then
 		storeKey = "(" .. storeKey .. ")"
 	end
 	return storeKey, types
@@ -730,6 +735,7 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 		local firstAndNonNil_t_num = #t
 		local compiledKwargs = newList()
 		local firstAndNonNil
+		local firstMaybeNumber = false
 		for k,v in pairs(kwargs) do
 			if v == extraKwargs then
 				compiledKwargs[k] = newList(unpack(extraKwargs[k]))
@@ -758,7 +764,7 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 						end
 					end
 				end
-				if not firstAndNonNil and arg_num == 1 and (arg_default == "@req" or arg_default == "@undef") then
+				if arg_num == 1 and (arg_default == "@req" or arg_default == "@undef") then
 					local a = newSet((";"):split(argTypes))
 					firstAndNonNil = not a["nil"] and not a["boolean"] and k
 					if firstAndNonNil then
@@ -768,7 +774,17 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 					end
 					a = del(a)
 				end
-				local arg, types = compile(v, nsList, t, cachedTags, globals, events, extraKwargs, argTypes)
+				local arg, types
+				if arg_num == 1 then
+					local rawTypes
+					arg, rawTypes = compile(v, nsList, t, cachedTags, globals, events, extraKwargs, "boolean;nil;number;string")
+					arg, types = forceTypes(arg, rawTypes, argTypes, t)
+					local a = newSet((";"):split(rawTypes))
+					firstMaybeNumber = a['number'] and rawTypes
+					a = del(a)
+				else
+					arg, types = compile(v, nsList, t, cachedTags, globals, events, extraKwargs, argTypes)
+				end
 				if firstAndNonNil == k then
 					local returns = newSet((";"):split(types))
 					if v == "@undef" then
@@ -945,6 +961,25 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 		t[#t+1] = [=[end;]=]
 		
 		kwargs = del(kwargs)
+		if firstMaybeNumber then
+			local types = newSet((";"):split(forceToTypes))
+			if types['number'] then
+				local retData = newSet((";"):split(ret))
+				if retData['string'] and not retData['number'] then
+					t[#t+1] = [=[if tonumber(]=]
+					t[#t+1] = storeKey
+					t[#t+1] = [=[) then ]=]
+					t[#t+1] = storeKey
+					t[#t+1] = [=[ = ]=]
+					t[#t+1] = storeKey
+					t[#t+1] = [=[+0;end;]=]
+					retData['number'] = true
+					ret = joinSet(retData, ';')
+				end
+				retData = del(retData)
+			end
+			types = del(types)
+		end
 		local a, b = forceTypes(storeKey, ret, forceToTypes, t)
 		return a, b, savedArg, savedArgTypes
 	elseif astType == ' ' then

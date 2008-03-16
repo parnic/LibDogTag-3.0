@@ -6,7 +6,6 @@ TODO:
 Unit-oriented tags
 More comments
 More documentation
-TagWhichTakesAndReturnsString(number) => number
 ]=]
 
 local function escape_char(c)
@@ -1477,6 +1476,10 @@ assert_equal(DogTag:Evaluate("[Type(true)]"), "string")
 assert_equal(DogTag:Evaluate("[Type(nil nil)]"), "nil")
 assert_equal(DogTag:Evaluate("[Type(5 10)]"), "number")
 assert_equal(DogTag:Evaluate("[Type(5.5 10.5)]"), "string")
+
+-- first argument is number, despite it returning a string, it should try to coerce to number
+assert_equal(DogTag:Evaluate("[Type(5:Short)]"), "number")
+assert_equal(DogTag:Evaluate("[Type(5:Append(0))]"), "number")
 
 GlobalCheck_data = nil
 assert_equal(DogTag:Evaluate("[Type(GlobalCheck)]"), "nil")
