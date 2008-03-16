@@ -88,30 +88,31 @@ function DogTag:AddTag(namespace, tag, data)
 			if type(types) ~= "string" then
 				error("arg must have its types as strings", 2)
 			end
-			if types:match("^list%-") then
+			if types:match("^tuple%-") then
 				if key ~= "..." then
-					error("arg must have its key be ... if it is a list.", 2)
+					error("arg must have its key be ... if it is a tuple.", 2)
 				end
-				local t = newSet((';'):split(types:sub(6)))
+				local tupleTypes = types:sub(7)
+				local t = newSet((';'):split(tupleTypes))
 				for k in pairs(t) do
 					if k ~= "nil" and k ~= "number" and k ~= "string" and k ~= "boolean" then
-						error("arg can only have lists of nil, number, string, or boolean", 2)
+						error("arg can only have tuples of nil, number, string, or boolean", 2)
 					end
 				end
 				if t["boolean"] and (next(t, "boolean") or next(t) ~= "boolean") then
 					error("arg cannot specify both boolean and something else", 2)
 				end
 				t = del(t)
-				arg[i+1] = "list-" .. sortStringList(types:sub(6))
+				arg[i+1] = "tuple-" .. sortStringList(tupleTypes)
 			else
-				if not key:match("^[a-z]+$") then
-					error("arg must have its key be a string of lowercase letters.", 2)
-				end
 				local t = newSet((';'):split(types))
 				for k in pairs(t) do
 					if k ~= "nil" and k ~= "number" and k ~= "string" and k ~= "undef" and k ~= "boolean" then
-						error("arg must have nil, number, string, undef, boolean, or list", 2)
+						error("arg must have nil, number, string, undef, boolean, or tuple", 2)
 					end
+				end
+				if not key:match("^[a-z]+$") then
+					error("arg must have its key be a string of lowercase letters.", 2)
 				end
 				if t["nil"] and t["undef"] then
 					error("arg cannot specify both nil and undef", 2)

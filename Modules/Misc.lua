@@ -167,7 +167,7 @@ DogTag:AddTag("Base", "IsIn", {
 	return good and ${value} or nil]=],
 	arg = {
 		'value', 'number;string', "@req",
-		'...', 'list-number;string;nil', "@req",
+		'...', 'tuple-number;string;nil', "@req",
 	},
 	ret = "nil;number;string",
 	doc = L["Return value if value is within ..."],
@@ -179,7 +179,7 @@ DogTag:AddTag("Base", "Hide", {
 	alias = [=[not IsIn(value, ...)]=],
 	arg = {
 		'value', 'number;string', "@req",
-		'...', 'list-number;string;nil', "@req",
+		'...', 'tuple-number;string;nil', "@req",
 	},
 	doc = L["Hide value if value is within ..."],
 	example = '[1:Hide(1, 2, 3)] => ""; ["Alpha":Hide("Bravo", "Charlie")] => "Alpha"',

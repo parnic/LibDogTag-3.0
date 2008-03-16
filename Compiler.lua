@@ -750,8 +750,8 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 					for i = 1, #arg, 3 do
 						if arg[i] == "..." then
 							arg_num = (i-1)/3 + 1
-							if arg[i+1]:match("^list%-") then
-								argTypes = arg[i+1]:sub(6)
+							if arg[i+1]:match("^tuple%-") then
+								argTypes = arg[i+1]:sub(7)
 							else
 								break
 							end

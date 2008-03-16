@@ -532,7 +532,7 @@ DogTag:AddTag("Base", "CheckNilDefault", {
 DogTag:AddTag("Base", "CheckNumTuple", {
 	code = [=[return ("-"):join(${...})]=],
 	arg = {
-		'...', 'list-number', false
+		'...', 'tuple-number', false
 	},
 	ret = "string",
 	doc = "Join ... separated by dashes",
@@ -550,7 +550,7 @@ DogTag:AddTag("Base", "CheckBooleanTuple", {
 	end
 	return num]=],
 	arg = {
-		'...', 'list-boolean', false
+		'...', 'tuple-boolean', false
 	},
 	ret = "number",
 	doc = "Return the integer formed by the bits of ...",
@@ -564,7 +564,7 @@ DogTag:AddTag("Base", "CheckNilTuple", {
 	end
 	return ${#...}]=],
 	arg = {
-		'...', 'list-nil', false
+		'...', 'tuple-nil', false
 	},
 	ret = "number",
 	doc = "Return the number of nils provided",
@@ -575,7 +575,7 @@ DogTag:AddTag("Base", "CheckNilTuple", {
 DogTag:AddTag("Base", "TupleAlias", {
 	alias = [=[CheckNumTuple(5, ...)]=],
 	arg = {
-		'...', 'list-number', false
+		'...', 'tuple-number', false
 	},
 	doc = "Join ... separated by dashes",
 	example = '[TupleAlias(1)] => "1"; [TupleAlias] => ""',
@@ -585,7 +585,7 @@ DogTag:AddTag("Base", "TupleAlias", {
 DogTag:AddTag("Base", "OtherTupleAlias", {
 	alias = [=[Subtract(...)]=],
 	arg = {
-		'...', 'list-number', false
+		'...', 'tuple-number', false
 	},
 	doc = "Subtract the values of ...",
 	example = '[OtherTupleAlias(5, 2)] => "3"',
@@ -595,7 +595,7 @@ DogTag:AddTag("Base", "OtherTupleAlias", {
 DogTag:AddTag("Base", "CheckAnotherNumTuple", {
 	code = [=[return math_max(0, ${...})]=],
 	arg = {
-		'...', 'list-number', false
+		'...', 'tuple-number', false
 	},
 	ret = "string",
 	doc = "Return the largest number of ...",
@@ -613,7 +613,7 @@ DogTag:AddTag("Base", "CheckStrTuple", {
 		return x
 	]=],
 	arg = {
-		'...', 'list-string', false
+		'...', 'tuple-string', false
 	},
 	ret = "string",
 	doc = "Join ..., replacing vowels with 'y'",
@@ -630,7 +630,7 @@ DogTag:AddTag("Base", "CheckAnotherStrTuple", {
 		return x
 	]=],
 	arg = {
-		'...', 'list-string', false
+		'...', 'tuple-string', false
 	},
 	ret = "string",
 	doc = "Join ..., replacing vowels with 'y'",
@@ -650,7 +650,7 @@ DogTag:AddTag("Base", "CheckAnyTuple", {
 		return x
 	]=],
 	arg = {
-		'...', 'list-string;number;nil', false
+		'...', 'tuple-string;number;nil', false
 	},
 	ret = "string",
 	doc = "Join ..., showing its type and value",
@@ -692,7 +692,7 @@ DogTag:AddTag("Base", "KwargAndTuple", {
 		return ${value} * num]=],
 	arg = {
 		'value', 'number', '@req',
-		'...', 'list-number', false
+		'...', 'tuple-number', false
 	},
 	ret = 'number',
 	globals = 'math.max';
@@ -707,7 +707,7 @@ DogTag:AddTag("Base", "TupleAndKwarg", {
 		end
 		return ${value} * num]=],
 	arg = {
-		'...', 'list-number', false,
+		'...', 'tuple-number', false,
 		'value', 'number', '@req'
 	},
 	ret = 'number',

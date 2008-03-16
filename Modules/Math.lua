@@ -96,7 +96,7 @@ DogTag:AddTag("Base", "Max", {
 	]=],
 	arg = {
 		'number', 'number', "@req",
-		'...', 'list-number', false
+		'...', 'tuple-number', false
 	},
 	ret = "number",
 	globals = "math.max;unpack",
@@ -110,7 +110,7 @@ DogTag:AddTag("Base", "Min", {
 	]=],
 	arg = {
 		'number', 'number', "@req",
-		'...', 'list-number', false
+		'...', 'tuple-number', false
 	},
 	ret = "number",
 	globals = "math.min;unpack",
