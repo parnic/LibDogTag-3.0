@@ -963,7 +963,7 @@ local binaryNumberCalcs = {
 local function standardize(ast)
 	local type_ast = type(ast)
 	if type_ast ~= "table" then
-		if type_ast == "string" and tonumber(ast) then
+		if type_ast == "string" and DogTag.__mytonumber(ast) then
 			return ast+0
 		end
 		return ast
