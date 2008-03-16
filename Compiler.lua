@@ -289,6 +289,20 @@ local function getKwargsForAST(ast, nsList, extraKwargs)
 	return kwargs
 end
 
+local function mytonumber(value)
+	local type_value = type(value)
+	if type_value == "number" then
+		return value
+	elseif type_value ~= "string" then
+		return nil
+	end
+	if value:match("^0x") then
+		return nil
+	end
+	return tonumber(value)
+end
+DogTag.__mytonumber = mytonumber
+
 local interpolationHandler__compiledKwargs
 local function interpolationHandler(str)
 	local compiledKwargs = interpolationHandler__compiledKwargs
@@ -966,7 +980,7 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 			if types['number'] then
 				local retData = newSet((";"):split(ret))
 				if retData['string'] and not retData['number'] then
-					t[#t+1] = [=[if tonumber(]=]
+					t[#t+1] = [=[if DogTag___mytonumber(]=]
 					t[#t+1] = storeKey
 					t[#t+1] = [=[) then ]=]
 					t[#t+1] = storeKey
@@ -1042,7 +1056,7 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 		end
 		t[#t+1] = [=[;]=]
 		if finalTypes['number'] then
-			t[#t+1] = [=[if tonumber(]=]
+			t[#t+1] = [=[if DogTag___mytonumber(]=]
 			t[#t+1] = storeKey
 			t[#t+1] = [=[) then ]=]
 			t[#t+1] = storeKey
@@ -1592,6 +1606,7 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	globals['tonumber'] = true
 	globals['tostring'] = true
 	globals['type'] = true
+	globals['DogTag.__mytonumber'] = true
 	local events = newList()
 	local ret, types = compile(ast, nsList, u, cachedTags, globals, events, extraKwargs, 'nil;number;string', 'result')
 	for k, v in pairs(extraKwargs) do
@@ -1650,7 +1665,7 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	
 	types = newSet((";"):split(types))
 	if types["string"] then
-		t[#t+1] = [=[if result == '' then result = nil; elseif tonumber(result) then result = result+0; end;]=]
+		t[#t+1] = [=[if result == '' then result = nil; elseif DogTag___mytonumber(result) then result = result+0; end;]=]
 	end
 	types = del(types)
 	
