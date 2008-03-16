@@ -297,9 +297,12 @@ local function OnEvent(this, event, ...)
 end
 frame:SetScript("OnEvent", OnEvent)
 
-local timePassed = 0
+local TimerHandlers = {}
+local nextTime = 0
+local num = 0
 local function OnUpdate(this, elapsed)
-	timePassed = timePassed + elapsed
+	num = num + 1
+	local currentTime = GetTime()
 	local oldMouseover = DogTag.__lastMouseover
 	local newMouseover = GetMouseFocus()
 	DogTag.__lastMouseover = newMouseover
@@ -311,8 +314,19 @@ local function OnUpdate(this, elapsed)
 			end
 		end
 	end
-	if timePassed >= 0.05 then
-		timePassed = 0
+	if currentTime >= nextTime then
+		DogTag:FireEvent("FastUpdate")
+		if num%3 == 0 then
+			DogTag:FireEvent("Update")
+		end
+		if num%200 == 0 then
+			DogTag:FireEvent("SlowUpdate")
+		end
+		nextTime = currentTime + 0.05
+		for func in pairs(TimerHandlers) do
+			func(num, currentTime)
+		end
+		
 		for fs in pairs(fsNeedUpdate) do
 			updateFontString(fs)
 		end
@@ -355,6 +369,21 @@ end
 
 function DogTag:FireEvent(event, ...)
 	OnEvent(frame, event, ...)
+end
+
+
+function DogTag:AddTimerHandler(func)
+	if type(func) ~= "function" then
+		error(("Bad argument #2 to `AddEventHandler'. Expected %q, got %q"):format("function", type(func)), 2)
+	end
+	TimerHandlers[func] = true
+end
+
+function DogTag:RemoveTimerHandler(func)
+	if type(func) ~= "function" then
+		error(("Bad argument #2 to `RemoveEventHandler'. Expected %q, got %q"):format("function", type(func)), 2)
+	end
+	TimerHandlers[func] = nil
 end
 
 end

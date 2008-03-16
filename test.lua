@@ -1545,6 +1545,8 @@ assert_equal(fs:GetText(), 1)
 DogTag:RemoveFontString(fs)
 assert_equal(fs:GetText(), nil)
 
+FireOnUpdate(1000)
+
 _G.OtherBlizzEventTest_num = 1
 DogTag:AddFontString(fs, f, "[OtherBlizzEventTest]")
 assert_equal(fs:GetText(), 2)
@@ -2148,6 +2150,62 @@ assert_equal(fs:GetText(), 4)
 FireEvent("SOME_EVENT")
 FireOnUpdate(0.05)
 assert_equal(fs:GetText(), 4)
+
+local function func(ast, t, tag, tagData, kwargs, extraKwargs, compiledKwargs, events)
+	events["FastUpdate"] = true
+end
+DogTag:AddCompilationStep("Base", "tagevents", func)
+BlizzEventTest_num = 0
+DogTag:AddFontString(fs, f, "[BlizzEventTest('never')]")
+assert_equal(fs:GetText(), 1)
+for i = 2, 100 do
+	FireOnUpdate(0.05)
+	assert_equal(fs:GetText(), i)
+end
+DogTag:RemoveCompilationStep("Base", "tagevents", func)
+
+FireOnUpdate(0.05)
+FireOnUpdate(0.05)
+
+local function func(ast, t, tag, tagData, kwargs, extraKwargs, compiledKwargs, events)
+	events["Update"] = true
+end
+DogTag:AddCompilationStep("Base", "tagevents", func)
+BlizzEventTest_num = 0
+DogTag:RemoveFontString(fs)
+DogTag:AddFontString(fs, f, "[BlizzEventTest('never')]")
+assert_equal(fs:GetText(), 1)
+for i = 2, 100 do
+	FireOnUpdate(0.05)
+	assert_equal(fs:GetText(), i-1)
+	FireOnUpdate(0.05)
+	assert_equal(fs:GetText(), i-1)
+	FireOnUpdate(0.05)
+	assert_equal(fs:GetText(), i)
+end
+DogTag:RemoveCompilationStep("Base", "tagevents", func)
+
+for i = 1, 150 do
+	FireOnUpdate(0.05)
+end
+
+local function func(ast, t, tag, tagData, kwargs, extraKwargs, compiledKwargs, events)
+	events["SlowUpdate"] = true
+end
+DogTag:AddCompilationStep("Base", "tagevents", func)
+BlizzEventTest_num = 0
+DogTag:RemoveFontString(fs)
+DogTag:AddFontString(fs, f, "[BlizzEventTest('never')]")
+assert_equal(fs:GetText(), 1)
+for i = 2, 100 do
+	for j = 1, 199 do
+		FireOnUpdate(0.05)
+		assert_equal(fs:GetText(), i-1)
+	end
+	FireOnUpdate(0.05)
+	assert_equal(fs:GetText(), i)
+end
+DogTag:RemoveCompilationStep("Base", "tagevents", func)
 
 local fired = false
 DogTag:AddAddonFinder("Base", "_G", "MyAddonToBeFound", function(MyAddonToBeFound)
