@@ -52,6 +52,20 @@ DogTag.AddonFinders = AddonFinders
 
 local sortStringList = DogTag.sortStringList
 
+DogTag.__colors = {
+	minHP = { 1, 0, 0 },
+	midHP = { 1, 1, 0 },
+	maxHP = { 0, 1, 0 },
+	unknown = { 0.8, 0.8, 0.8 },
+	hostile = { 226/255, 45/255, 75/255 },
+	neutral = { 1, 1, 34/255 },
+	friendly = { 0.2, 0.8, 0.15 },
+	civilian = { 48/255, 113/255, 191/255 },
+}
+for class, data in pairs(_G.RAID_CLASS_COLORS) do
+	DogTag.__colors[class] = { data.r, data.g, data.b, }
+end
+
 function DogTag:AddTag(namespace, tag, data)
 	if type(namespace) ~= "string" then
 		error(("Bad argument #2 to `AddTag'. Expected %q, got %q"):format("string", type(namespace)), 2)
@@ -159,7 +173,7 @@ function DogTag:AddTag(namespace, tag, data)
 				globals = newList((';'):split(globals))
 				for _,v in ipairs(globals) do
 					if not v:find("%.") and not _G[v] then
-						error(("Unknown global: %q"):format(v))
+						error(("Unknown global: %q"):format(v), 2)
 					end
 				end
 				globals = del(globals)

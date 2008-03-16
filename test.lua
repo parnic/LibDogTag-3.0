@@ -220,6 +220,18 @@ function FireEvent(event, ...)
 	end
 end
 
+RAID_CLASS_COLORS = {
+	DRUID = { r = 1, g = 0.49, b = 0.04, },
+	HUNTER = { r = 0.67, g = 0.83, b = 0.45 },
+	MAGE = { r = 0.41, g = 0.8, b = 0.41 },
+	PALADIN = { r = 0.96, g = 0.55, b = 0.73 },
+	PRIEST = { r = 1, g = 1, b = 1 },
+	ROGUE = { r = 1, g = 0.96, b = 0.41 },
+	SHAMAN = { r = 0.14, g = 0.35, b = 1 },
+	WARLOCK = { r = 0.58, g = 0.51, b = 0.79 },
+	WARRIOR = { r = 0.78, g = 0.61, b = 0.43 },
+}
+
 local GetMouseFocus_data = nil
 function GetMouseFocus()
 	return GetMouseFocus_data
@@ -1964,7 +1976,7 @@ assert_equal(DogTag:Evaluate("[nil:Append(' World')]"), nil)
 GlobalCheck_data = nil
 assert_equal(DogTag:Evaluate("[GlobalCheck:Append(' World')]"), nil)
 assert_equal(DogTag:Evaluate("[Append(false, ' World')]"), nil)
-assert_equal(DogTag:Evaluate("[Append('Hello', nil)]"), "Hello")
+assert_equal(DogTag:Evaluate("[Append('Hello', nil)]"), nil)
 
 assert_equal(DogTag:Evaluate("[nil:Length]"), nil)
 assert_equal(DogTag:Evaluate("[false:Length]"), nil)

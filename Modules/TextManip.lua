@@ -350,14 +350,16 @@ DogTag:AddTag("Base", "Abbreviate", {
 })
 
 DogTag:AddTag("Base", "Append", {
-	code = [=[return ${left} .. ${right}]=],
+	code = [=[if ${left} and ${right} then
+		return ${left} .. ${right}
+	end]=],
 	arg = {
-		'left', 'string', '@req',
-		'right', 'string', '@req',
+		'left', 'string;nil', '@req',
+		'right', 'string;nil', '@req',
 	},
-	ret = "string",
-	doc = L["Append right to left"],
-	example = '["Hello":Append(" World")] => "Hello World"'
+	ret = "string;nil",
+	doc = L["Append right to left if both left and right exist"],
+	example = '["Hello":Append(" World")] => "Hello World"; [nil:Append(" World")] => ""; ["Hello":Append(nil)] => ""'
 })
 
 end
