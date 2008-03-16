@@ -202,4 +202,14 @@ DogTag:AddTag("Base", "Contains", {
 	category = L["Miscellaneous"]
 })
 
+DogTag:AddTag("Base", "Boolean", {
+	code = [=[return ${value}]=],
+	arg = {
+		'value', 'boolean', "@req"
+	},
+	ret = "boolean",
+	doc = L["Return True if non-blank"],
+	example = '[Boolean("Hello")] => "True"; [Boolean(nil)] => ""'
+})
+
 end

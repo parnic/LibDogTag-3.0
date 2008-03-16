@@ -2169,6 +2169,15 @@ assert_equal(DogTag:Evaluate("[5:IsIn(1, 2, 3, 4, 5)]"), 5)
 
 assert_equal(DogTag:Evaluate("[not One:RetNil]"), 1)
 
+assert_equal(DogTag:Evaluate("[Boolean(nil)]"), nil)
+assert_equal(DogTag:Evaluate("[Boolean(1)]"), "True")
+assert_equal(DogTag:Evaluate("[Boolean(One)]"), "True")
+assert_equal(DogTag:Evaluate("[Boolean('Hello')]"), "True")
+GlobalCheck_data = 'Hello'
+assert_equal(DogTag:Evaluate("[Boolean(GlobalCheck)]"), "True")
+GlobalCheck_data = nil
+assert_equal(DogTag:Evaluate("[Boolean(GlobalCheck)]"), nil)
+
 assert_equal(DogTag:Evaluate("[One:Hide(6, 7, 8)]"), 1)
 assert_equal(DogTag:Evaluate("[One:Hide(1, 6, 7, 8)]"), nil)
 assert_equal(DogTag:Evaluate("[One:Hide(2):Hide(3)]"), 1)
