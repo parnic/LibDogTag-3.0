@@ -1492,7 +1492,7 @@ assert_equal(DogTag:Evaluate("[Type(5.5 10.5)]"), "string")
 
 -- first argument is number, despite it returning a string, it should try to coerce to number
 assert_equal(DogTag:Evaluate("[Type(5:Short)]"), "number")
-assert_equal(DogTag:Evaluate("[Type(5:Append(0))]"), "number")
+assert_equal(DogTag:Evaluate("[Type(5:Concatenate(0))]"), "number")
 
 GlobalCheck_data = nil
 assert_equal(DogTag:Evaluate("[Type(GlobalCheck)]"), "nil")
@@ -1989,12 +1989,13 @@ assert_equal(DogTag:Evaluate("[-1666:Romanize]"), "-MDCLXVI")
 assert_equal(DogTag:Evaluate("[-1666666:Romanize]"), "-(MDCLXV)MDCLXVI")
 assert_equal(DogTag:Evaluate("[-4999999:Romanize]"), "-(MMMMCMXCIX)CMXCIX")
 
-assert_equal(DogTag:Evaluate("['Hello':Append(' World')]"), "Hello World")
-assert_equal(DogTag:Evaluate("[nil:Append(' World')]"), nil)
+assert_equal(DogTag:Evaluate("['Hello':Concatenate(' World')]"), "Hello World")
+assert_equal(DogTag:Evaluate("['Hello':Concatenate(nil, ' World')]"), nil)
+assert_equal(DogTag:Evaluate("[nil:Concatenate(' World')]"), nil)
 GlobalCheck_data = nil
-assert_equal(DogTag:Evaluate("[GlobalCheck:Append(' World')]"), nil)
-assert_equal(DogTag:Evaluate("[Append(false, ' World')]"), nil)
-assert_equal(DogTag:Evaluate("[Append('Hello', nil)]"), nil)
+assert_equal(DogTag:Evaluate("[GlobalCheck:Concatenate(' World')]"), nil)
+assert_equal(DogTag:Evaluate("[Concatenate(false, ' World')]"), nil)
+assert_equal(DogTag:Evaluate("[Concatenate('Hello', nil)]"), nil)
 
 assert_equal(DogTag:Evaluate("[nil:Length]"), nil)
 assert_equal(DogTag:Evaluate("[false:Length]"), nil)
@@ -2043,9 +2044,9 @@ assert_equal(DogTag:Evaluate("[GlobalCheckBoolean:PlusOne]"), 2)
 GlobalCheckBoolean_data = false
 assert_equal(DogTag:Evaluate("[GlobalCheckBoolean:PlusOne]"), nil)
 GlobalCheckBoolean_data = true
-assert_equal(DogTag:Evaluate("[GlobalCheckBoolean:Append('!')]"), "True!")
+assert_equal(DogTag:Evaluate("[GlobalCheckBoolean:Concatenate('!')]"), "True!")
 GlobalCheckBoolean_data = false
-assert_equal(DogTag:Evaluate("[GlobalCheckBoolean:Append('!')]"), nil)
+assert_equal(DogTag:Evaluate("[GlobalCheckBoolean:Concatenate('!')]"), nil)
 
 IsAltKeyDown_data = nil
 assert_equal(DogTag:Evaluate("[Alt]"), nil)

@@ -419,17 +419,25 @@ DogTag:AddTag("Base", "Abbreviate", {
 	category = L["Text Manipulation"],
 })
 
-DogTag:AddTag("Base", "Append", {
-	code = [=[if ${left} and ${right} then
-		return ${left} .. ${right}
+DogTag:AddTag("Base", "Concatenate", {
+	code = [=[local good = true
+	for i = 1, ${#...} do
+		if not select(i, ${...}) then
+			good = false
+			break
+		end
+	end
+	if good and ${#...} > 0 then
+		return (""):join(${...})
+	else
+		return nil
 	end]=],
 	arg = {
-		'left', 'string;nil', '@req',
-		'right', 'string;nil', '@req',
+		'...', 'tuple-string;nil', false,
 	},
 	ret = "string;nil",
-	doc = L["Append right to left if both left and right exist"],
-	example = '["Hello":Append(" World")] => "Hello World"; [nil:Append(" World")] => ""; ["Hello":Append(nil)] => ""'
+	doc = L["Concatenate the values of ... as long as they are all non-blank"],
+	example = '[Concatenate("Hello", " ", "World")] => "Hello World"; [Concatenate(nil, " ", World")] => ""; [Concatenate("Hello", nil)] => ""'
 })
 
 end
