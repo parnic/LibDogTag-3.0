@@ -10,6 +10,7 @@ DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 --[=[
 DOGTAG              = { SEGMENT }
 SEGMENT             = TAG_SEQUENCE | OUTER_STRING
+OUTER_STRING        = ( ANY - "[", ) { ANY - "[" }
 TAG_SEQUENCE        = "[", MULTI_SPACE, INNER_TAG_SEQUENCE, MULTI_SPACE, "]"
 INNER_TAG_SEQUENCE  = IF_STATEMENT
 CHUNK_WITH_MODIFIER = UNARY_MINUS, { MULTI_SPACE, ":", [ "~", ] TAG, [ PARAM_LIST ] }
@@ -40,7 +41,7 @@ EXPONENTIATION      = CHUNK_WITH_MODIFIER, { MULTI_SPACE, "^", MULTI_SPACE CHUNK
 
 local L = DogTag.L
 
-local DOGTAG, SEGMENT, TAG_SEQUENCE, CHUNK, SPACE, MULTI_SPACE, EXPONENTIATION, MULTIPLICATION, ADDITION, CONCATENATION, LOGIC, MULTI_DIGIT, ALPHANUM, SIGNED_INTEGER, INNER_PARAM_LIST, COMPARISON, IF_STATEMENT, INNER_TAG_SEQUENCE, TAG, PARAM_LIST, NUMBER, STRING, GROUPING, NEGATION, CHUNK_WITH_MODIFIER, UNARY_MINUS
+local DOGTAG, SEGMENT, TAG_SEQUENCE, CHUNK, SPACE, MULTI_SPACE, EXPONENTIATION, MULTIPLICATION, ADDITION, CONCATENATION, LOGIC, MULTI_DIGIT, ALPHANUM, SIGNED_INTEGER, INNER_PARAM_LIST, COMPARISON, IF_STATEMENT, INNER_TAG_SEQUENCE, TAG, PARAM_LIST, NUMBER, STRING, GROUPING, NEGATION, CHUNK_WITH_MODIFIER, UNARY_MINUS, OUTER_STRING
 
 local _G = _G
 local table_concat = _G.table.concat
@@ -116,9 +117,9 @@ function DOGTAG(tokens)
 	local isConcatList = false
 	local list
 	while true do
-		local data
-		position, data = SEGMENT(tokens, position)
-		if position then
+		local pos, data = SEGMENT(tokens, position)
+		if pos then
+			position = pos
 			if list then
 				if isConcatList then
 					list[#list+1] = data
@@ -129,6 +130,11 @@ function DOGTAG(tokens)
 			else
 				list = data
 			end
+		elseif position < #tokens then
+			if list then
+				list = del(list)
+			end
+			return nil
 		else
 			break
 		end
@@ -137,13 +143,22 @@ function DOGTAG(tokens)
 end
 
 function SEGMENT(tokens, position)
+	local pos, data = OUTER_STRING(tokens, position)
+	if pos then
+		return pos, data
+	end
+	
 	local pos, data = TAG_SEQUENCE(tokens, position)
 	if pos then
 		return pos, data
 	end
 	
+	return nil
+end
+
+function OUTER_STRING(tokens, position)
 	local c = tokens[position]
-	if not c then
+	if not c or c == open_bracket_byte then
 		return nil
 	end
 	
@@ -159,14 +174,6 @@ function SEGMENT(tokens, position)
 		t[#t+1] = c
 		position = position + 1
 	end
-end
-
-function INNER_TAG_SEQUENCE(tokens, position)
-	local position, data = IF_STATEMENT(tokens, position)
-	if not position then
-		return nil
-	end
-	return position, data
 end
 
 function TAG_SEQUENCE(tokens, position)
@@ -188,6 +195,14 @@ function TAG_SEQUENCE(tokens, position)
 		return nil
 	end
 	return position+1, data
+end
+
+function INNER_TAG_SEQUENCE(tokens, position)
+	local position, data = IF_STATEMENT(tokens, position)
+	if not position then
+		return nil
+	end
+	return position, data
 end
 
 function CHUNK_WITH_MODIFIER(tokens, position)

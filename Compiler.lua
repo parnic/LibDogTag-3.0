@@ -1295,7 +1295,11 @@ do
 				args[argName] = val
 			end
 		end
-		local parsedAlias = standardize(parse(alias))
+		local parsedAlias = parse(alias)
+		if not parsedAlias then
+			return nil, ("Syntax error with alias %s"):format(tag)
+		end
+		local parsedAlias = standardize(parsedAlias)
 		for k,v in pairs(args) do
 			replaceArg(parsedAlias, k, v)
 		end
@@ -1412,6 +1416,10 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	
 	
 	local ast = parse(code)
+	if not ast then
+		codeToEventList[nsList][kwargTypes][code] = false
+		return ("return function() return %q, nil end"):format("Syntax error")
+	end
 	ast = standardize(ast)
 	correctASTCasing(ast)
 	local err

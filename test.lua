@@ -1086,7 +1086,8 @@ assert_equal(parse("[Alpha((key=Bravo))]"), { "tag", "Alpha", { "(", { "=", { "t
 assert_equal(DogTag:CleanCode("[Alpha(key = Bravo)]"), "[Alpha(key = Bravo)]")
 assert_equal(DogTag:CleanCode("[Alpha((key=Bravo))]"), "[Alpha((key = Bravo))]")
 assert_equal(parse("[Class(unit='mouseovertarget')]"), { "tag", "Class", kwarg = { unit = "mouseovertarget" } })
-assert_equal(parse("[Alpha(key=Bravo, Charlie)]"), "[Alpha(key=Bravo, Charlie)]") -- syntax error
+assert_equal(parse("[Alpha(key=Bravo, Charlie)]"), nil)
+assert_equal(DogTag:Evaluate("[Alpha(key=Bravo, Charlie)]"), "Syntax error")
 assert_equal(parse("[Alpha(Bravo Charlie)]"), { "tag", "Alpha", { " ", { "tag", "Bravo"}, { "tag", "Charlie" } } })
 assert_equal(parse("[Alpha(Bravo ' ' Charlie)]"), { "tag", "Alpha", { " ", { "tag", "Bravo"}, " ", { "tag", "Charlie" } } })
 assert_equal(DogTag:CleanCode("[Alpha(Bravo ' ' Charlie)]"), "[Alpha(Bravo \" \" Charlie)]")
