@@ -258,9 +258,6 @@ local function getTagData(tag, nsList)
 end
 
 local function getKwargsForAST(ast, nsList, extraKwargs)
-	if type(ast) ~= "table" then
-		return nil, ("%s is not a tag"):format(tostring(ast))
-	end
 	local tag
 	if ast[1] == "tag" then
 		tag = ast[2]
@@ -391,9 +388,6 @@ for k in pairs(operators) do
 end
 
 local function forceTypes(storeKey, types, forceToTypes, t)
-	if not storeKey then
-		return nil, types
-	end
 	types = newSet((";"):split(types))
 	forceToTypes = newSet((";"):split(forceToTypes))
 	if forceToTypes["undef"] then
@@ -617,10 +611,7 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 		else
 			t[#t+1] = [=[do ]=]
 		end
-		local kwargs, errMessage = getKwargsForAST(ast, nsList, extraKwargs)
-		if not kwargs then
-			return nil, errMessage
-		end
+		local kwargs = getKwargsForAST(ast, nsList, extraKwargs)
 		
 		local arg = tagData.arg
 		
@@ -668,13 +659,6 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 					a = del(a)
 				end
 				local arg, types = compile(v, nsList, t, cachedTags, globals, events, extraKwargs, argTypes)
-				if not arg then
-					for k,v in pairs(compiledKwargs) do
-						compiledKwargs[k] = del(v)
-					end
-					compiledKwargs = del(compiledKwargs)
-					return nil, types
-				end
 				if firstAndNonNil == k then
 					local returns = newSet((";"):split(types))
 					if v == "@undef" then
@@ -852,11 +836,7 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 		
 		kwargs = del(kwargs)
 		local a, b = forceTypes(storeKey, ret, forceToTypes, t)
-		if not a or not savedArg then
-			return a, b
-		else
-			return a, b, savedArg, savedArgTypes
-		end
+		return a, b, savedArg, savedArgTypes
 	elseif astType == ' ' then
 		local t_num = #t
 		local args = newList()
@@ -864,11 +844,6 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 		for i = 2, #ast do
 			local t_num = #t
 			local arg, err = compile(ast[i], nsList, t, cachedTags, globals, events, extraKwargs, "nil;number;string")
-			if not arg then
-				args = del(args)
-				argTypes = del(argTypes)
-				return nil, err
-			end
 			args[#args+1] = arg
 			argTypes[#argTypes+1] = err
 			if #t ~= t_num then
@@ -965,9 +940,6 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 		local t_num = #t
 		t[#t+1] = [=[do ]=]
 		local arg, firstResults = compile(ast[2], nsList, t, cachedTags, globals, events, extraKwargs, "nil;number;string", storeKey)
-		if not arg then
-			return nil, firstResults
-		end
 		firstResults = newSet((";"):split(firstResults))
 		local totalResults = newList()
 		t[#t+1] = [=[end;]=]
@@ -979,11 +951,6 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 			t[#t+1] = storeKey
 			t[#t+1] = [=[ then ]=]
 			local arg, secondResults = compile(ast[3], nsList, t, cachedTags, globals, events, extraKwargs, "nil;number;string", storeKey)
-			if not arg then
-				firstResults = del(firstResults)
-				totalResults = del(totalResults)
-				return nil, secondResults
-			end
 			secondResults = newSet((";"):split(secondResults))
 			t[#t+1] = [=[end;]=]
 			for k in pairs(firstResults) do
@@ -1000,11 +967,6 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 				t[i] = nil
 			end
 			local arg, secondResults = compile(ast[3], nsList, t, cachedTags, globals, events, extraKwargs, "nil;number;string", storeKey)
-			if not arg then
-				firstResults = del(firstResults)
-				totalResults = del(totalResults)
-				return nil, secondResults
-			end
 			secondResults = newSet((";"):split(secondResults))
 			for k in pairs(totalResults) do
 				totalResults[k] = nil
@@ -1029,9 +991,6 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 		local t_num = #t
 		t[#t+1] = [=[do ]=]
 		local storeKey, condResults = compile(ast[2], nsList, t, cachedTags, globals, events, extraKwargs, "nil;number;string", storeKey)
-		if not storeKey then
-			return nil, condResults
-		end
 		condResults = newSet((';'):split(condResults))
 		t[#t+1] = [=[end;]=]
 		if condResults["nil"] and (condResults["string"] or condResults["number"]) then
@@ -1040,18 +999,11 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 			t[#t+1] = storeKey
 			t[#t+1] = [=[ then ]=]
 			local arg, firstResults = compile(ast[3], nsList, t, cachedTags, globals, events, extraKwargs, forceToTypes, storeKey)
-			if not arg then
-				return nil, firstResults
-			end
 			local totalResults = newSet((";"):split(firstResults))
 			t[#t+1] = [=[ else ]=]
 			local secondResults
 			if ast[4] then
 				storeKey, secondResults = compile(ast[4], nsList, t, cachedTags, globals, events, extraKwargs, forceToTypes, storeKey)
-				if not storeKey then
-					totalResults = del(totalResults)
-					return nil, secondResults
-				end
 			else
 				t[#t+1] = storeKey
 				t[#t+1] = [=[ = nil;]=]
@@ -1076,11 +1028,7 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 			if type(cond) == "string" and cond:match("^arg%d+$") then
 				delUniqueVar(cond)
 			end
-			local storeKey, totalResults = compile(ast[4], nsList, t, cachedTags, globals, events, extraKwargs, forceToTypes, storeKey)
-			if not storeKey then
-				return nil, totalResults
-			end
-			return storeKey, totalResults
+			return compile(ast[4], nsList, t, cachedTags, globals, events, extraKwargs, forceToTypes, storeKey)
 		else
 			-- non-nil
 			condResults = del(condResults)
@@ -1090,18 +1038,11 @@ function compile(ast, nsList, t, cachedTags, globals, events, extraKwargs, force
 			if type(cond) == "string" and cond:match("^arg%d+$") then
 				delUniqueVar(cond)
 			end
-			local storeKey, totalResults = compile(ast[3], nsList, t, cachedTags, globals, events, extraKwargs, forceToTypes, storeKey)
-			if not storeKey then
-				return nil, totalResults
-			end
-			return storeKey, totalResults
+			return compile(ast[3], nsList, t, cachedTags, globals, events, extraKwargs, forceToTypes, storeKey)
 		end
 	elseif astType == 'not' then
 		local t_num = #t
 		local s, results, savedArg, savedArgTypes = compile(ast[2], nsList, t, cachedTags, globals, events, extraKwargs, "nil;number;string", storeKey, true)
-		if not s then
-			return nil, results
-		end
 		results = newSet((";"):split(results))
 		if results["nil"] and (results["string"] or results["number"]) then
 			results = del(results)
