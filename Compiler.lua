@@ -1568,6 +1568,7 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	end
 	
 	local t = newList()
+	t[#t+1] = [=[local _G = _G;]=]
 	t[#t+1] = ([=[local DogTag = _G.LibStub(%q);]=]):format(MAJOR_VERSION)
 	t[#t+1] = [=[local colors = DogTag.__colors;]=]
 	t[#t+1] = [=[local NIL = DogTag.__NIL;]=]
@@ -1615,7 +1616,7 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	end
 	local g = newList()
 	for global in pairs(globals) do
-		if global:find("^[A-Za-z0-9%-]+%-%d+%.%d+$") then
+		if global:match("^[A-Za-z0-9%-]+%-%d+%.%d+$") then
 			if Rock then
 				Rock(global, false, true) -- try to load
 			end
@@ -1625,7 +1626,7 @@ function DogTag:CreateFunctionFromCode(code, ...)
 			if LibStub(global, true) then -- catches Rock and AceLibrary libs as well
 				g[#g+1] = [=[local ]=]
 				g[#g+1] = global:gsub("%-.-$", "")
-				if not global:find("^Lib") then
+				if not global:match("^Lib") then
 					g[#g+1] = [=[Lib]=]
 				end
 				g[#g+1] = [=[ = LibStub("]=]
@@ -1636,6 +1637,9 @@ function DogTag:CreateFunctionFromCode(code, ...)
 			g[#g+1] = [=[local ]=]
 			g[#g+1] = global:gsub("%.", "_")
 			g[#g+1] = [=[ = ]=]
+			if not global:match("^DogTag%.") then
+				g[#g+1] = [=[_G.]=]
+			end
 			g[#g+1] = global
 			g[#g+1] = [=[;]=]
 		end
