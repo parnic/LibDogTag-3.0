@@ -1468,14 +1468,6 @@ function DogTag:CreateFunctionFromCode(code, ...)
 		events = memoizeTable(events)
 		codeToEventList[nsList][kwargTypes][code] = events
 	end
-	if not ret then
-		for i = 1, #u do
-			u[i] = nil
-		end
-		u[#u+1] = [=[result = ]=]
-		u[#u+1] = ("%q"):format(types)
-		u[#u+1] = [=[;]=]
-	end
 	for i = 1, getNumUniqueVars() do
 		t[#t+1] = [=[local arg]=]
 		t[#t+1] = i
