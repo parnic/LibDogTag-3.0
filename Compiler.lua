@@ -299,6 +299,12 @@ local function mytonumber(value)
 	if value:match("^0x") then
 		return nil
 	end
+	if value:match("%.$") or value:match("%.%d*0$") then
+		return nil
+	end
+	if value:match("^0%d+") then
+		return nil
+	end
 	return tonumber(value)
 end
 DogTag.__mytonumber = mytonumber

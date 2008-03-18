@@ -212,4 +212,17 @@ DogTag:AddTag("Base", "Boolean", {
 	example = '[Boolean("Hello")] => "True"; [Boolean(nil)] => ""'
 })
 
+DogTag:AddTag("Base", "Format", {
+	code = [=[local ret, err = pcall(string_format, ${format}, ${...})
+	return err]=],
+	arg = {
+		'format', 'string', "@req",
+		'...', 'tuple-number;string', false,
+	},
+	globals = "pcall;string.format",
+	ret = "string",
+	doc = L["Return a string formatted by format"],
+	example = '["%.3f":Format(1)] => "1.000"; ["%s %s":Format("Hello", "There")] => "Hello There"'
+})
+
 end
