@@ -89,7 +89,7 @@ do
 		local nsList = self[1]
 		local kwargTypes = self[2]
 		
-		local s = DogTag:CreateFunctionFromCode(code, true, kwargTypes, unpackNamespaceList(nsList))
+		local s, functions = DogTag:CreateFunctionFromCode(code, true, kwargTypes, unpackNamespaceList(nsList))
 		local func, err = loadstring(s)
 		local val
 		if not func then
@@ -97,7 +97,9 @@ do
 			geterrorhandler()(("%s.%d: Error (%s) loading code %q. Please inform ckknight."):format(MAJOR_VERSION, minor, err, code))
 			val = self[""]
 		else
+			DogTag.__functions = functions
 			local status, result = pcall(func)
+			DogTag.__functions = nil
 			if not status then
 				local _, minor = LibStub(MAJOR_VERSION)
 				geterrorhandler()(("%s.%d: Error (%s) loading code %q. Please inform ckknight."):format(MAJOR_VERSION, minor, result, code))
@@ -105,6 +107,9 @@ do
 			else
 				val = result
 			end
+		end
+		if functions then
+			functions = del(functions)
 		end
 		self[code] = val
 		return val
@@ -233,8 +238,6 @@ do
 	end
 end
 
-
-local compile
 
 local function getTagData(tag, nsList)
 	for _, ns in ipairs(unpackNamespaceList[nsList]) do
@@ -629,7 +632,7 @@ local function forceTypes(storeKey, types, staticValue, forceToTypes, t)
 	return storeKey, types, staticValue
 end
 
-function compile(ast, nsList, t, cachedTags, events, extraKwargs, forceToTypes, storeKey, saveFirstArg)
+local function compile(ast, nsList, t, cachedTags, events, functions, extraKwargs, forceToTypes, storeKey, saveFirstArg)
 	local astType = getASTType(ast)
 	if astType == 'nil' or ast == "@undef" then
 		if storeKey then
@@ -655,7 +658,7 @@ function compile(ast, nsList, t, cachedTags, events, extraKwargs, forceToTypes, 
 		end
 	elseif astType == 'string' then
 		if ast == '' then
-			return compile(nil, nsList, t, cachedTags, events, extraKwargs, forceToTypes, storeKey)
+			return compile(nil, nsList, t, cachedTags, events, functions, extraKwargs, forceToTypes, storeKey)
 		else
 			if storeKey then
 				t[#t+1] = storeKey
@@ -752,13 +755,13 @@ function compile(ast, nsList, t, cachedTags, events, extraKwargs, forceToTypes, 
 				local arg, types, static
 				if arg_num == 1 then
 					local rawTypes
-					arg, rawTypes, static = compile(v, nsList, t, cachedTags, events, extraKwargs, "boolean;nil;number;string")
+					arg, rawTypes, static = compile(v, nsList, t, cachedTags, events, functions, extraKwargs, "boolean;nil;number;string")
 					arg, types, static = forceTypes(arg, rawTypes, static, argTypes, t)
 					local a = newSet((";"):split(rawTypes))
 					firstMaybeNumber = a['number'] and rawTypes
 					a = del(a)
 				else
-					arg, types, static = compile(v, nsList, t, cachedTags, events, extraKwargs, argTypes)
+					arg, types, static = compile(v, nsList, t, cachedTags, events, functions, extraKwargs, argTypes)
 				end	
 				if static == nil then
 					allArgsStatic = false
@@ -814,15 +817,32 @@ function compile(ast, nsList, t, cachedTags, events, extraKwargs, forceToTypes, 
 			end
 		end
 		
-		--local code = tagData.code
+		local code = tagData.code
 		local ret = tagData.ret
 		local evs = tagData.events
+		local static = tagData.static
 		
 		if type(ret) == "function" then
 			ret = ret(passData)
 		end
+		local funcName
+		if tagData.dynamicCode then
+			code = code(passData)
+			local pre = (operators[tag] or tag) .. "_"
+			local num = 1
+			while functions[pre .. num] do
+				num = num + 1
+			end
+			functions[pre .. num] = code
+			funcName = pre .. num
+		else
+			functions[operators[tag] or tag] = tag
+		end
 		if type(evs) == "function" then
 			evs = evs(passData)
+		end
+		if type(static) == "function" then
+			static = static(passData)
 		end
 		for k, v in pairs(passData) do
 			passData[k] = del(v)
@@ -931,7 +951,7 @@ function compile(ast, nsList, t, cachedTags, events, extraKwargs, forceToTypes, 
 			if firstAndNonNil and not args[1] then
 				result = nil
 			else
-				result = tagData.code(unpack(args, 1, argNum))
+				result = code(unpack(args, 1, argNum))
 			end
 			args = del(args)
 			if firstMaybeNumber then
@@ -965,10 +985,14 @@ function compile(ast, nsList, t, cachedTags, events, extraKwargs, forceToTypes, 
 		
 		t[#t+1] = storeKey
 		t[#t+1] = " = tag_"
-		if operators[tag] then
-			t[#t+1] = operators[tag]
+		if funcName then
+			t[#t+1] = funcName
 		else
-			t[#t+1] = tag
+			if operators[tag] then
+				t[#t+1] = operators[tag]
+			else
+				t[#t+1] = tag
+			end
 		end
 		t[#t+1] = "("
 		if tagData.arg then
@@ -1066,7 +1090,7 @@ function compile(ast, nsList, t, cachedTags, events, extraKwargs, forceToTypes, 
 		local argTypes = newList()
 		for i = 2, #ast do
 			local t_num = #t
-			local arg, err = compile(ast[i], nsList, t, cachedTags, events, extraKwargs, "nil;number;string")
+			local arg, err = compile(ast[i], nsList, t, cachedTags, events, functions, extraKwargs, "nil;number;string")
 			args[#args+1] = arg
 			argTypes[#argTypes+1] = err
 			if #t ~= t_num then
@@ -1162,7 +1186,7 @@ function compile(ast, nsList, t, cachedTags, events, extraKwargs, forceToTypes, 
 		end
 		local t_num = #t
 		t[#t+1] = [=[do ]=]
-		local arg, firstResults, staticValue = compile(ast[2], nsList, t, cachedTags, events, extraKwargs, astType == 'and' and "boolean;nil;number;string" or "nil;number;string", storeKey)
+		local arg, firstResults, staticValue = compile(ast[2], nsList, t, cachedTags, events, functions, extraKwargs, astType == 'and' and "boolean;nil;number;string" or "nil;number;string", storeKey)
 		firstResults = newSet((";"):split(firstResults))
 		local totalResults = newList()
 		t[#t+1] = [=[end;]=]
@@ -1172,7 +1196,7 @@ function compile(ast, nsList, t, cachedTags, events, extraKwargs, forceToTypes, 
 			end
 			if astType == 'or' then
 				local arg, secondResults
-				arg, secondResults, staticValue = compile(ast[3], nsList, t, cachedTags, events, extraKwargs, "nil;number;string", storeKey)
+				arg, secondResults, staticValue = compile(ast[3], nsList, t, cachedTags, events, functions, extraKwargs, "nil;number;string", storeKey)
 				secondResults = newSet((";"):split(secondResults))
 				for k in pairs(totalResults) do
 					totalResults[k] = nil
@@ -1191,7 +1215,7 @@ function compile(ast, nsList, t, cachedTags, events, extraKwargs, forceToTypes, 
 			end
 			t[#t+1] = storeKey
 			t[#t+1] = [=[ then ]=]
-			local arg, secondResults = compile(ast[3], nsList, t, cachedTags, events, extraKwargs, "nil;number;string", storeKey)
+			local arg, secondResults = compile(ast[3], nsList, t, cachedTags, events, functions, extraKwargs, "nil;number;string", storeKey)
 			secondResults = newSet((";"):split(secondResults))
 			t[#t+1] = [=[end;]=]
 			for k in pairs(firstResults) do
@@ -1210,7 +1234,7 @@ function compile(ast, nsList, t, cachedTags, events, extraKwargs, forceToTypes, 
 					t[i] = nil
 				end
 				local arg, secondResults
-				arg, secondResults, staticValue = compile(ast[3], nsList, t, cachedTags, events, extraKwargs, "nil;number;string", storeKey)
+				arg, secondResults, staticValue = compile(ast[3], nsList, t, cachedTags, events, functions, extraKwargs, "nil;number;string", storeKey)
 				secondResults = newSet((";"):split(secondResults))
 				for k in pairs(totalResults) do
 					totalResults[k] = nil
@@ -1236,7 +1260,7 @@ function compile(ast, nsList, t, cachedTags, events, extraKwargs, forceToTypes, 
 		local hasElse = not not ast[4]
 		local t_num = #t
 		t[#t+1] = [=[do ]=]
-		local storeKey, condResults, staticValue = compile(ast[2], nsList, t, cachedTags, events, extraKwargs, "boolean;nil;number;string", storeKey)
+		local storeKey, condResults, staticValue = compile(ast[2], nsList, t, cachedTags, events, functions, extraKwargs, "boolean;nil;number;string", storeKey)
 		condResults = newSet((';'):split(condResults))
 		t[#t+1] = [=[end;]=]
 		if condResults["boolean"] or (condResults["nil"] and (condResults["string"] or condResults["number"])) then
@@ -1244,12 +1268,12 @@ function compile(ast, nsList, t, cachedTags, events, extraKwargs, forceToTypes, 
 			t[#t+1] = [=[if ]=]
 			t[#t+1] = storeKey
 			t[#t+1] = [=[ then ]=]
-			local arg, firstResults = compile(ast[3], nsList, t, cachedTags, events, extraKwargs, forceToTypes, storeKey)
+			local arg, firstResults = compile(ast[3], nsList, t, cachedTags, events, functions, extraKwargs, forceToTypes, storeKey)
 			local totalResults = newSet((";"):split(firstResults))
 			t[#t+1] = [=[ else ]=]
 			local secondResults
 			if hasElse then
-				storeKey, secondResults = compile(ast[4], nsList, t, cachedTags, events, extraKwargs, forceToTypes, storeKey)
+				storeKey, secondResults = compile(ast[4], nsList, t, cachedTags, events, functions, extraKwargs, forceToTypes, storeKey)
 			else
 				t[#t+1] = storeKey
 				t[#t+1] = [=[ = nil;]=]
@@ -1274,7 +1298,7 @@ function compile(ast, nsList, t, cachedTags, events, extraKwargs, forceToTypes, 
 			if type(cond) == "string" and cond:match("^arg%d+$") then
 				delUniqueVar(cond)
 			end
-			return compile(ast[4], nsList, t, cachedTags, events, extraKwargs, forceToTypes, storeKey)
+			return compile(ast[4], nsList, t, cachedTags, events, functions, extraKwargs, forceToTypes, storeKey)
 		else
 			-- non-nil
 			condResults = del(condResults)
@@ -1284,11 +1308,11 @@ function compile(ast, nsList, t, cachedTags, events, extraKwargs, forceToTypes, 
 			if type(cond) == "string" and cond:match("^arg%d+$") then
 				delUniqueVar(cond)
 			end
-			return compile(ast[3], nsList, t, cachedTags, events, extraKwargs, forceToTypes, storeKey)
+			return compile(ast[3], nsList, t, cachedTags, events, functions, extraKwargs, forceToTypes, storeKey)
 		end
 	elseif astType == 'not' then
 		local t_num = #t
-		local s, results, staticValue, savedArg, savedArgTypes, savedArgStatic = compile(ast[2], nsList, t, cachedTags, events, extraKwargs, "boolean;nil;number;string", storeKey, true)
+		local s, results, staticValue, savedArg, savedArgTypes, savedArgStatic = compile(ast[2], nsList, t, cachedTags, events, functions, extraKwargs, "boolean;nil;number;string", storeKey, true)
 		
 		results = newSet((";"):split(results))
 		if results["boolean"] or (results["nil"] and (results["string"] or results["number"])) then
@@ -1700,7 +1724,8 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	t[#t+1] = [=[local colors = DogTag.__colors;]=]
 	t[#t+1] = [=[local NIL = DogTag.__NIL;]=]
 	t[#t+1] = [=[local mytonumber = DogTag.__mytonumber;]=]
-	local cachedTags = figureCachedTags(ast)
+	local t_num = #t
+--[[
 	for k in pairs(cachedTags) do
 		t[#t+1] = [=[local tag_]=]
 		if operators[k] then
@@ -1715,8 +1740,10 @@ function DogTag:CreateFunctionFromCode(code, ...)
 		t[#t+1] = ("%q"):format(k)
 		t[#t+1] = [=[].code;]=]
 	end
+]]
 	t[#t+1] = [=[return function(kwargs) ]=]
 	t[#t+1] = [=[local result;]=]
+	local cachedTags = figureCachedTags(ast)
 	for k, v in pairs(cachedTags) do
 		if v >= 2 then
 			t[#t+1] = [=[local cache_]=]
@@ -1747,7 +1774,29 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	end
 	
 	local events = newList()
-	local ret, types, static = compile(ast, nsList, u, cachedTags, events, extraKwargs, 'nil;number;string', 'result')
+	local functions = newList()
+	local ret, types, static = compile(ast, nsList, u, cachedTags, events, functions, extraKwargs, 'nil;number;string', 'result')
+	local w = newList()
+	for k, v in pairs(functions) do
+		w[#w+1] = [=[local tag_]=]
+		w[#w+1] = k
+		if type(v) == "string" then
+			w[#w+1] = [=[ = DogTag.Tags.]=]
+			local tagData, tagNS = getTagData(v, nsList)
+			w[#w+1] = tagNS
+			w[#w+1] = [=[[]=]
+			w[#w+1] = ("%q"):format(v)
+			w[#w+1] = [=[].code;]=]
+		else
+			w[#w+1] = [=[ = DogTag.__functions.]=]
+			w[#w+1] = k
+			w[#w+1] = [=[;]=]
+		end
+	end
+	for i, v in ipairs(w) do
+		table.insert(t, t_num+i, v)
+	end
+	w = del(w)
 	for k, v in pairs(extraKwargs) do
 		extraKwargs[k] = del(v)
 	end
@@ -1824,8 +1873,11 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	t = del(t)
 	if not notDebug then
 		s = enumLines(s) -- avoid interning the new string if not debugging
+		functions = del(functions)
+		return s
+	else
+		return s, functions
 	end
-	return s
 end
 
 local call__func, call__kwargs, call__code, call__nsList

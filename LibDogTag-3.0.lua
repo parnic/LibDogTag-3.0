@@ -165,20 +165,23 @@ function DogTag:AddTag(namespace, tag, data)
 		end
 		tagData.events = sortStringList(data.events)
 		tagData.alias = data.fakeAlias
-		tagData.static = data.static and true or nil
+		if type(data) == "function" then
+			tagData.static = data.static
+		else
+			tagData.static = data.static and true or nil
+		end
 		if tagData.static and tagData.events then
 			error("Cannot specify both static and events", 2)
 		end
-	end
-	tagData.doc = data.doc
-	tagData.example = data.example
-	tagData.category = data.category
-	if not data.alias then
 		if type(data.code) ~= "function" then
 			error(("code must be a function, got %s"):format(type(data.code)), 2)
 		end
 		tagData.code = data.code
+		tagData.dynamicCode = data.dynamicCode and true or nil
 	end
+	tagData.doc = data.doc
+	tagData.example = data.example
+	tagData.category = data.category
 	del(data)
 end
 

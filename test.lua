@@ -808,64 +808,29 @@ DogTag:AddTag("Base", "RetSame", {
 		return args.value.types
 	end
 })
---[[
+
 DogTag:AddTag("Base", "DynamicCodeTest", {
 	code = function(args)
 		if args.value.isLiteral then
-			return ([=[return "literal, %s"]=]):format(tostring(args.value.value))
+			local value = args.value.value
+			return function()
+				return "literal, " .. tostring(value)
+			end
 		else
 			local value = args.value.value
-			return ([=[return "dynamic, %s"]=]):format(value[1] == "tag" and value[2] or value[1])
+			local tag = value[1] == "tag" and value[2] or value[1]
+			return function()
+				return "dynamic, " .. tag
+			end
 		end
 	end,
+	dynamicCode = true,
 	arg = {
 		'value', 'number;nil;string', '@req'
 	},
 	ret = "string",
 })
-]]
-local DynamicGlobalCheck_data = "Hello World"
-local LiteralGlobalCheck_data = "Hello World"
 
-dynamictable = {
-	dynamictestfunc = function()
-		return DynamicGlobalCheck_data
-	end,
-	literaltestfunc = function()
-		return LiteralGlobalCheck_data
-	end,
-}
---[[
-DogTag:AddTag("Base", "DynamicGlobalCheck", {
-	code = function(args)
-		if args.value.isLiteral then
-			return [=[
-				assert(not dynamictable_dynamictestfunc)
-				return dynamictable_literaltestfunc()
-			]=]
-		else
-			return [=[
-				assert(not dynamictable_literaltestfunc)
-				return dynamictable_dynamictestfunc()
-			]=]
-		end
-	end,
-	arg = {
-		'value', 'nil;number;string', '@req'
-	},
-	ret = "string;number;nil",
-	doc = "Return the results of testfunc",
-	globals = function(args)
-		if args.value.isLiteral then
-			return 'dynamictable.literaltestfunc'
-		else
-			return 'dynamictable.dynamictestfunc'
-		end
-	end,
-	example = '[DynamicGlobalCheck] => "Hello World"',
-	category = "Testing"
-})
-]]
 local BlizzEventTest_num = 0
 DogTag:AddTag("Base", "BlizzEventTest", {
 	code = function(value)
@@ -915,15 +880,20 @@ local LibToProvideExtraFunctionality
 DogTag:AddAddonFinder("Base", "LibStub", "LibToProvideExtraFunctionality", function(lib)
 	LibToProvideExtraFunctionality = lib
 end)
---[[
+
 DogTag:AddTag("Base", "ExtraFunctionalityWithLib", {
 	code = function(args)
 		if LibToProvideExtraFunctionality then
-			return [=[return "True"]=]
+			return function()
+				return "True"
+			end
 		else
-			return [=[return nil]=]
+			return function()
+				return nil
+			end
 		end
 	end,
+	dynamicCode = true,
 	ret = function(args)
 		if LibToProvideExtraFunctionality then
 			return "string"
@@ -935,7 +905,6 @@ DogTag:AddTag("Base", "ExtraFunctionalityWithLib", {
 	example = '[ExtraFunctionalityWithLib] => ""; [ExtraFunctionalityWithLib] => "True"',
 	category = "Testing",
 })
-]]
 
 collectgarbage('collect')
 collectgarbage('stop')
@@ -1571,7 +1540,7 @@ assert_equal(DogTag:Evaluate("[RetSame(CheckNilDefault(5))]"), 5)
 assert_equal(RetSame_types, "nil;number")
 assert_equal(DogTag:Evaluate("[RetSame(CheckNilDefault)]"), nil)
 assert_equal(RetSame_types, "nil;number")
---[[
+
 assert_equal(DogTag:Evaluate("[DynamicCodeTest(nil)]"), "literal, nil")
 assert_equal(DogTag:Evaluate("[DynamicCodeTest(5)]"), "literal, 5")
 assert_equal(DogTag:Evaluate("[DynamicCodeTest('Hello')]"), "literal, Hello")
@@ -1580,19 +1549,6 @@ assert_equal(DogTag:Evaluate("[DynamicCodeTest(true)]"), "literal, True")
 assert_equal(DogTag:Evaluate("[DynamicCodeTest(One)]"), "dynamic, One")
 assert_equal(DogTag:Evaluate("[DynamicCodeTest(GlobalCheck)]"), "dynamic, GlobalCheck")
 assert_equal(DogTag:Evaluate("[DynamicCodeTest(1 + One)]"), "dynamic, +")
-
-DynamicGlobalCheck_data = "This is dynamic"
-LiteralGlobalCheck_data = "This is not dynamic"
-assert_equal(DogTag:Evaluate("[DynamicGlobalCheck(nil)]"), "This is not dynamic")
-assert_equal(DogTag:Evaluate("[DynamicGlobalCheck(5)]"), "This is not dynamic")
-assert_equal(DogTag:Evaluate("[DynamicGlobalCheck('Hello')]"), "This is not dynamic")
-assert_equal(DogTag:Evaluate("[DynamicGlobalCheck(false)]"), "This is not dynamic")
-assert_equal(DogTag:Evaluate("[DynamicGlobalCheck(true)]"), "This is not dynamic")
-assert_equal(DogTag:Evaluate("[DynamicGlobalCheck(One)]"), "This is dynamic")
-assert_equal(DogTag:Evaluate("[DynamicGlobalCheck(GlobalCheck)]"), "This is dynamic")
-assert_equal(DogTag:Evaluate("[DynamicGlobalCheck(1 + One)]"), "This is dynamic")
-]]
-assert_equal(DogTag:Evaluate("[BlizzEventTest]", { value = 'player' }), 1)
 
 local fired = false
 DogTag:AddCallback("[BlizzEventTest('player')]", function(code, kwargs)
@@ -1730,7 +1686,7 @@ FireEvent("OTHER_FAKE_BLIZZARD_EVENT")
 FireOnUpdate(0.05)
 assert_equal(fs:GetText(), 6)
 
-_G.BlizzEventTest_num = 1
+BlizzEventTest_num = 1
 GlobalCheck_data = 'player'
 DogTag:AddFontString(fs, f, "[BlizzEventTest(GlobalCheck)]")
 assert_equal(fs:GetText(), 2)
@@ -2448,7 +2404,7 @@ assert_equal(fired, false)
 LibStub:NewLibrary("MyLibToBeFound", 1)
 FireEvent("ADDON_LOADED")
 assert_equal(fired, true)
---[[
+
 DogTag:AddFontString(fs, f, "[ExtraFunctionalityWithLib]")
 assert_equal(fs:GetText(), nil)
 assert_equal(DogTag:Evaluate("[ExtraFunctionalityWithLib]"), nil)
@@ -2457,7 +2413,7 @@ FireEvent("ADDON_LOADED")
 FireOnUpdate(0)
 assert_equal(fs:GetText(), "True")
 assert_equal(DogTag:Evaluate("[ExtraFunctionalityWithLib]"), "True")
-]]
+
 local fired = false
 local expectedArg = nil
 local expectedNumArgs = 0
