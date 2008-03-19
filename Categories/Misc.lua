@@ -385,12 +385,8 @@ DogTag:AddTag("Base", "FormatDuration", {
 				return ("%s%.0f%s %d:%02d:%02d"):format(negative, math.floor(number/86400), L_DAY_ONELETTER_ABBR, number/3600 % 24, number/60 % 60, number % 60)
 			elseif number >= 60*60 then
 				return ("%s%d:%02d:%02d"):format(negative, number/3600, number/60 % 60, number % 60)
-			elseif number >= 60 then
-				return ("%s%d:%02d"):format(negative, number/60 % 60, number % 60)
-			elseif number >= 3 then
-				return ("%s%.0f"):format(negative, number)
 			else
-				return ("%s%.1f"):format(negative, number)
+				return ("%s%d:%02d"):format(negative, number/60 % 60, number % 60)
 			end
 		end
 	end,
