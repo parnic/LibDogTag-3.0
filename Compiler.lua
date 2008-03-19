@@ -1458,7 +1458,12 @@ do
 		local astType = getASTType(ast)
 		if astType ~= "tag" and not operators[astType] then
 			for i = 2, #ast do
-				ast[i] = unalias(ast[i], nsList, kwargTypes)
+				local err
+				ast[i], err = unalias(ast[i], nsList, kwargTypes)
+				if not ast[i] then
+					ast = deepDel(ast)
+					return nil, err
+				end
 			end
 			return ast
 		end
@@ -1469,7 +1474,12 @@ do
 	
 		if not tagData or tagData.code then
 			for i = 2, #ast do
-				ast[i] = unalias(ast[i], nsList, kwargTypes)
+				local err
+				ast[i], err = unalias(ast[i], nsList, kwargTypes)
+				if not ast[i] then
+					ast = deepDel(ast)
+					return nil, err
+				end
 			end
 			return ast
 		end
@@ -1477,6 +1487,7 @@ do
 		local alias = "[" .. tagData.alias .. "]"
 		local args = newList()
 		local tupleArgs = newList()
+		local extraKwargs = newList()
 		local arg = tagData.arg
 		for i = 1, #arg, 3 do
 			local argName = arg[i]
@@ -1495,9 +1506,13 @@ do
 				local val = ast[(i-1)/3 + startArg] or ast.kwarg and ast.kwarg[argName]
 				if not val and kwargTypes[argName] then
 					val = newList("kwarg", argName)
+					extraKwargs[val] = true
 				end
 				if not val and arg[i+2] == "@req" then
+					tupleArgs = del(tupleArgs)
 					args = del(args)
+					ast = deepDel(ast)
+					extraKwargs = deepDel(extraKwargs)
 					return nil, ("Arg #%d (%s) req'd for %s"):format((i-1)/3+1, argName, tag)
 				end
 				if not val then
@@ -1508,6 +1523,10 @@ do
 		end
 		local parsedAlias = parse(alias)
 		if not parsedAlias then
+			tupleArgs = del(tupleArgs)
+			extraKwargs = deepDel(extraKwargs)
+			args = del(args)
+			ast = deepDel(ast)
 			return nil, ("Syntax error with alias %s"):format(tag)
 		end
 		local parsedAlias = standardize(parsedAlias)
@@ -1516,6 +1535,9 @@ do
 		end
 		replaceTupleArg(parsedAlias, tupleArgs)
 		deepDel(ast)
+		tupleArgs = del(tupleArgs)
+		args = del(args)
+		extraKwargs = deepDel(extraKwargs)
 		
 		ast = parsedAlias
 		ast = standardize(ast)
@@ -1530,19 +1552,22 @@ local function readjustKwargs(ast, nsList, kwargTypes)
 	end
 	local astType = ast[1]
 	for i = 2, #ast do
-		local ast_i, err = readjustKwargs(ast[i], nsList, kwargTypes)
-		if not ast_i then
-			return ast_i, err
+		local err
+		local ast_i = ast[i]
+		ast[i], err = readjustKwargs(ast[i], nsList, kwargTypes)
+		if not ast[i] then
+			ast = deepDel(ast)
+			return nil, err
 		end
-		ast[i] = ast_i
 	end
 	if ast.kwarg then
 		for k,v in pairs(ast.kwarg) do
-			local ast_k, err = readjustKwargs(v, nsList, kwargTypes)
-			if not ast_k then
-				return ast_k, err
+			local err
+			ast[k], err = readjustKwargs(v, nsList, kwargTypes)
+			if not ast[k] then
+				ast = deepDel(ast)
+				return nil, err
 			end
-			ast[k] = ast_k
 		end
 	end
 	if astType == "tag" or operators[astType] then
@@ -1550,6 +1575,7 @@ local function readjustKwargs(ast, nsList, kwargTypes)
 		local tag = astType == "tag" and ast[2] or astType
 		local tagData = getTagData(tag, nsList)
 		if not tagData then
+			ast = deepDel(ast)
 			return nil, ("Unknown tag %s"):format(tostring(tag))
 		end
 		local arg = tagData.arg
@@ -1577,6 +1603,7 @@ local function readjustKwargs(ast, nsList, kwargTypes)
 						default = arg[j+2]
 						if not ast.kwarg[argName] and not kwargTypes[argName] then
 							if default == "@req" then
+								ast = deepDel(ast)
 								return nil, ("Keyword-Arg %s req'd for %s"):format(argName, tag)
 							end
 							ast.kwarg[argName] = default
@@ -1588,6 +1615,7 @@ local function readjustKwargs(ast, nsList, kwargTypes)
 					if not astVar then
 						if not ast.kwarg[argName] and not kwargTypes[argName] then
 							if default == "@req" then
+								ast = deepDel(ast)
 								return nil, ("Arg #%d (%s) req'd for %s"):format((i-1)/3 + 1, argName, tag)
 							end
 							ast.kwarg[argName] = default
@@ -1600,6 +1628,7 @@ local function readjustKwargs(ast, nsList, kwargTypes)
 			end
 			if not hitTuple then
 				if #arg/3 < (ast_len - start + 1) then
+					ast = deepDel(ast)
 					return nil, ("Too many args for %s"):format(tag)
 				end
 			end
@@ -1719,6 +1748,9 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	
 	local events = newList()
 	local ret, types, static = compile(ast, nsList, u, cachedTags, events, extraKwargs, 'nil;number;string', 'result')
+	for k, v in pairs(extraKwargs) do
+		extraKwargs[k] = del(v)
+	end
 	if static then
 		if static == "@nil" then
 			static = nil
@@ -1748,9 +1780,6 @@ function DogTag:CreateFunctionFromCode(code, ...)
 		clearUniqueVars()
 		
 		return ("return function() return %s end"):format(literal)
-	end
-	for k, v in pairs(extraKwargs) do
-		extraKwargs[k] = del(v)
 	end
 	
 	if not next(events) then
@@ -1813,7 +1842,7 @@ local function evaluate(code, nsList, kwargs)
 	local kwargTypes = kwargsToKwargTypes[kwargs]
 
 	DogTag.__isMouseOver = false
-
+	
 	local func = codeToFunction[nsList][kwargTypes][code]
 
 	local madeKwargs = not kwargs

@@ -936,6 +936,7 @@ DogTag:AddTag("Base", "ExtraFunctionalityWithLib", {
 	category = "Testing",
 })
 ]]
+
 collectgarbage('collect')
 collectgarbage('stop')
 collectgarbage('collect')
@@ -1275,6 +1276,7 @@ assert_equal(DogTag:Evaluate("[GlobalCheck + GlobalCheck]"), 4)
 
 assert_equal(DogTag:Evaluate("[PlusOne]"), [=[Arg #1 (number) req'd for PlusOne]=])
 assert_equal(DogTag:Evaluate("[Unknown]"), [=[Unknown tag Unknown]=])
+assert_equal(DogTag:Evaluate("[Subtract(Unknown, 2)]"), [=[Unknown tag Unknown]=])
 assert_equal(DogTag:Evaluate("[Subtract]"), [=[Arg #1 (left) req'd for Subtract]=])
 assert_equal(DogTag:Evaluate("[Subtract(1)]"), [=[Arg #2 (right) req'd for Subtract]=])
 assert_equal(DogTag:Evaluate("[Subtract(right=2)]"), [=[Arg #1 (left) req'd for Subtract]=])

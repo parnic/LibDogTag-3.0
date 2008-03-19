@@ -22,12 +22,12 @@ do
 		else
 			t = { ... }
 		end
---		if TABLE_DEBUG then
---			TABLE_DEBUG[#TABLE_DEBUG+1] = { "newList", poolNum, tostring(t), debugstack() }
---		end
+		-- if TABLE_DEBUG and pool == normalPool then
+		-- 	TABLE_DEBUG[#TABLE_DEBUG+1] = { '***', "newList", poolNum, tostring(t), debugstack() }
+		-- end
 		return t
 	end
-	function newDict(...)
+	local function newDict(...)
 		poolNum = poolNum + 1
 		local t = next(pool)
 		if t then
@@ -38,9 +38,9 @@ do
 		for i = 1, select('#', ...), 2 do
 			t[select(i, ...)] = select(i+1, ...)
 		end
---		if TABLE_DEBUG then
---			TABLE_DEBUG[#TABLE_DEBUG+1] = { "newDict", poolNum, tostring(t), debugstack() }
---		end
+		-- if TABLE_DEBUG and pool == normalPool then
+		-- 	TABLE_DEBUG[#TABLE_DEBUG+1] = { '***', "newDict", poolNum, tostring(t), debugstack() }
+		-- end
 		return t
 	end
 	function newSet(...)
@@ -54,9 +54,9 @@ do
 		for i = 1, select('#', ...) do
 			t[select(i, ...)] = true
 		end
---		if TABLE_DEBUG then
---			TABLE_DEBUG[#TABLE_DEBUG+1] = { "newSet", poolNum, tostring(t), debugstack() }
---		end
+		-- if TABLE_DEBUG and pool == normalPool then
+		-- 	TABLE_DEBUG[#TABLE_DEBUG+1] = { '***', "newSet", poolNum, tostring(t), debugstack() }
+		-- end
 		return t
 	end
 	function del(t)
@@ -75,10 +75,16 @@ do
 		t[''] = true
 		t[''] = nil
 		
---		if TABLE_DEBUG then
---			TABLE_DEBUG[#TABLE_DEBUG+1] = { "del", poolNum, tostring(t), debugstack() }
---			pool[t] = nil
---		end
+		-- if TABLE_DEBUG then
+		-- 	local tostring_t = tostring(t)
+		-- 	TABLE_DEBUG[#TABLE_DEBUG+1] = { '***', "del", poolNum, tostring_t, debugstack() }
+		-- 	for _, line in ipairs(TABLE_DEBUG) do
+		-- 		if line[4] == tostring_t then
+		-- 			line[1] = ''
+		-- 		end
+		-- 	end
+		-- 	pool[t] = nil
+		-- end
 		return nil
 	end
 	local deepDel_data
@@ -367,6 +373,12 @@ local kwargsToKwargTypes = setmetatable({}, { __index = function(self, kwargs)
 		self[kwargs] = self_s
 		return self_s
 	end
+	local t = {}
+	for k, v in pairs(kwargTypes) do
+		t[k] = v
+	end
+	kwargTypes = del(kwargTypes)
+	kwargTypes = t
 	self[s] = kwargTypes
 	self[kwargs] = kwargTypes
 	return kwargTypes
