@@ -828,13 +828,20 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 		local funcName
 		if tagData.dynamicCode then
 			code = code(passData)
-			local pre = (operators[tag] or tag) .. "_"
-			local num = 1
-			while functions[pre .. num] do
-				num = num + 1
+			for k, v in pairs(functions) do
+				if v == code then
+					funcName = k
+				end
 			end
-			functions[pre .. num] = code
-			funcName = pre .. num
+			if not funcName then
+				local pre = (operators[tag] or tag) .. "_"
+				local num = 1
+				while functions[pre .. num] do
+					num = num + 1
+				end
+				funcName = pre .. num
+				functions[funcName] = code
+			end
 		else
 			functions[operators[tag] or tag] = tag
 		end
@@ -1577,9 +1584,8 @@ local function readjustKwargs(ast, nsList, kwargTypes)
 	local astType = ast[1]
 	for i = 2, #ast do
 		local err
-		local ast_i = ast[i]
 		ast[i], err = readjustKwargs(ast[i], nsList, kwargTypes)
-		if not ast[i] then
+		if ast[i] == nil then
 			ast = deepDel(ast)
 			return nil, err
 		end
@@ -1587,8 +1593,8 @@ local function readjustKwargs(ast, nsList, kwargTypes)
 	if ast.kwarg then
 		for k,v in pairs(ast.kwarg) do
 			local err
-			ast[k], err = readjustKwargs(v, nsList, kwargTypes)
-			if not ast[k] then
+			ast.kwarg[k], err = readjustKwargs(v, nsList, kwargTypes)
+			if ast.kwarg[k] == nil then
 				ast = deepDel(ast)
 				return nil, err
 			end
@@ -1701,19 +1707,19 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	ast, err = unalias(ast, nsList, kwargTypes)
 	if not ast then
 		codeToEventList[nsList][kwargTypes][code] = false
-		return ("return function() return %q, nil end"):format(err)
+		return ("return function() return %q, nil end"):format(tostring(err))
 	end
 	ast, err = readjustKwargs(ast, nsList, kwargTypes)
 	if not ast then
 		codeToEventList[nsList][kwargTypes][code] = false
-		return ("return function() return %q, nil end"):format(err)
+		return ("return function() return %q, nil end"):format(tostring(err))
 	end
 	for _, ns in ipairs(unpackNamespaceList[nsList]) do
 		for step in pairs(compilationSteps.pre[ns]) do
 			ast, err = step(ast, kwargTypes)
 			if not ast then
 				codeToEventList[nsList][kwargTypes][code] = false
-				return ("return function() return %q, nil end"):format(err)
+				return ("return function() return %q, nil end"):format(tostring(err))
 			end
 		end
 	end

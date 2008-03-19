@@ -79,7 +79,11 @@ function ptostring(...)
 				end
 				t[#t+1] = ptostring(b)
 			end
-			t[#t+1] = " }"
+			if first then
+				t[#t] = "{}"
+			else
+				t[#t+1] = " }"
+			end
 		else
 			t[#t+1] = tostring(v)
 		end
