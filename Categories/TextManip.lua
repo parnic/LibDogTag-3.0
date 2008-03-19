@@ -10,109 +10,119 @@ DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 local L = DogTag.L
 
 DogTag:AddTag("Base", "Percent", {
-	code = [=[return ${number} .. '%']=],
+	code = function(number)
+		return number .. "%"
+	end,
 	arg = {
 		'number', 'number', '@req'
 	},
 	ret = "string",
+	static = true,
 	doc = L["Append a percentage sign to the end of number"],
 	example = '[50:Percent] => "50%"; [Percent(50)] => "50%"',
 	category = L["Text manipulation"]
 })
 
 DogTag:AddTag("Base", "Short", {
-	code = [=[if ${value:type} == "number" then
-		if ${value} >= 10000000 or ${value} <= -10000000 then
-			return ("%.1fm"):format(${value} / 1000000)
-		elseif ${value} >= 1000000 or ${value} <= -1000000 then
-			return ("%.2fm"):format(${value} / 1000000)
-		elseif ${value} >= 100000 or ${value} <= -100000 then
-			return ("%.0fk"):format(${value} / 1000)
-		elseif ${value} >= 10000 or ${value} <= -10000 then
-			return ("%.1fk"):format(${value} / 1000)
-		else
-			return math_floor(${value}+0.5)..''
-		end
-	else
-		local a,b = ${value}:match("^(%d+)/(%d+)$")
-		if a then
-			a, b = tonumber(a), tonumber(b)
-			if a >= 10000000 or a <= -10000000 then
-				a = ("%.1fm"):format(a / 1000000)
-			elseif a >= 1000000 or a <= -1000000 then
-				a = ("%.2fm"):format(a / 1000000)
-			elseif a >= 100000 or a <= -100000 then
-				a = ("%.0fk"):format(a / 1000)
-			elseif a >= 10000 or a <= -10000 then
-				a = ("%.1fk"):format(a / 1000)
+	code = function(value)
+		if type(value) == "number" then
+			if value >= 10000000 or value <= -10000000 then
+				return ("%.1fm"):format(value / 1000000)
+			elseif value >= 1000000 or value <= -1000000 then
+				return ("%.2fm"):format(value / 1000000)
+			elseif value >= 100000 or value <= -100000 then
+				return ("%.0fk"):format(value / 1000)
+			elseif value >= 10000 or value <= -10000 then
+				return ("%.1fk"):format(value / 1000)
+			else
+				return math.floor(value+0.5)..''
 			end
-			if b >= 10000000 or b <= -10000000 then
-				b = ("%.1fm"):format(b / 1000000)
-			elseif b >= 1000000 or b <= -1000000 then
-				b = ("%.2fm"):format(b / 1000000)
-			elseif b >= 100000 or b <= -100000 then
-				b = ("%.0fk"):format(b / 1000)
-			elseif b >= 10000 or b <= -10000 then
-				b = ("%.1fk"):format(b / 1000)
-			end
-			return a.."/"..b
 		else
-			return ${value}
+			local a,b = value:match("^(%d+)/(%d+)$")
+			if a then
+				a, b = tonumber(a), tonumber(b)
+				if a >= 10000000 or a <= -10000000 then
+					a = ("%.1fm"):format(a / 1000000)
+				elseif a >= 1000000 or a <= -1000000 then
+					a = ("%.2fm"):format(a / 1000000)
+				elseif a >= 100000 or a <= -100000 then
+					a = ("%.0fk"):format(a / 1000)
+				elseif a >= 10000 or a <= -10000 then
+					a = ("%.1fk"):format(a / 1000)
+				end
+				if b >= 10000000 or b <= -10000000 then
+					b = ("%.1fm"):format(b / 1000000)
+				elseif b >= 1000000 or b <= -1000000 then
+					b = ("%.2fm"):format(b / 1000000)
+				elseif b >= 100000 or b <= -100000 then
+					b = ("%.0fk"):format(b / 1000)
+				elseif b >= 10000 or b <= -10000 then
+					b = ("%.1fk"):format(b / 1000)
+				end
+				return a.."/"..b
+			else
+				return value
+			end
 		end
-	end]=],
+	end,
 	arg = {
 		'value', 'number;string', '@req'
 	},
 	ret = "string",
-	globals = "math.floor",
+	static = true,
 	doc = L["Shorten value to have at maximum 3 decimal places showing"],
 	example = '[1234:Short] => "1.23k"; [12345678:Short] => "12.3m"; ["1234/2345":Short] => "1.23k/2.35k"',
 	category = L["Text manipulation"],
 })
 
 DogTag:AddTag("Base", "VeryShort", {
-	code = [=[if ${value:type} == "number" then
-		if ${value} >= 1000000 or ${value} <= -1000000 then
-			return ("%.0fm"):format(${value} / 1000000)
-		elseif ${value} >= 1000 or ${value} <= -1000 then
-			return ("%.0fk"):format(${value} / 1000)
-		else
-			return math_floor(${value}+0.5)..''
-		end
-	else
-		local a,b = ${value}:match("^(%d+)/(%d+)")
-		if a then
-			a, b = tonumber(a), tonumber(b)
-			if b >= 1000000 or b <= -1000000 then
-				b = ("%.0fm"):format(b / 1000000)
-			elseif b >= 1000 or b <= -1000 then
-				b = ("%.0fk"):format(b / 1000)
+	code = function(value)
+		if type(value) == "number" then
+			if value >= 1000000 or value <= -1000000 then
+				return ("%.0fm"):format(value / 1000000)
+			elseif value >= 1000 or value <= -1000 then
+				return ("%.0fk"):format(value / 1000)
+			else
+				return ("%.0f"):format(value)
 			end
-			if a >= 1000000 or a <= -1000000 then
-				a = ("%.0fm"):format(a / 1000000)
-			elseif a >= 1000 or a <= -1000 then
-				a = ("%.0fk"):format(a / 1000)
-			end
-			return a.."/"..b
 		else
-			return ${value}
+			local a,b = value:match("^(%d+)/(%d+)")
+			if a then
+				a, b = tonumber(a), tonumber(b)
+				if b >= 1000000 or b <= -1000000 then
+					b = ("%.0fm"):format(b / 1000000)
+				elseif b >= 1000 or b <= -1000 then
+					b = ("%.0fk"):format(b / 1000)
+				end
+				if a >= 1000000 or a <= -1000000 then
+					a = ("%.0fm"):format(a / 1000000)
+				elseif a >= 1000 or a <= -1000 then
+					a = ("%.0fk"):format(a / 1000)
+				end
+				return a.."/"..b
+			else
+				return value
+			end
 		end
-	end]=],
+	end,
 	arg = {
 		'value', 'number;string', "@req"
 	},
 	ret = "number;string",
-	globals = "math.floor",
+	static = true,
 	doc = L["Shorten value to its closest denomination"],
 	example = '[1234:VeryShort] => "1k"; [123456:VeryShort] => "123k"; [Text(12345/23456):VeryShort] => "12k/23k"',
 	category = L["Text manipulation"]
 })
 
 DogTag:AddTag("Base", "Upper", {
-	code = [=[return ${value}:upper()]=],
+	code = function(value)
+		return value:upper()
+	end,
 	arg = {
 		'value', 'string', '@req'
 	},
+	static = true,
 	ret = "string",
 	doc = L["Turn value into an uppercase string"],
 	example = '["Hello":Upper] => "HELLO"',
@@ -120,10 +130,13 @@ DogTag:AddTag("Base", "Upper", {
 })
 
 DogTag:AddTag("Base", "Lower", {
-	code = [=[return ${value}:lower()]=],
+	code = function(value)
+		return value:lower()
+	end,
 	arg = {
 		'value', 'string', '@req'
 	},
+	static = true,
 	ret = "string",
 	doc = L["Turn value into an lowercase string"],
 	example = '["Hello":Lower] => "hello"',
@@ -131,10 +144,13 @@ DogTag:AddTag("Base", "Lower", {
 })
 
 DogTag:AddTag("Base", "Bracket", {
-	code = [=[return "[" .. ${value} .. "]"]=],
+	code = function(value)
+		return "[" .. value .. "]"
+	end,
 	arg = {
 		'value', 'string', '@req'
 	},
+	static = true,
 	ret = "string",
 	doc = L["Wrap value with square brackets"],
 	example = '["Hello":Bracket] => "[Hello]"',
@@ -142,180 +158,197 @@ DogTag:AddTag("Base", "Bracket", {
 })
 
 DogTag:AddTag("Base", "Angle", {
-	code = [=[return "<" .. ${value} .. ">"]=],
+	code = function(value)
+		return "<" .. value .. ">"
+	end,
 	arg = {
 		'value', 'string', '@req'
 	},
 	ret = "string",
+	static = true,
 	doc = L["Wrap value with angle brackets"],
 	example = '["Hello":Angle] => "<Hello>"',
 	category = L["Text manipulation"]
 })
 
 DogTag:AddTag("Base", "Brace", {
-	code = [=[return "{" .. ${value} .. "}"]=],
+	code = function(value)
+		return "{" .. value .. "}"
+	end,
 	arg = {
 		'value', 'string', '@req'
 	},
 	ret = "string",
+	static = true,
 	doc = L["Wrap value with braces"],
 	example = '["Hello":Brace] => "{Hello}"',
 	category = L["Text manipulation"]
 })
 
 DogTag:AddTag("Base", "Paren", {
-	code = [=[return "(" .. ${value} .. ")"]=],
+	code = function(value)
+		return "(" .. value .. ")"
+	end,
 	arg = {
 		'value', 'string', '@req'
 	},
 	ret = "string",
+	static = true,
 	doc = L["Wrap value with parentheses"],
 	example = '["Hello":Paren] => "(Hello)"',
 	category = L["Text manipulation"]
 })
 
 DogTag:AddTag("Base", "Truncate", {
-	code = [=[local len = 0
-	for i = 1, ${number} do
-		local b = ${value}:byte(len+1)
-		if not b then
-			shortened = false
-			break
-		elseif b <= 127 then
-			len = len + 1
-		elseif b <= 223 then
-			len = len + 2
-		elseif b <= 239 then
-			len = len + 3
-		else
-			len = len + 4
+	code = function(value, number, ellipses)
+		local len = 0
+		for i = 1, number do
+			local b = value:byte(len+1)
+			if not b then
+				shortened = false
+				break
+			elseif b <= 127 then
+				len = len + 1
+			elseif b <= 223 then
+				len = len + 2
+			elseif b <= 239 then
+				len = len + 3
+			else
+				len = len + 4
+			end
 		end
-	end
-	local val = ${value}:sub(1, len)
-	if ${ellipses} and ${value}:byte(len+1) then
-		val = val .. "..."
-	end
-	return val]=],
+		local val = value:sub(1, len)
+		if ellipses and value:byte(len+1) then
+			val = val .. "..."
+		end
+		return val
+	end,
 	arg = {
 		'value', 'string', '@req',
 		'number', 'number', '@req',
 		'ellipses', 'boolean', true,
 	},
 	ret = "string",
+	static = true,
 	doc = L["Truncate value to the length specified by number, adding ellipses by default"],
 	example = '["Hello":Truncate(3)] => "Hel..."; ["Hello":Truncate(3, nil)] => "Hel"',
 	category = L["Text manipulation"]
 })
 
 DogTag:AddTag("Base", "Substring", {
-	code = [=[local start, finish = ${start}, ${finish}
-	if not finish then
-		finish = -1
-	end
-	if start < 0 or finish < 0 then
-		local length = 0
-		local i = 0
-		while i < #${value} do
-			local b = ${value}:byte(i+1)
-			if not b then
-				break
-			elseif b <= 127 then
-				i = i + 1
-			elseif b <= 223 then
-				i = i + 2
-			elseif b <= 239 then
-				i = i + 3
-			else
-				i = i + 4
+	code = function(value, start, finish)
+		if start < 0 or finish < 0 then
+			local length = 0
+			local i = 0
+			while i < #value do
+				local b = value:byte(i+1)
+				if not b then
+					break
+				elseif b <= 127 then
+					i = i + 1
+				elseif b <= 223 then
+					i = i + 2
+				elseif b <= 239 then
+					i = i + 3
+				else
+					i = i + 4
+				end
+				length = length + 1
 			end
-			length = length + 1
-		end
-		if start < 0 then
-			start = start + length + 1
-		end
-		if finish < 0 then
-			finish = finish + length + 1
-		end
-	end
-	if finish < start then
-		return nil
-	else
-		local finishByte = 0
-		local startByte
-		for i = 1, finish do
-			if i == start then
-				startByte = finishByte+1
+			if start < 0 then
+				start = start + length + 1
 			end
-			local b = ${value}:byte(finishByte+1)
-			if not b then
-				shortened = false
-				break
-			elseif b <= 127 then
-				finishByte = finishByte + 1
-			elseif b <= 223 then
-				finishByte = finishByte + 2
-			elseif b <= 239 then
-				finishByte = finishByte + 3
-			else
-				finishByte = finishByte + 4
+			if finish < 0 then
+				finish = finish + length + 1
 			end
 		end
-		if not startByte then
-			return ${value}
+		if finish < start then
+			return nil
 		else
-			return ${value}:sub(startByte, finishByte)
+			local finishByte = 0
+			local startByte
+			for i = 1, finish do
+				if i == start then
+					startByte = finishByte+1
+				end
+				local b = value:byte(finishByte+1)
+				if not b then
+					shortened = false
+					break
+				elseif b <= 127 then
+					finishByte = finishByte + 1
+				elseif b <= 223 then
+					finishByte = finishByte + 2
+				elseif b <= 239 then
+					finishByte = finishByte + 3
+				else
+					finishByte = finishByte + 4
+				end
+			end
+			if not startByte then
+				return value
+			else
+				return value:sub(startByte, finishByte)
+			end
 		end
-	end]=],
+	end,
 	arg = {
 		'value', 'string', '@req',
 		'start', 'number', '@req',
-		'finish', 'number;nil', false,
+		'finish', 'number', -1,
 	},
 	ret = "nil;string",
+	static = true,
 	doc = L["Truncate value to the length specified by number, adding ellipses by default"],
 	example = '["Hello":Truncate(3)] => "Hel..."; ["Hello":Truncate(3, nil)] => "Hel"',
 	category = L["Text manipulation"]
 })
 
 DogTag:AddTag("Base", "Repeat", {
-	code = [=[local val = ${value}:rep(${number})
-	if val == "" then
-		val = nil
-	end
-	return val]=],
+	code = function(value, number)
+		local val = value:rep(number)
+		if val == "" then
+			val = nil
+		end
+		return val
+	end,
 	arg = {
 		'value', 'string', '@req',
 		'number', 'number', '@req',
 	},
 	ret = "string;nil",
+	static = true,
 	doc = L["Repeat value number times"],
 	example = '["Hello":Rep(3)] => "HelloHelloHello"',
 	category = L["Text manipulation"]
 })
 
 DogTag:AddTag("Base", "Length", {
-	code = [=[local len = 0
-	local num = 0
-	while true do
-		local b = ${value}:byte(len+1)
-		if not b then
-			break
-		elseif b <= 127 then
-			len = len + 1
-		elseif b <= 223 then
-			len = len + 2
-		elseif b <= 239 then
-		 	len = len + 3
-		else
-			len = len + 4
+	code = function(value)
+		local len = 0
+		local num = 0
+		while true do
+			local b = value:byte(len+1)
+			if not b then
+				break
+			elseif b <= 127 then
+				len = len + 1
+			elseif b <= 223 then
+				len = len + 2
+			elseif b <= 239 then
+			 	len = len + 3
+			else
+				len = len + 4
+			end
+			num = num + 1
 		end
-		num = num + 1
-	end
-	return num]=],
+		return num
+	end,
 	arg = {
 		'value', 'string', "@req"
 	},
 	ret = "number",
+	static = true,
 	doc = L["Return the length of value"],
 	example = '["Hello":Length] => "5"; ["Hi guys":Length] => "7"',
 	category = L["Text manipulation"]
@@ -377,14 +410,13 @@ local function romanize(value)
 	end
 	return result
 end
-DogTag:AddFakeGlobal("Base", "romanize", romanize)
 DogTag:AddTag("Base", "Romanize", {
-	code = [[return DogTag___romanize(${value})]],
-	ret = "string",
+	code = romanize,
 	arg = {
 		'value', 'number', "@req",
 	},
-	globals = "DogTag.__romanize",
+	ret = "string",
+	static = true,
 	doc = L["Turn number_value into a roman numeral."],
 	example = '[1666:Romanize] => "MDCLXVI"',
 	category = L["Text manipulation"]
@@ -402,40 +434,42 @@ local function abbreviate(text)
 		return text:sub(1, 4)
 	end
 end
-DogTag:AddFakeGlobal("Base", "abbreviate", abbreviate)
 DogTag:AddTag("Base", "Abbreviate", {
-	code = [[if ${value}:find(" ") then
-		return ${value}:gsub(" *([^ ]+) *", DogTag___abbreviate)
-	else
-		return ${value}
-	end]],
+	code = function(value)
+		if value:find(" ") then
+			return value:gsub(" *([^ ]+) *", abbreviate)
+		else
+			return value
+		end
+	end,
 	arg = {
 		'value', 'string', "@req"
 	},
 	ret = "string",
-	globals = "DogTag.__abbreviate",
+	static = true,
 	doc = L["Abbreviate value if a space is found"],
 	example = '["Hello":Abbreviate] => "Hello"; ["Hello World":Abbreviate] => "HW"',
 	category = L["Text Manipulation"],
 })
 
 DogTag:AddTag("Base", "Concatenate", {
-	code = [=[local good = true
-	for i = 1, ${#...} do
-		if not select(i, ${...}) then
-			good = false
-			break
+	code = function(...)
+		local n = select('#', ...)
+		if n == 0 then
+			return nil
 		end
-	end
-	if good and ${#...} > 0 then
-		return (""):join(${...})
-	else
-		return nil
-	end]=],
+		for i = 1, n do
+			if not select(i, ...) then
+				return nil
+			end
+		end
+		return (""):join(...)
+	end,
 	arg = {
 		'...', 'tuple-string;nil', false,
 	},
 	ret = "string;nil",
+	static = true,
 	doc = L["Concatenate the values of ... as long as they are all non-blank"],
 	example = '[Concatenate("Hello", " ", "World")] => "Hello World"; [Concatenate(nil, " ", World")] => ""; [Concatenate("Hello", nil)] => ""'
 })

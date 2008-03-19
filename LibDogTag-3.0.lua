@@ -43,8 +43,6 @@ DogTag.fsToNSList = fsToNSList
 local fsToKwargs = {}
 DogTag.fsToKwargs = fsToKwargs
 
-local FakeGlobals = { ["Base"] = {} }
-DogTag.FakeGlobals = FakeGlobals
 local Tags = { ["Base"] = {} }
 DogTag.Tags = Tags
 local AddonFinders = { ["Base"] = {} }
@@ -166,35 +164,32 @@ function DogTag:AddTag(namespace, tag, data)
 			error(("ret must be a string or a function which returns a string, got %s"):format(type(ret)), 2)
 		end
 		tagData.events = sortStringList(data.events)
-		local globals = data.globals
-		if type(globals) == "string" then
-			tagData.globals = sortStringList(globals)
-			if globals then
-				globals = newList((';'):split(globals))
-				for _,v in ipairs(globals) do
-					if not v:find("%.") and not _G[v] then
-						error(("Unknown global: %q"):format(v), 2)
-					end
-				end
-				globals = del(globals)
-			end
-		elseif type(globals) == "function" then
-			tagData.globals = globals
-		elseif globals then
-			error(("globals must be a string, a function which returns a string, or nil, got %s"):format(type(globals)), 2)
-		end
 		tagData.alias = data.fakeAlias
+		tagData.static = data.static and true or nil
+		if tagData.static and tagData.events then
+			error("Cannot specify both static and events", 2)
+		end
 	end
 	tagData.doc = data.doc
 	tagData.example = data.example
 	tagData.category = data.category
 	if not data.alias then
-		tagData.code = data.code
-		if type(data.code) ~= "string" and type(data.code) ~= "function" then
-			error(("code must be a string or a function which returns a string, got %s"):format(type(data.code)), 2)
+		if type(data.code) ~= "function" then
+			error(("code must be a function, got %s"):format(type(data.code)), 2)
 		end
+		tagData.code = data.code
 	end
 	del(data)
+end
+
+local call__func, call__kwargs, call__code, call__nsList
+local function call()
+	return call__func(call__kwargs)
+end
+
+local function errorhandler(err)
+	local _, minor = LibStub(MAJOR_VERSION)
+	return geterrorhandler()(("%s.%d: Error with code %q%s. %s"):format(MAJOR_VERSION, minor, call__code, call__nsList == "Base" and "" or " (" .. call__nsList .. ")", err))
 end
 
 local function updateFontString(fs)
@@ -206,7 +201,9 @@ local function updateFontString(fs)
 	local kwargTypes = kwargsToKwargTypes[kwargs]
 	local func = codeToFunction[nsList][kwargTypes][code]
 	DogTag.__isMouseOver = DogTag.__lastMouseover == fsToFrame[fs]
-	local success, ret, alpha = pcall(func, kwargs)
+	call__func, call__kwargs, call__code, call__nsList = func, kwargs, code, nsList
+	local success, ret, alpha = xpcall(call, errorhandler)
+	call__func, call__kwargs, call__code, call__nsList = nil, nil, nil, nil
 	if success then
 		fs:SetText(ret)
 		if alpha then
@@ -217,8 +214,6 @@ local function updateFontString(fs)
 			end
 			fs:SetAlpha(alpha)
 		end
-	else
-		geterrorhandler()(("%s.%d: Error with code %q%s. %s"):format(MAJOR_VERSION, MINOR_VERSION, code, nsList == "Base" and "" or " (" .. nsList .. ")", ret))
 	end
 end
 DogTag.updateFontString = updateFontString
@@ -306,22 +301,6 @@ function DogTag:RemoveFontString(fs)
 	end
 	
 	fs:SetText(nil)
-end
-
-function DogTag:AddFakeGlobal(namespace, key, value)
-	if type(namespace) ~= "string" then
-		error(("Bad argument #2 to `AddFakeGlobal'. Expected %q, got %q"):format("string", type(namespace)), 2)
-	end
-	if type(key) ~= "string" then
-		error(("Bad argument #3 to `AddFakeGlobal'. Expected %q, got %q"):format("string", type(key)), 2)
-	end
-	if type(value) ~= "table" and type(value) ~= "function" then
-		error(("Bad argument #4 to `AddFakeGlobal'. Expected %q or %q, got %q"):format("table", "function", type(value)), 2)
-	end
-	if not FakeGlobals[namespace] then
-		FakeGlobals[namespace] = newList()
-	end
-	FakeGlobals[namespace]["__" .. key] = value
 end
 
 function DogTag:AddAddonFinder(namespace, kind, name, func)

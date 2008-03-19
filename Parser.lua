@@ -942,24 +942,6 @@ local standardizations = {
 	['false'] = 'nil',
 }
 
-local unaryNumberCalcs = {
-	['unm'] = function(num) return -num end
-}
-local binaryNumberCalcs = {
-	['+'] = function(alpha, bravo) return alpha + bravo end,
-	['-'] = function(alpha, bravo) return alpha - bravo end,
-	['*'] = function(alpha, bravo) return alpha * bravo end,
-	['/'] = function(alpha, bravo)
-		if alpha == 0 then
-			return 0
-		else
-			return alpha / bravo
-		end
-	end,
-	['%'] = function(alpha, bravo) return alpha % bravo end,
-	['^'] = function(alpha, bravo) return alpha ^ bravo end,
-}
-
 local function standardize(ast)
 	local type_ast = type(ast)
 	if type_ast ~= "table" then
@@ -990,20 +972,6 @@ local function standardize(ast)
 			for k,v in pairs(kwarg) do
 				kwarg[k] = standardize(v, kwarg)
 			end
-		end
-	end
-	
-	if #ast == 2 then
-	 	if unaryNumberCalcs[kind] and type(ast[2]) == "number" then
-			local num = unaryNumberCalcs[kind](ast[2])
-			del(ast)
-			return num
-		end
-	elseif #ast == 3 then
-		if binaryNumberCalcs[kind] and type(ast[2]) == "number" and type(ast[3]) == "number" then
-			local num = binaryNumberCalcs[kind](ast[2], ast[3])
-			del(ast)
-			return num
 		end
 	end
 	

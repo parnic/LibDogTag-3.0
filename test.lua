@@ -115,14 +115,19 @@ local function is_equal(alpha, bravo)
 	return true
 end
 
+local errors_raised = 0
+function geterrorhandler()
+	return function(err)
+		errors_raised = errors_raised + 1
+		print(debug.traceback(err, 2))
+		os.exit()
+	end
+end
+
 function assert_equal(alpha, bravo)
 	if not is_equal(alpha, bravo) then
 		error(("Assertion failed: %s == %s"):format(ptostring(alpha), ptostring(bravo)), 2)
 	end
-end
-
-function geterrorhandler()
-	return error
 end
 
 local function CreateFontString(parent, name, layer)
@@ -361,15 +366,24 @@ function DogTag:CleanCode(...)
 end
 
 DogTag:AddTag("Base", "One", {
-	code = [=[return 1]=],
+	code = function() return 1 end,
 	ret = "number",
 	doc = "Return the number 1",
 	example = '[One] => "1"',
 	category = "Testing"
 })
 
+DogTag:AddTag("Base", "StaticOne", {
+	code = function() return 1 end,
+	ret = "number",
+	static = true,
+	doc = "Return the number 1",
+	example = '[One] => "1"',
+	category = "Testing"
+})
+
 DogTag:AddTag("Base", "Two", {
-	code = [=[return 2]=],
+	code = function() return 2 end,
 	ret = "number",
 	doc = "Return the number 2",
 	example = '[Two] => "2"',
@@ -377,7 +391,7 @@ DogTag:AddTag("Base", "Two", {
 })
 
 DogTag:AddTag("Base", "FakeOne", {
-	code = [=[return 100]=],
+	code = function() return 100 end,
 	ret = "number",
 	doc = "Return the number 100",
 	example = '[FakeOne] => "100"',
@@ -385,18 +399,23 @@ DogTag:AddTag("Base", "FakeOne", {
 })
 
 DogTag:AddTag("Base", "PlusOne", {
-	code = [=[return ${number} + 1]=],
+	code = function(number)
+		return number + 1
+	end,
 	arg = {
 		'number', 'number', "@req"
 	},
 	ret = "number",
+	static = true,
 	doc = "Return the number 1",
 	example = '[One] => "1"',
 	category = "Testing"
 })
 
 DogTag:AddTag("Base", "Subtract", {
-	code = [=[return ${left} - ${right}]=],
+	code = function(left, right)
+		return left - right
+	end,
 	arg = {
 		'left', 'number', "@req",
 		'right', 'number', "@req"
@@ -451,30 +470,13 @@ DogTag:AddTag("Base", "AbsAlias", {
 })
 
 local GlobalCheck_data = "Hello World"
-_G.testfunc = function()
-	return GlobalCheck_data
-end
 
 DogTag:AddTag("Base", "GlobalCheck", {
-	code = [=[return testfunc()]=],
+	code = function()
+		return GlobalCheck_data
+	end,
 	ret = "string;number;nil",
 	doc = "Return the results of testfunc",
-	globals = 'testfunc',
-	example = '[GlobalCheck] => "Hello World"',
-	category = "Testing"
-})
-
-testtable = {
-	testfunc = function()
-		return GlobalCheck_data
-	end
-}
-
-DogTag:AddTag("Base", "SubGlobalCheck", {
-	code = [=[return testtable_testfunc()]=],
-	ret = "string;number;nil",
-	doc = "Return the results of testtable.testfunc",
-	globals = 'testtable.testfunc',
 	example = '[GlobalCheck] => "Hello World"',
 	category = "Testing"
 })
@@ -486,29 +488,34 @@ function _G.myfunc()
 end
 
 DogTag:AddTag("Base", "FunctionNumberCheck", {
-	code = [=[return myfunc()]=],
+	code = function()
+		myfunc_num = myfunc_num + 1
+		return myfunc_num
+	end,
 	ret = "number;nil",
 	doc = "Return the results of myfunc",
-	globals = 'myfunc',
 	example = '[FunctionNumberCheck] => "1"',
 	category = "Testing"
 })
 
 
 DogTag:AddTag("Base", "AbsoluteValue", {
-	code = [=[return math_abs(${number})]=],
+	code = function(number)
+		return math.abs(number)
+	end,
 	arg = {
 		'number', 'number', "@req",
 	},
 	ret = "number",
-	globals = "math.abs",
 	doc = "Get the absolute value of number",
 	example = '[AbsoluteValue(5)] => "5"; [AbsoluteValue(-5)] => "5"',
 	category = "Testing"
 })
 
 DogTag:AddTag("Base", "CheckNumDefault", {
-	code = [=[return ${value}]=],
+	code = function(value)
+		return value
+	end,
 	arg = {
 		'value', 'number', 50
 	},
@@ -519,7 +526,9 @@ DogTag:AddTag("Base", "CheckNumDefault", {
 })
 
 DogTag:AddTag("Base", "CheckStrDefault", {
-	code = [=[return ${value}]=],
+	code = function(value)
+		return value
+	end,
 	arg = {
 		'value', 'string', 'Value'
 	},
@@ -530,7 +539,9 @@ DogTag:AddTag("Base", "CheckStrDefault", {
 })
 
 DogTag:AddTag("Base", "CheckNilDefault", {
-	code = [=[return ${value}]=],
+	code = function(value)
+		return value
+	end,
 	arg = {
 		'value', 'nil;number', false
 	},
@@ -541,7 +552,9 @@ DogTag:AddTag("Base", "CheckNilDefault", {
 })
 
 DogTag:AddTag("Base", "CheckNumTuple", {
-	code = [=[return ("-"):join(${...})]=],
+	code = function(...)
+		return ("-"):join(...)
+	end,
 	arg = {
 		'...', 'tuple-number', false
 	},
@@ -552,14 +565,16 @@ DogTag:AddTag("Base", "CheckNumTuple", {
 })
 
 DogTag:AddTag("Base", "CheckBooleanTuple", {
-	code = [=[local num = 0
-	for i = 1, ${#...} do
-		assert(type(select(i, ${...})) == "boolean")
-		if select(i, ${...}) then
-			num = num + 2^(i - 1)
+	code = function(...)
+		local num = 0
+		for i = 1, select('#', ...) do
+			assert(type(select(i, ...)) == "boolean")
+			if select(i, ...) then
+				num = num + 2^(i - 1)
+			end
 		end
-	end
-	return num]=],
+		return num
+	end,
 	arg = {
 		'...', 'tuple-boolean', false
 	},
@@ -570,10 +585,12 @@ DogTag:AddTag("Base", "CheckBooleanTuple", {
 })
 
 DogTag:AddTag("Base", "CheckNilTuple", {
-	code = [=[for i = 1, ${#...} do
-		assert(not select(i, ${...}))
-	end
-	return ${#...}]=],
+	code = function(...)
+		for i = 1, select('#', ...) do
+			assert(not select(i, ...))
+		end
+		return select('#', ...)
+	end,
 	arg = {
 		'...', 'tuple-nil', false
 	},
@@ -604,7 +621,9 @@ DogTag:AddTag("Base", "OtherTupleAlias", {
 })
 
 DogTag:AddTag("Base", "CheckAnotherNumTuple", {
-	code = [=[return math_max(0, ${...})]=],
+	code = function(...)
+		return math.max(0, ...)
+	end,
 	arg = {
 		'...', 'tuple-number', false
 	},
@@ -616,13 +635,13 @@ DogTag:AddTag("Base", "CheckAnotherNumTuple", {
 })
 
 DogTag:AddTag("Base", "CheckStrTuple", {
-	code = [=[
+	code = function(...)
 		local x = ''
-		for i = 1, select('#', ${...}) do
-			x = x .. select(i, ${...}):gsub('[aeiou]', 'y')
+		for i = 1, select('#', ...) do
+			x = x .. select(i, ...):gsub('[aeiou]', 'y')
 		end
 		return x
-	]=],
+	end,
 	arg = {
 		'...', 'tuple-string', false
 	},
@@ -632,34 +651,17 @@ DogTag:AddTag("Base", "CheckStrTuple", {
 	category = "Testing"
 })
 
-DogTag:AddTag("Base", "CheckAnotherStrTuple", {
-	code = [=[
-		local x = ''
-		for i = 1, ${#...} do
-			x = x .. select(i, ${...}):gsub('[aeiou]', 'y')
-		end
-		return x
-	]=],
-	arg = {
-		'...', 'tuple-string', false
-	},
-	ret = "string",
-	doc = "Join ..., replacing vowels with 'y'",
-	example = '[CheckAnotherStrTuple("Hello")] => "Hylly"; [CheckAnotherStrTuple] => ""',
-	category = "Testing"
-})
-
 DogTag:AddTag("Base", "CheckAnyTuple", {
-	code = [=[
+	code = function(...)
 		local x = ''
-		for i = 1, ${#...} do
+		for i = 1, select('#', ...) do
 			if i > 1 then
 				x = x .. ";"
 			end
-			x = x .. type(select(i, ${...})) .. ":" .. tostring(select(i, ${...}))
+			x = x .. type(select(i, ...)) .. ":" .. tostring(select(i, ...))
 		end
 		return x
-	]=],
+	end,
 	arg = {
 		'...', 'tuple-string;number;nil', false
 	},
@@ -670,7 +672,9 @@ DogTag:AddTag("Base", "CheckAnyTuple", {
 })
 
 DogTag:AddTag("Base", "Reverse", {
-	code = [=[return ${value}:reverse()]=],
+	code = function(value)
+		return value:reverse()
+	end,
 	arg = {
 		'value', 'string', '@req'
 	},
@@ -681,11 +685,13 @@ DogTag:AddTag("Base", "Reverse", {
 })
 
 DogTag:AddTag("Base", "OtherReverse", {
-	code = [=[if ${value}:reverse() ~= "Stuff" then
-		return ${value}:reverse()
-	else
-		return "ffutS"
-	end]=],
+	code = function(value)
+		if value ~= "Stuff" then
+			return value:reverse()
+		else
+			return "ffutS"
+		end
+	end,
 	arg = {
 		'value', 'string', '@req'
 	},
@@ -696,11 +702,13 @@ DogTag:AddTag("Base", "OtherReverse", {
 })
 
 DogTag:AddTag("Base", "KwargAndTuple", {
-	code = [=[local num = 0
-		for i = 1, ${#...} do
-			num = num + select(i, ${...})
+	code = function(value, ...)
+		local num = 0
+		for i = 1, select('#', ...) do
+			num = num + select(i, ...)
 		end
-		return ${value} * num]=],
+		return value * num
+	end,
 	arg = {
 		'value', 'number', '@req',
 		'...', 'tuple-number', false
@@ -712,11 +720,13 @@ DogTag:AddTag("Base", "KwargAndTuple", {
 })
 
 DogTag:AddTag("Base", "TupleAndKwarg", {
-	code = [=[local num = 0
-		for i = 1, ${#...} do
-			num = num + select(i, ${...})
+	code = function(value, ...)
+		local num = 0
+		for i = 1, select('#', ...) do
+			num = num + select(i, ...)
 		end
-		return ${value} * num]=],
+		return value * num
+	end,
 	arg = {
 		'...', 'tuple-number', false,
 		'value', 'number', '@req'
@@ -728,7 +738,9 @@ DogTag:AddTag("Base", "TupleAndKwarg", {
 })
 
 DogTag:AddTag("Base", "Type", {
-	code = [=[return ${value:type}]=],
+	code = function(value)
+		return type(value)
+	end,
 	arg = {
 		'value', 'number;nil;string', '@req'
 	},
@@ -738,7 +750,9 @@ DogTag:AddTag("Base", "Type", {
 })
 
 DogTag:AddTag("Base", "BooleanToString", {
-	code = [=[return tostring(${value})]=],
+	code = function(value)
+		return tostring(value)
+	end,
 	arg = {
 		'value', 'boolean', false
 	},
@@ -747,18 +761,10 @@ DogTag:AddTag("Base", "BooleanToString", {
 	example = '[BooleanToString(nil)] => "false"; [BooleanToString("Hello")] => "true"; [BooleanToString(5)] => "true"',
 })
 
-DogTag:AddTag("Base", "BooleanOtherToString", {
-	code = [=[return ${value:string}]=],
-	arg = {
-		'value', 'boolean', false
-	},
-	ret = 'string',
-	doc = "Return True or blank",
-	example = '[BooleanOtherToString(nil)] => ""; [BooleanOtherToString("Hello")] => "True"; [BooleanOtherToString(5)] => ""',
-})
-
 DogTag:AddTag("Base", "RetNil", {
-	code = [=[return nil]=],
+	code = function()
+		return nil
+	end,
 	arg = {
 		'value', 'nil;number;string', false
 	},
@@ -767,16 +773,20 @@ DogTag:AddTag("Base", "RetNil", {
 	example = '[RetNil] => ""; [RetNil(Anything)] => ""',
 })
 
-_G.GlobalCheckBoolean_data = true
+local GlobalCheckBoolean_data = true
 DogTag:AddTag("Base", "GlobalCheckBoolean", {
-	code = [=[return _G.GlobalCheckBoolean_data]=],
+	code = function()
+		return GlobalCheckBoolean_data
+	end,
 	ret = 'boolean',
 	doc = "Return True or blank",
 	example = '[GlobalCheckBoolean] => ""; [GlobalCheckBoolean] => "True"',
 })
 
 DogTag:AddTag("Base", "ToString", {
-	code = [=[return '`' .. ${value:string}:reverse():reverse() .. '`']=],
+	code = function(value)
+		return '`' .. tostring(value or ''):reverse():reverse() .. '`'
+	end,
 	arg = {
 		'value', 'number;nil;string', '@req'
 	},
@@ -787,7 +797,9 @@ DogTag:AddTag("Base", "ToString", {
 
 local RetSame_types
 DogTag:AddTag("Base", "RetSame", {
-	code = [=[return ${value}]=],
+	code = function(value)
+		return value
+	end,
 	arg = {
 		'value', 'number;nil;string', '@req'
 	},
@@ -796,7 +808,7 @@ DogTag:AddTag("Base", "RetSame", {
 		return args.value.types
 	end
 })
-
+--[[
 DogTag:AddTag("Base", "DynamicCodeTest", {
 	code = function(args)
 		if args.value.isLiteral then
@@ -811,7 +823,7 @@ DogTag:AddTag("Base", "DynamicCodeTest", {
 	},
 	ret = "string",
 })
-
+]]
 local DynamicGlobalCheck_data = "Hello World"
 local LiteralGlobalCheck_data = "Hello World"
 
@@ -823,7 +835,7 @@ dynamictable = {
 		return LiteralGlobalCheck_data
 	end,
 }
-
+--[[
 DogTag:AddTag("Base", "DynamicGlobalCheck", {
 	code = function(args)
 		if args.value.isLiteral then
@@ -853,13 +865,13 @@ DogTag:AddTag("Base", "DynamicGlobalCheck", {
 	example = '[DynamicGlobalCheck] => "Hello World"',
 	category = "Testing"
 })
-
-_G.BlizzEventTest_num = 0
+]]
+local BlizzEventTest_num = 0
 DogTag:AddTag("Base", "BlizzEventTest", {
-	code = [=[
-		_G.BlizzEventTest_num = _G.BlizzEventTest_num + 1
-		return _G.BlizzEventTest_num
-	]=],
+	code = function(value)
+		BlizzEventTest_num = BlizzEventTest_num + 1
+		return BlizzEventTest_num
+	end,
 	arg = {
 		'value', 'string', "@req"
 	},
@@ -869,12 +881,12 @@ DogTag:AddTag("Base", "BlizzEventTest", {
 	example = '[BlizzEventTest] => "1"',
 	category = "Testing"
 })
-_G.OtherBlizzEventTest_num = 0
+local OtherBlizzEventTest_num = 0
 DogTag:AddTag("Base", "OtherBlizzEventTest", {
-	code = [=[
-		_G.OtherBlizzEventTest_num = _G.OtherBlizzEventTest_num + 1
-		return _G.OtherBlizzEventTest_num
-	]=],
+	code = function()
+		OtherBlizzEventTest_num = OtherBlizzEventTest_num + 1
+		return OtherBlizzEventTest_num
+	end,
 	ret = "number",
 	events = "OTHER_FAKE_BLIZZARD_EVENT",
 	doc = "Return the results of OtherBlizzEventTest_num after incrementing",
@@ -882,12 +894,12 @@ DogTag:AddTag("Base", "OtherBlizzEventTest", {
 	category = "Testing"
 })
 
-_G.DoubleBlizzEventTest_num = 0
+DoubleBlizzEventTest_num = 0
 DogTag:AddTag("Base", "DoubleBlizzEventTest", {
-	code = [=[
-		_G.DoubleBlizzEventTest_num = _G.DoubleBlizzEventTest_num + 1
-		return _G.DoubleBlizzEventTest_num
-	]=],
+	code = function(alpha, bravo)
+		DoubleBlizzEventTest_num = DoubleBlizzEventTest_num + 1
+		return DoubleBlizzEventTest_num
+	end,
 	arg = {
 		'alpha', 'string', "@req",
 		'bravo', 'string', "@req",
@@ -903,7 +915,7 @@ local LibToProvideExtraFunctionality
 DogTag:AddAddonFinder("Base", "LibStub", "LibToProvideExtraFunctionality", function(lib)
 	LibToProvideExtraFunctionality = lib
 end)
-
+--[[
 DogTag:AddTag("Base", "ExtraFunctionalityWithLib", {
 	code = function(args)
 		if LibToProvideExtraFunctionality then
@@ -923,6 +935,12 @@ DogTag:AddTag("Base", "ExtraFunctionalityWithLib", {
 	example = '[ExtraFunctionalityWithLib] => ""; [ExtraFunctionalityWithLib] => "True"',
 	category = "Testing",
 })
+]]
+collectgarbage('collect')
+collectgarbage('stop')
+collectgarbage('collect')
+local startMemory = collectgarbage('count')
+local startTime = os.clock()
 
 assert_equal(parse("[MyTag]"), { "tag", "MyTag" })
 assert_equal(DogTag:CleanCode("[MyTag]"), "[MyTag]")
@@ -1218,20 +1236,25 @@ assert_equal(parse("[Class(unit='mouseovertarget'):ClassColor(unit='mouseovertar
 assert_equal(parse("[-MissingHP]"), { "unm", { "tag", "MissingHP" } })
 assert_equal(DogTag:CleanCode("[-MissingHP]"), "[-MissingHP]")
 assert_equal(parse("[-(-1)]"), { "unm", { "(", -1 } })
-assert_equal(standardize(parse("[-(-1)]")), 1)
-assert_equal(standardize(parse("[-(-(-1))]")), -1)
+assert_equal(standardize(parse("[-(-1)]")), {"unm", -1})
+assert_equal(standardize(parse("[-(-(-1))]")), { "unm", { "unm", -1}})
 assert_equal(parse("[AbsoluteValue(-5)]"), { "tag", "AbsoluteValue", -5 })
 assert_equal(parse("[(-5):AbsoluteValue]"), { "mod", "AbsoluteValue", { "(", -5 } })
 assert_equal(parse("[-5:AbsoluteValue]"), { "mod", "AbsoluteValue", -5})
 assert_equal(parse("[-5:AbsoluteValue:AbsoluteValue]"), { "mod", "AbsoluteValue", { "mod", "AbsoluteValue", -5} })
 assert_equal(parse("[-MissingHP:AbsoluteValue]"), { "mod", "AbsoluteValue", { "unm", { "tag", "MissingHP" } } })
 
+assert_equal(DogTag:Evaluate("[StaticOne]"), 1)
+
 assert_equal(DogTag:Evaluate("[One]"), 1)
 assert_equal(DogTag:Evaluate("[One:PlusOne]"), 2)
 assert_equal(DogTag:Evaluate("[PlusOne(One):PlusOne]"), 3)
 assert_equal(DogTag:Evaluate("[PlusOne(number=One)]"), 2)
 assert_equal(DogTag:Evaluate("[GlobalCheck]"), "Hello World")
+--[[
 assert_equal(DogTag:Evaluate("[SubGlobalCheck]"), "Hello World")
+]]
+
 myfunc_num = 0
 assert_equal(DogTag:Evaluate("[FunctionNumberCheck]"), 1)
 assert_equal(DogTag:Evaluate("[FunctionNumberCheck]"), 2)
@@ -1276,8 +1299,8 @@ assert_equal(DogTag:Evaluate("[1 - 2]"), -1)
 assert_equal(DogTag:Evaluate("[1 * 2]"), 2)
 assert_equal(DogTag:Evaluate("[1 / 2]"), 1/2)
 assert_equal(DogTag:Evaluate("[0 / 0]"), 0) -- odd case, good for WoW
-assert_equal(standardize(parse("[1 / 0]")), math.huge)
-assert_equal(standardize(parse("[(1 / 0)]")), math.huge)
+assert_equal(standardize(parse("[1 / 0]")), { "/", 1, 0 })
+assert_equal(standardize(parse("[(1 / 0)]")), { "/", 1, 0 })
 assert_equal(DogTag:Evaluate("[1 / 0]"), 1/0)
 assert_equal(DogTag:Evaluate("[(1 / 0)]"), 1/0)
 assert_equal(DogTag:Evaluate("[-1 / 0]"), -1/0)
@@ -1411,13 +1434,6 @@ assert_equal(DogTag:Evaluate("[CheckStrTuple('Hello', \"There\", 'Friend')]"), '
 assert_equal(DogTag:Evaluate("[CheckStrTuple]"), nil)
 assert_equal(DogTag:Evaluate("[CheckStrTuple('Hello', 52, 'Friend', One)]"), 'Hylly52Fryynd1')
 
-assert_equal(DogTag:Evaluate("[CheckAnotherStrTuple('Hello')]"), 'Hylly')
-assert_equal(DogTag:Evaluate("[CheckAnotherStrTuple(1)]"), 1)
-assert_equal(DogTag:Evaluate("[CheckAnotherStrTuple(One)]"), 1)
-assert_equal(DogTag:Evaluate("[CheckAnotherStrTuple('Hello', \"There\", 'Friend')]"), 'HyllyThyryFryynd')
-assert_equal(DogTag:Evaluate("[CheckAnotherStrTuple]"), nil)
-assert_equal(DogTag:Evaluate("[CheckAnotherStrTuple('Hello', 52, 'Friend', One)]"), 'Hylly52Fryynd1')
-
 assert_equal(DogTag:Evaluate("[CheckBooleanTuple]"), 0)
 assert_equal(DogTag:Evaluate("[CheckBooleanTuple(true, false, true)]"), 5)
 assert_equal(DogTag:Evaluate("[CheckBooleanTuple(true, true, false, true)]"), 11)
@@ -1454,6 +1470,7 @@ assert_equal(DogTag:Evaluate("[PlusOne]", { number = 7 }), 8)
 assert_equal(DogTag:Evaluate("[KwargAndTuple]"), [=[Arg #1 (value) req'd for KwargAndTuple]=])
 assert_equal(DogTag:Evaluate("[KwargAndTuple(5, 1, 2, 3)]"), 30)
 assert_equal(DogTag:Evaluate("[KwargAndTuple(0.5, 2, 3, 4)]"), 4.5)
+
 assert_equal(DogTag:Evaluate("[TupleAndKwarg]"), [=[Keyword-Arg value req'd for TupleAndKwarg]=])
 assert_equal(DogTag:Evaluate("[TupleAndKwarg(2, 3, 4, value=1/4)]"), 9/4)
 assert_equal(DogTag:Evaluate("[TupleAndKwarg(2, 3, 4, value=0.5)]"), 9/2)
@@ -1549,7 +1566,7 @@ assert_equal(DogTag:Evaluate("[RetSame(CheckNilDefault(5))]"), 5)
 assert_equal(RetSame_types, "nil;number")
 assert_equal(DogTag:Evaluate("[RetSame(CheckNilDefault)]"), nil)
 assert_equal(RetSame_types, "nil;number")
-
+--[[
 assert_equal(DogTag:Evaluate("[DynamicCodeTest(nil)]"), "literal, nil")
 assert_equal(DogTag:Evaluate("[DynamicCodeTest(5)]"), "literal, 5")
 assert_equal(DogTag:Evaluate("[DynamicCodeTest('Hello')]"), "literal, Hello")
@@ -1569,7 +1586,7 @@ assert_equal(DogTag:Evaluate("[DynamicGlobalCheck(true)]"), "This is not dynamic
 assert_equal(DogTag:Evaluate("[DynamicGlobalCheck(One)]"), "This is dynamic")
 assert_equal(DogTag:Evaluate("[DynamicGlobalCheck(GlobalCheck)]"), "This is dynamic")
 assert_equal(DogTag:Evaluate("[DynamicGlobalCheck(1 + One)]"), "This is dynamic")
-
+]]
 assert_equal(DogTag:Evaluate("[BlizzEventTest]", { value = 'player' }), 1)
 
 local fired = false
@@ -1683,7 +1700,7 @@ assert_equal(fs:GetText(), nil)
 
 FireOnUpdate(1000)
 
-_G.OtherBlizzEventTest_num = 1
+OtherBlizzEventTest_num = 1
 DogTag:AddFontString(fs, f, "[OtherBlizzEventTest]")
 assert_equal(fs:GetText(), 2)
 FireEvent("OTHER_FAKE_BLIZZARD_EVENT")
@@ -1741,7 +1758,7 @@ FireEvent("FAKE_BLIZZARD_EVENT", "player")
 FireOnUpdate(0.05)
 assert_equal(fs:GetText(), 6)
 
-_G.BlizzEventTest_num = 1
+BlizzEventTest_num = 1
 DogTag:AddFontString(fs, f, "[BlizzEventTest]", { value = 'player' })
 assert_equal(fs:GetText(), 2)
 FireOnUpdate(1000)
@@ -2031,16 +2048,6 @@ GlobalCheck_data = nil
 assert_equal(DogTag:Evaluate("[BooleanToString(GlobalCheck)]"), "false")
 GlobalCheck_data = 'Hello'
 assert_equal(DogTag:Evaluate("[BooleanToString(GlobalCheck)]"), "true")
-
-assert_equal(DogTag:Evaluate("[BooleanOtherToString(nil)]"), nil)
-assert_equal(DogTag:Evaluate("[BooleanOtherToString(false)]"), nil)
-assert_equal(DogTag:Evaluate("[BooleanOtherToString(true)]"), "True")
-assert_equal(DogTag:Evaluate("[BooleanOtherToString('Hello')]"), "True")
-assert_equal(DogTag:Evaluate("[BooleanOtherToString(5)]"), "True")
-GlobalCheck_data = nil
-assert_equal(DogTag:Evaluate("[BooleanOtherToString(GlobalCheck)]"), nil)
-GlobalCheck_data = 'Hello'
-assert_equal(DogTag:Evaluate("[BooleanOtherToString(GlobalCheck)]"), "True")
 
 GlobalCheckBoolean_data = true
 assert_equal(DogTag:Evaluate("[GlobalCheckBoolean]"), "True")
@@ -2436,7 +2443,7 @@ assert_equal(fired, false)
 LibStub:NewLibrary("MyLibToBeFound", 1)
 FireEvent("ADDON_LOADED")
 assert_equal(fired, true)
-
+--[[
 DogTag:AddFontString(fs, f, "[ExtraFunctionalityWithLib]")
 assert_equal(fs:GetText(), nil)
 assert_equal(DogTag:Evaluate("[ExtraFunctionalityWithLib]"), nil)
@@ -2445,7 +2452,7 @@ FireEvent("ADDON_LOADED")
 FireOnUpdate(0)
 assert_equal(fs:GetText(), "True")
 assert_equal(DogTag:Evaluate("[ExtraFunctionalityWithLib]"), "True")
-
+]]
 local fired = false
 local expectedArg = nil
 local expectedNumArgs = 0
@@ -2481,5 +2488,13 @@ FireEvent("MY_EVENT", 'alpha', 'bravo')
 DogTag:FireEvent("MY_EVENT")
 DogTag:FireEvent("MY_EVENT", 'alpha', 'bravo')
 assert_equal(fired, false)
+
+local finalMemory = collectgarbage('count')
+local finalTime = os.clock()
+collectgarbage('collect')
+local finalMemoryAfterCollect = collectgarbage('count')
+print("Memory:", finalMemory*1024)
+print("Memory after collect:", finalMemoryAfterCollect*1024)
+print("Time:", finalTime)
 
 print("LibDogTag-3.0: Tests succeeded")

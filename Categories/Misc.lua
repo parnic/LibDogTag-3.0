@@ -10,7 +10,7 @@ DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 local L = DogTag.L
 
 DogTag:AddTag("Base", "Alt", {
-	code = [[return IsAltKeyDown()]],
+	code = IsAltKeyDown,
 	ret = "boolean",
 	events = "MODIFIER_STATE_CHANGED#ALT;MODIFIER_STATE_CHANGED#LALT;MODIFIER_STATE_CHANGED#RALT",
 	globals = "IsAltKeyDown",
@@ -20,7 +20,7 @@ DogTag:AddTag("Base", "Alt", {
 })
 
 DogTag:AddTag("Base", "Shift", {
-	code = [[return IsShiftKeyDown()]],
+	code = IsShiftKeyDown,
 	ret = "boolean",
 	events = "MODIFIER_STATE_CHANGED#SHIFT;MODIFIER_STATE_CHANGED#LSHIFT;MODIFIER_STATE_CHANGED#RSHIFT",
 	globals = "IsShiftKeyDown",
@@ -30,7 +30,7 @@ DogTag:AddTag("Base", "Shift", {
 })
 
 DogTag:AddTag("Base", "Ctrl", {
-	code = [[return IsControlKeyDown()]],
+	code = IsControlKeyDown,
 	ret = "boolean",
 	events = "MODIFIER_STATE_CHANGED#CTRL;MODIFIER_STATE_CHANGED#LCTRL;MODIFIER_STATE_CHANGED#RCTRL",
 	globals = "IsControlKeyDown",
@@ -40,7 +40,7 @@ DogTag:AddTag("Base", "Ctrl", {
 })
 
 DogTag:AddTag("Base", "CurrentTime", {
-	code = [[return GetTime()]],
+	code = GetTime,
 	ret = "number",
 	events = "FastUpdate",
 	globals = "GetTime",
@@ -50,8 +50,9 @@ DogTag:AddTag("Base", "CurrentTime", {
 })
 
 DogTag:AddTag("Base", "Alpha", {
-	code = [[opacity = ${number}
-	return nil]],
+	code = function(number)
+		DogTag.opacity = number
+	end,
 	arg = {
 		'number', 'number', "@req"
 	},
@@ -62,7 +63,9 @@ DogTag:AddTag("Base", "Alpha", {
 })
 
 DogTag:AddTag("Base", "IsMouseOver", {
-	code = [[return DogTag.__isMouseOver]],
+	code = function()
+		return DogTag.__isMouseOver
+	end,
 	ret = "boolean",
 	events = "Mouseover",
 	doc = L["Return True if currently mousing over the Frame the FontString is harbored in"],
@@ -71,21 +74,22 @@ DogTag:AddTag("Base", "IsMouseOver", {
 })
 
 DogTag:AddTag("Base", "Color", {
-	code = [=[local value, color, r, g, b
-		if ${value} and (${red:type} == "nil" or (${red:type} == "number" and ${blue:type} == "nil")) then
+	code = function(value, red, green, blue)
+		local val, color, r, g, b
+		if value and (not red or (type(red) == "number" and not blue)) then
 			-- tag
-			if ${value:type} == "string" then
-				color = ${value}
+			if type(value) == "string" then
+				color = value
 			else
-				r, g, b = ${value}, ${red}, ${green}
+				r, g, b = value, red, green
 			end
 		else
 			-- modifier
-			value = ${value} and ${value:string}
-			if ${red:type} == "string" then
-				color = ${red}
+			val = value and tostring(value)
+			if type(red) == "string" then
+				color = red
 			else
-				r, g, b = ${red}, ${green}, ${blue}
+				r, g, b = red, green, blue
 			end
 		end
 		
@@ -105,8 +109,8 @@ DogTag:AddTag("Base", "Color", {
 			elseif b > 1 then
 				b = 1
 			end
-			if value then
-				return ("|cff%02x%02x%02x%s|r"):format(r*255, g*255, b*255, value)
+			if val then
+				return ("|cff%02x%02x%02x%s|r"):format(r*255, g*255, b*255, val)
 			else
 				return ("|cff%02x%02x%02x"):format(r*255, g*255, b*255)
 			end
@@ -114,15 +118,15 @@ DogTag:AddTag("Base", "Color", {
 			if not color:match("^%x%x%x%x%x%x$") then
 				color = "ffffff"
 			end
-			if value then
-				return "|cff" .. color .. value .. "|r"
+			if val then
+				return "|cff" .. color .. val .. "|r"
 			else
 				return "|cff" .. color
 			end
 		else
 			return "|r"
 		end
-	]=],
+	end,
 	arg = {
 		'value', 'string;number;undef', '@undef',
 		'red', 'string;number;nil', false,
@@ -130,6 +134,7 @@ DogTag:AddTag("Base", "Color", {
 		'blue', 'number;nil', false,
 	},
 	ret = "string",
+	static = true,
 	doc = L["Return the color or wrap value with the rrggbb color of argument"],
 	example = '["Hello":Color("00ff00")] => "|cff00ff00Hello|r"; ["Hello":Color(0, 1, 0)] => "|cff00ff00Hello|r"',
 	category = L["Miscellaneous"]
@@ -157,19 +162,28 @@ for name, color in pairs({
 end
 
 DogTag:AddTag("Base", "IsIn", {
-	code = [=[local good = false
-	for i = 1, ${#...} do
-		if ${value} == select(i, ${...}) then
-			good = true
-			break
+	code = function(value, ...)
+		local good = false
+		for i = 1, select('#', ...) do
+			if value == select(i, ...) then
+				good = true
+				break
+			end
 		end
-	end
-	return good and ${value} or nil]=],
+		if good then
+			return value
+		else
+			return nil
+		end
+	end,
 	arg = {
 		'value', 'number;string', "@req",
 		'...', 'tuple-number;string;nil', "@req",
 	},
-	ret = "nil;number;string",
+	ret = function(args)
+		return "nil;" .. args.value.types
+	end,
+	static = true,
 	doc = L["Return value if value is within ..."],
 	example = '[1:IsIn(1, 2, 3)] => "1"; ["Alpha":IsIn("Bravo", "Charlie")] => ""',
 	category = L["Miscellaneous"]
@@ -187,42 +201,110 @@ DogTag:AddTag("Base", "Hide", {
 })
 
 DogTag:AddTag("Base", "Contains", {
-	code = [=[if ${left}:match(${right}) then
-		return ${left}
-	else
-		return nil
-	end]=],
+	code = function(left, right)
+		if left:match(right) then
+			return left
+		else
+			return nil
+		end
+	end,
 	arg = {
 		'left', 'string', '@req',
 		'right', 'string', '@req',
 	},
 	ret = "string;nil",
+	static = true,
 	doc = L["Return left if left contains right"],
 	example = '["Hello":Contains("There")] => ""; ["Hello"]:Contains("ello") => "Hello"',
 	category = L["Miscellaneous"]
 })
 
 DogTag:AddTag("Base", "Boolean", {
-	code = [=[return ${value}]=],
+	code = function(value)
+		return value
+	end,
 	arg = {
 		'value', 'boolean', "@req"
 	},
 	ret = "boolean",
+	static = true,
 	doc = L["Return True if non-blank"],
 	example = '[Boolean("Hello")] => "True"; [Boolean(nil)] => ""'
 })
 
 DogTag:AddTag("Base", "Format", {
-	code = [=[local ret, err = pcall(string_format, ${format}, ${...})
-	return err]=],
+	code = function(format, ...)
+		local ret, err = pcall(string.format, format, ...)
+		return err
+	end,
 	arg = {
 		'format', 'string', "@req",
 		'...', 'tuple-number;string', false,
+	},
+	ret = "string",
+	static = true,
+	doc = L["Return a string formatted by format"],
+	example = '["%.3f":Format(1)] => "1.000"; ["%s %s":Format("Hello", "There")] => "Hello There"'
+})
+
+--[[
+	if not duration or duration >= 86400*36500 then -- 100 years
+		return negative .. "**:**:**:**"
+	elseif duration >= 86400 then
+		return format("%s%d%s %d:%02d:%02d", negative, duration/86400, L_DAY_ONELETTER_ABBR, mod(duration/3600, 24), mod(duration/60, 60), mod(duration, 60))
+	elseif duration >= 3600 then
+		return format("%s%d:%02d:%02d", negative, duration/3600, mod(duration/60, 60), mod(duration, 60))
+	else
+		return format("%s%d:%02d", negative, duration/60, mod(duration, 60))
+	end
+
+
+local L_DAY_ONELETTER_ABBR    = DAY_ONELETTER_ABBR:gsub("%s*%%d%s*", "")
+local L_HOUR_ONELETTER_ABBR   = HOUR_ONELETTER_ABBR:gsub("%s*%%d%s*", "")
+local L_MINUTE_ONELETTER_ABBR = MINUTE_ONELETTER_ABBR:gsub("%s*%%d%s*", "")
+local L_SECOND_ONELETTER_ABBR = SECOND_ONELETTER_ABBR:gsub("%s*%%d%s*", "")
+
+DogTag:AddTag("Base", "FormatDuration", {
+	code = [=[local negative, duration = "", ${number}
+	if duration < 0 then
+		duration = -duration
+		negative = "-"
+	end
+	if ${format} == "s" then
+		if duration >= 86400*36500 then -- 100 years
+			return "***"
+		elseif duration >= 172800 then
+			return format("%s%.1f %s", negative, duration/86400, DAYS_ABBR_P1)
+		elseif duration >= 7200 then
+			return format("%s%.1f %s", negative, duration/3600, HOURS_ABBR_P1)
+		elseif duration >= 120 then
+			return format("%s%.1f %s", negative, duration/60, MINUTES_ABBR_P1)
+		else
+			return format("%s%.0f %s", negative, duration, SECONDS_ABBR_P1)
+		end
+	elseif ${format} == "c" then
+		if duration >= 60*60*24*365*100 then
+			return ("%s**%d **:**:**"):format(negative, L_DAY_ONELETTER_ABBR)
+		elseif duration >= 60*60*24 then
+			return ("%s%d%s %d:%02d:%02d"):format(negative, duration/86400, L_DAY_ONELETTER_ABBR, duration/3600 % 24, duration/60 % 60, duration % 60)
+		elseif duration >= 60*60 then
+			return ("%s%d:%02d:%02d"):format(negative, duration/3600, duration/60 % 60, duration % 60)
+		elseif duration >= 60 then
+			return ("%s%d:%02d"):format(negative, duration/60 % 60, duration % 60)
+		elseif duration >= 3 then
+			return ("%s%.0f"):format(negative, duration)
+		else
+			return ("%s%.1f"):format(negative, duration)
+		end
+	end]=],
+	arg = {
+		'number', 'number', "@req",
+		'format', 'string', "c",
 	},
 	globals = "pcall;string.format",
 	ret = "string",
 	doc = L["Return a string formatted by format"],
 	example = '["%.3f":Format(1)] => "1.000"; ["%s %s":Format("Hello", "There")] => "Hello There"'
 })
-
+]]
 end
