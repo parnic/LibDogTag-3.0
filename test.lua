@@ -263,6 +263,27 @@ end
 
 DogTag_DEBUG = true
 
+DAYS = "Day";
+DAYS_P1 = "Days";
+DAYS_ABBR = "Day";
+DAYS_ABBR_P1 = "Days";
+DAY_ONELETTER_ABBR = "%d d";
+HOURS = "Hour";
+HOURS_P1 = "Hours";
+HOURS_ABBR = "Hr";
+HOURS_ABBR_P1 = "Hrs";
+HOUR_ONELETTER_ABBR = "%d h";
+MINUTES = "Minute"; -- Minutes of time
+MINUTES_P1 = "Minutes";
+MINUTES_ABBR = "Min";
+MINUTES_ABBR_P1 = "Mins";
+MINUTE_ONELETTER_ABBR = "%d m";
+SECONDS = "Second"; -- Seconds of time
+SECONDS_P1 = "Seconds";
+SECONDS_ABBR = "Sec";
+SECONDS_ABBR_P1 = "Secs";
+SECOND_ONELETTER_ABBR = "%d s";
+
 dofile("LibStub/LibStub.lua")
 dofile("Localization/enUS.lua")
 dofile("Helpers.lua")
@@ -1986,6 +2007,63 @@ assert_equal(DogTag:Evaluate("['%s %s':Format('Hello', 'World')]"), "Hello World
 assert_equal(DogTag:Evaluate("['%d %d':Format('Hello', 'World')]"), "bad argument #2 to '?' (number expected, got string)")
 assert_equal(DogTag:Evaluate("['%q %q':Format('Hello', 'World')]"), '"Hello" "World"')
 assert_equal(DogTag:Evaluate("['%q %q %q':Format('Hello', 'World')]"), "bad argument #4 to '?' (string expected, got no value)")
+
+assert_equal(DogTag:Evaluate("[0:FormatDuration('e')]"), "0 Secs")
+assert_equal(DogTag:Evaluate("[0:FormatDuration('f')]"), "0s")
+assert_equal(DogTag:Evaluate("[0:FormatDuration('s')]"), "0.0 Secs")
+assert_equal(DogTag:Evaluate("[0:FormatDuration('c')]"), "0.0")
+assert_equal(DogTag:Evaluate("[1:FormatDuration('e')]"), "1 Sec")
+assert_equal(DogTag:Evaluate("[1:FormatDuration('f')]"), "1s")
+assert_equal(DogTag:Evaluate("[1:FormatDuration('s')]"), "1.0 Secs")
+assert_equal(DogTag:Evaluate("[1:FormatDuration('c')]"), '1.0')
+assert_equal(DogTag:Evaluate("[10:FormatDuration('e')]"), "10 Secs")
+assert_equal(DogTag:Evaluate("[10:FormatDuration('f')]"), "10s")
+assert_equal(DogTag:Evaluate("[10:FormatDuration('s')]"), "10 Secs")
+assert_equal(DogTag:Evaluate("[10:FormatDuration('c')]"), 10)
+assert_equal(DogTag:Evaluate("[60:FormatDuration('e')]"), "1 Min")
+assert_equal(DogTag:Evaluate("[60:FormatDuration('f')]"), "1m 00s")
+assert_equal(DogTag:Evaluate("[60:FormatDuration('s')]"), "60 Secs")
+assert_equal(DogTag:Evaluate("[60:FormatDuration('c')]"), "1:00")
+assert_equal(DogTag:Evaluate("[100:FormatDuration('e')]"), "1 Min 40 Secs")
+assert_equal(DogTag:Evaluate("[100:FormatDuration('f')]"), "1m 40s")
+assert_equal(DogTag:Evaluate("[100:FormatDuration('s')]"), "100 Secs")
+assert_equal(DogTag:Evaluate("[100:FormatDuration('c')]"), "1:40")
+assert_equal(DogTag:Evaluate("[1000:FormatDuration('e')]"), "16 Mins 40 Secs")
+assert_equal(DogTag:Evaluate("[1000:FormatDuration('f')]"), "16m 40s")
+assert_equal(DogTag:Evaluate("[1000:FormatDuration('s')]"), "16.7 Mins")
+assert_equal(DogTag:Evaluate("[1000:FormatDuration('c')]"), "16:40")
+assert_equal(DogTag:Evaluate("[3600:FormatDuration('e')]"), "1 Hr")
+assert_equal(DogTag:Evaluate("[3600:FormatDuration('f')]"), "1h 00m 00s")
+assert_equal(DogTag:Evaluate("[3600:FormatDuration('s')]"), "60.0 Mins")
+assert_equal(DogTag:Evaluate("[3600:FormatDuration('c')]"), "1:00:00")
+assert_equal(DogTag:Evaluate("[10000:FormatDuration('e')]"), "2 Hrs 46 Mins 40 Secs")
+assert_equal(DogTag:Evaluate("[10000:FormatDuration('f')]"), "2h 46m 40s")
+assert_equal(DogTag:Evaluate("[10000:FormatDuration('s')]"), "2.8 Hrs")
+assert_equal(DogTag:Evaluate("[10000:FormatDuration('c')]"), "2:46:40")
+assert_equal(DogTag:Evaluate("[86400:FormatDuration('e')]"), "1 Day")
+assert_equal(DogTag:Evaluate("[86400:FormatDuration('f')]"), "1d 00h 00m 00s")
+assert_equal(DogTag:Evaluate("[86400:FormatDuration('s')]"), "24.0 Hrs")
+assert_equal(DogTag:Evaluate("[86400:FormatDuration('c')]"), "1d 0:00:00")
+assert_equal(DogTag:Evaluate("[100000:FormatDuration('e')]"), "1 Day 3 Hrs 46 Mins 40 Secs")
+assert_equal(DogTag:Evaluate("[100000:FormatDuration('f')]"), "1d 03h 46m 40s")
+assert_equal(DogTag:Evaluate("[100000:FormatDuration('s')]"), "27.8 Hrs")
+assert_equal(DogTag:Evaluate("[100000:FormatDuration('c')]"), "1d 3:46:40")
+assert_equal(DogTag:Evaluate("[1000000:FormatDuration('e')]"), "11 Days 13 Hrs 46 Mins 40 Secs")
+assert_equal(DogTag:Evaluate("[1000000:FormatDuration('f')]"), "11d 13h 46m 40s")
+assert_equal(DogTag:Evaluate("[1000000:FormatDuration('s')]"), "11.6 Days")
+assert_equal(DogTag:Evaluate("[1000000:FormatDuration('c')]"), "11d 13:46:40")
+assert_equal(DogTag:Evaluate("[100000000:FormatDuration('e')]"), "1157 Days 9 Hrs 46 Mins 40 Secs")
+assert_equal(DogTag:Evaluate("[100000000:FormatDuration('f')]"), "1157d 09h 46m 40s")
+assert_equal(DogTag:Evaluate("[100000000:FormatDuration('s')]"), "1157.4 Days")
+assert_equal(DogTag:Evaluate("[100000000:FormatDuration('c')]"), "1157d 9:46:40")
+assert_equal(DogTag:Evaluate("[100000000000:FormatDuration('e')]"), "1157407 Days 9 Hrs 46 Mins 40 Secs")
+assert_equal(DogTag:Evaluate("[100000000000:FormatDuration('f')]"), "1157407d 09h 46m 40s")
+assert_equal(DogTag:Evaluate("[100000000000:FormatDuration('s')]"), "1157407.4 Days")
+assert_equal(DogTag:Evaluate("[100000000000:FormatDuration('c')]"), "1157407d 9:46:40")
+assert_equal(DogTag:Evaluate("[1e308:FormatDuration('e')]"), "1157407407407407478090251907449595706506144178763410163509158422534623312673789473896052731856917888499854091817991270340489782716286985354471299998987689652457837208421723203990442447652959449038475316991349264256549637436703610170167691312959180326810357274569823380772564209361186718437902557537894400 Days")
+assert_equal(DogTag:Evaluate("[1e308:FormatDuration('f')]"), "1157407407407407478090251907449595706506144178763410163509158422534623312673789473896052731856917888499854091817991270340489782716286985354471299998987689652457837208421723203990442447652959449038475316991349264256549637436703610170167691312959180326810357274569823380772564209361186718437902557537894400d 00h 00m 00s")
+assert_equal(DogTag:Evaluate("[1e308:FormatDuration('s')]"), "1157407407407407478090251907449595706506144178763410163509158422534623312673789473896052731856917888499854091817991270340489782716286985354471299998987689652457837208421723203990442447652959449038475316991349264256549637436703610170167691312959180326810357274569823380772564209361186718437902557537894400.0 Days")
+assert_equal(DogTag:Evaluate("[1e308:FormatDuration('c')]"), "1157407407407407478090251907449595706506144178763410163509158422534623312673789473896052731856917888499854091817991270340489782716286985354471299998987689652457837208421723203990442447652959449038475316991349264256549637436703610170167691312959180326810357274569823380772564209361186718437902557537894400d 0:00:00")
 
 assert_equal(DogTag:Evaluate("['Hello':Concatenate(' World')]"), "Hello World")
 assert_equal(DogTag:Evaluate("['Hello':Concatenate(nil, ' World')]"), nil)

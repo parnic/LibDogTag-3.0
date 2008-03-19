@@ -258,53 +258,150 @@ DogTag:AddTag("Base", "Format", {
 		return format("%s%d:%02d", negative, duration/60, mod(duration, 60))
 	end
 
+	]]
 
 local L_DAY_ONELETTER_ABBR    = DAY_ONELETTER_ABBR:gsub("%s*%%d%s*", "")
 local L_HOUR_ONELETTER_ABBR   = HOUR_ONELETTER_ABBR:gsub("%s*%%d%s*", "")
 local L_MINUTE_ONELETTER_ABBR = MINUTE_ONELETTER_ABBR:gsub("%s*%%d%s*", "")
 local L_SECOND_ONELETTER_ABBR = SECOND_ONELETTER_ABBR:gsub("%s*%%d%s*", "")
 
+local t = {}
 DogTag:AddTag("Base", "FormatDuration", {
-	code = [=[local negative, duration = "", ${number}
-	if duration < 0 then
-		duration = -duration
-		negative = "-"
-	end
-	if ${format} == "s" then
-		if duration >= 86400*36500 then -- 100 years
-			return "***"
-		elseif duration >= 172800 then
-			return format("%s%.1f %s", negative, duration/86400, DAYS_ABBR_P1)
-		elseif duration >= 7200 then
-			return format("%s%.1f %s", negative, duration/3600, HOURS_ABBR_P1)
-		elseif duration >= 120 then
-			return format("%s%.1f %s", negative, duration/60, MINUTES_ABBR_P1)
-		else
-			return format("%s%.0f %s", negative, duration, SECONDS_ABBR_P1)
+	code = function(number, format)
+		local negative = ""
+		if number < 0 then
+			number = -number
+			negative = "-"
 		end
-	elseif ${format} == "c" then
-		if duration >= 60*60*24*365*100 then
-			return ("%s**%d **:**:**"):format(negative, L_DAY_ONELETTER_ABBR)
-		elseif duration >= 60*60*24 then
-			return ("%s%d%s %d:%02d:%02d"):format(negative, duration/86400, L_DAY_ONELETTER_ABBR, duration/3600 % 24, duration/60 % 60, duration % 60)
-		elseif duration >= 60*60 then
-			return ("%s%d:%02d:%02d"):format(negative, duration/3600, duration/60 % 60, duration % 60)
-		elseif duration >= 60 then
-			return ("%s%d:%02d"):format(negative, duration/60 % 60, duration % 60)
-		elseif duration >= 3 then
-			return ("%s%.0f"):format(negative, duration)
+		format = format:sub(1, 1):lower()
+		if format == "e" then
+			if number == 1/0 then
+				return negative .. "***"
+			end
+			
+			t[#t+1] = negative
+			
+			number = math.floor(number + 0.5)
+			
+			local first = true
+			
+			if number >= 60*60*24 then
+				local days = math.floor(number / (60*60*24))
+				number = number % (60*60*24)
+				t[#t+1] = ("%.0f"):format(days)
+				t[#t+1] = " "
+				if days >= 2 then
+					t[#t+1] = DAYS_ABBR_P1
+				else
+					t[#t+1] = DAYS_ABBR
+				end
+				first = false
+			end
+			
+			if number >= 60*60 then
+				local hours = math.floor(number / (60*60))
+				number = number % (60*60)
+				if not first then
+					t[#t+1] = " "
+				else
+					first = false
+				end
+				t[#t+1] = hours
+				t[#t+1] = " "
+				if hours >= 2 then
+					t[#t+1] = HOURS_ABBR_P1
+				else
+					t[#t+1] = HOURS_ABBR
+				end
+			end
+			
+			if number >= 60 then
+				local minutes = math.floor(number / 60)
+				number = number % 60
+				if not first then
+					t[#t+1] = " "
+				else
+					first = false
+				end
+				t[#t+1] = minutes
+				t[#t+1] = " "
+				if minutes >= 2 then
+					t[#t+1] = MINUTES_ABBR_P1
+				else
+					t[#t+1] = MINUTES_ABBR
+				end
+			end
+			
+			if number >= 1 or first then
+				local seconds = number
+				if not first then
+					t[#t+1] = " "
+				else
+					first = false
+				end
+				t[#t+1] = seconds
+				t[#t+1] = " "
+				if seconds >= 2 or seconds == 0 then
+					t[#t+1] = SECONDS_ABBR_P1
+				else
+					t[#t+1] = SECONDS_ABBR
+				end
+			end
+			local s = table.concat(t)
+			for k in pairs(t) do
+				t[k] = nil
+			end
+			return s
+		elseif format == "f" then
+			if number == 1/0 then
+				return negative .. "***"
+			elseif number >= 60*60*24 then
+				return ("%s%.0f%s %02d%s %02d%s %02d%s"):format(negative, math.floor(number/86400), L_DAY_ONELETTER_ABBR, number/3600 % 24, L_HOUR_ONELETTER_ABBR, number/60 % 60, L_MINUTE_ONELETTER_ABBR, number % 60, L_SECOND_ONELETTER_ABBR)
+			elseif number >= 60*60 then
+				return ("%s%d%s %02d%s %02d%s"):format(negative, number/3600, L_HOUR_ONELETTER_ABBR, number/60 % 60, L_MINUTE_ONELETTER_ABBR, number % 60, L_SECOND_ONELETTER_ABBR)
+			elseif number >= 60 then
+				return ("%s%d%s %02d%s"):format(negative, number/60, L_MINUTE_ONELETTER_ABBR, number % 60, L_SECOND_ONELETTER_ABBR)
+			else
+				return ("%s%d%s"):format(negative, number, L_SECOND_ONELETTER_ABBR)
+			end
+		elseif format == "s" then
+			if number == 1/0 then
+				return negative .. "***"
+			elseif number >= 2*60*60*24 then
+				return ("%s%.1f %s"):format(negative, number/86400, DAYS_ABBR_P1)
+			elseif number >= 2*60*60 then
+				return ("%s%.1f %s"):format(negative, number/3600, HOURS_ABBR_P1)
+			elseif number >= 2*60 then
+				return ("%s%.1f %s"):format(negative, number/60, MINUTES_ABBR_P1)
+			elseif number >= 3 then
+				return ("%s%.0f %s"):format(negative, number, SECONDS_ABBR_P1)
+			else
+				return ("%s%.1f %s"):format(negative, number, SECONDS_ABBR_P1)
+			end
 		else
-			return ("%s%.1f"):format(negative, duration)
+			if number == 1/0 then
+				return ("%s**%d **:**:**"):format(negative, L_DAY_ONELETTER_ABBR)
+			elseif number >= 60*60*24 then
+				return ("%s%.0f%s %d:%02d:%02d"):format(negative, math.floor(number/86400), L_DAY_ONELETTER_ABBR, number/3600 % 24, number/60 % 60, number % 60)
+			elseif number >= 60*60 then
+				return ("%s%d:%02d:%02d"):format(negative, number/3600, number/60 % 60, number % 60)
+			elseif number >= 60 then
+				return ("%s%d:%02d"):format(negative, number/60 % 60, number % 60)
+			elseif number >= 3 then
+				return ("%s%.0f"):format(negative, number)
+			else
+				return ("%s%.1f"):format(negative, number)
+			end
 		end
-	end]=],
+	end,
 	arg = {
 		'number', 'number', "@req",
 		'format', 'string', "c",
 	},
 	globals = "pcall;string.format",
 	ret = "string",
-	doc = L["Return a string formatted by format"],
-	example = '["%.3f":Format(1)] => "1.000"; ["%s %s":Format("Hello", "There")] => "Hello There"'
+	doc = L["Return a string formatted by format. Use 'e' for extended, 'f' for full, 's' for short, 'c' for compressed."],
+	example = '[1000:FormatDuration] => "16:40"; [1000:FormatDuration("s")] => "16.7 Mins"; [1000:FormatDuration("f")] => "16m 40s"; [1000:FormatDuration("e")] => "16 Mins 40 Secs"'
 })
-]]
+
 end
