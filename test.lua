@@ -317,7 +317,7 @@ function parse(arg)
 	local change = finish - start
 	local num_tables = countTables(ret)
 	if change ~= num_tables then
---		error(("Unknown table usage: %d instead of %d"):format(change, num_tables), 2)
+		error(("Unknown table usage: %d instead of %d"):format(change, num_tables), 2)
 	end
 	local r = deepCopy(ret)
 	DogTag.deepDel(ret)
@@ -333,7 +333,7 @@ function standardize(arg)
 	local change = finish - start
 	local num_tables = countTables(ret)
 	if change ~= num_tables then
---		error(("Unknown table usage: %d instead of %d"):format(change, num_tables), 2)
+		error(("Unknown table usage: %d instead of %d"):format(change, num_tables), 2)
 	end
 	DogTag.setPoolNum(realStart)
 	return ret
@@ -360,7 +360,7 @@ function DogTag:CleanCode(...)
 	local finish = DogTag.getPoolNum()
 	local change = finish - start
 	if change ~= 0 then
---		error(("Unknown table usage: %d instead of %d"):format(change, 0), 2)
+		error(("Unknown table usage: %d instead of %d"):format(change, 0), 2)
 	end
 	return ret
 end
@@ -1215,7 +1215,6 @@ assert_equal(DogTag:CleanCode("[Alpha(key = Bravo)]"), "[Alpha(key = Bravo)]")
 assert_equal(DogTag:CleanCode("[Alpha((key=Bravo))]"), "[Alpha((key = Bravo))]")
 assert_equal(parse("[Class(unit='mouseovertarget')]"), { "tag", "Class", kwarg = { unit = "mouseovertarget" } })
 assert_equal(parse("[Alpha(key=Bravo, Charlie)]"), nil)
-assert_equal(DogTag:Evaluate("[Alpha(key=Bravo, Charlie)]"), "Syntax error")
 assert_equal(parse("[Alpha(Bravo Charlie)]"), { "tag", "Alpha", { " ", { "tag", "Bravo"}, { "tag", "Charlie" } } })
 assert_equal(parse("[Alpha(Bravo ' ' Charlie)]"), { "tag", "Alpha", { " ", { "tag", "Bravo"}, " ", { "tag", "Charlie" } } })
 assert_equal(DogTag:CleanCode("[Alpha(Bravo ' ' Charlie)]"), "[Alpha(Bravo \" \" Charlie)]")
@@ -1243,6 +1242,10 @@ assert_equal(parse("[(-5):AbsoluteValue]"), { "mod", "AbsoluteValue", { "(", -5 
 assert_equal(parse("[-5:AbsoluteValue]"), { "mod", "AbsoluteValue", -5})
 assert_equal(parse("[-5:AbsoluteValue:AbsoluteValue]"), { "mod", "AbsoluteValue", { "mod", "AbsoluteValue", -5} })
 assert_equal(parse("[-MissingHP:AbsoluteValue]"), { "mod", "AbsoluteValue", { "unm", { "tag", "MissingHP" } } })
+
+old_DogTag_Evaluate(DogTag, "[Alpha(key=Bravo, Charlie)]")
+
+assert_equal(DogTag:Evaluate("[Alpha(key=Bravo, Charlie)]"), "Syntax error")
 
 assert_equal(DogTag:Evaluate("[StaticOne]"), 1)
 

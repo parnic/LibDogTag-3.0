@@ -34,11 +34,11 @@ do
 		self[ns] = newList()
 		return self[ns]
 	end}
-	compilationSteps.pre = setmetatable({}, mt)
-	compilationSteps.start = setmetatable({}, mt)
-	compilationSteps.tag = setmetatable({}, mt)
-	compilationSteps.tagevents = setmetatable({}, mt)
-	compilationSteps.finish = setmetatable({}, mt)
+	compilationSteps.pre = setmetatable({ ['Base'] = {} }, mt)
+	compilationSteps.start = setmetatable({ ['Base'] = {} }, mt)
+	compilationSteps.tag = setmetatable({ ['Base'] = {} }, mt)
+	compilationSteps.tagevents = setmetatable({ ['Base'] = {} }, mt)
+	compilationSteps.finish = setmetatable({ ['Base'] = {} }, mt)
 end
 
 local correctTagCasing = setmetatable({}, {__index = function(self, tag)
@@ -949,6 +949,16 @@ function compile(ast, nsList, t, cachedTags, events, extraKwargs, forceToTypes, 
 			for i = static_t_num+1, #t do
 				t[i] = nil
 			end
+			
+			for k,v in pairs(compiledKwargs) do
+				if v[1]:match("^arg%d+$") then
+					delUniqueVar(v[1])
+				end
+				compiledKwargs[k] = del(v)
+			end
+			compiledKwargs = del(compiledKwargs)
+			kwargs = del(kwargs)
+			
 			local a, b, c = forceTypes(key, type(result), result, forceToTypes, t)
 			return a, b, c, savedArg, savedArgTypes, savedArgStatic
 		end
@@ -1627,7 +1637,6 @@ function DogTag:CreateFunctionFromCode(code, ...)
 		nsList = getNamespaceList(select2(1, n, ...))
 	end
 	
-	
 	local ast = parse(code)
 	if not ast then
 		codeToEventList[nsList][kwargTypes][code] = false
@@ -1729,6 +1738,15 @@ function DogTag:CreateFunctionFromCode(code, ...)
 		else
 			literal = "nil"
 		end
+		
+		events = del(events)
+		extraKwargs = del(extraKwargs)
+		ast = deepDel(ast)
+		cachedTags = del(cachedTags)
+		t = del(t)
+		u = del(u)
+		clearUniqueVars()
+		
 		return ("return function() return %s end"):format(literal)
 	end
 	for k, v in pairs(extraKwargs) do

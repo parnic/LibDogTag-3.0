@@ -22,6 +22,9 @@ do
 		else
 			t = { ... }
 		end
+--		if TABLE_DEBUG then
+--			TABLE_DEBUG[#TABLE_DEBUG+1] = { "newList", poolNum, tostring(t), debugstack() }
+--		end
 		return t
 	end
 	function newDict(...)
@@ -35,6 +38,9 @@ do
 		for i = 1, select('#', ...), 2 do
 			t[select(i, ...)] = select(i+1, ...)
 		end
+--		if TABLE_DEBUG then
+--			TABLE_DEBUG[#TABLE_DEBUG+1] = { "newDict", poolNum, tostring(t), debugstack() }
+--		end
 		return t
 	end
 	function newSet(...)
@@ -48,6 +54,9 @@ do
 		for i = 1, select('#', ...) do
 			t[select(i, ...)] = true
 		end
+--		if TABLE_DEBUG then
+--			TABLE_DEBUG[#TABLE_DEBUG+1] = { "newSet", poolNum, tostring(t), debugstack() }
+--		end
 		return t
 	end
 	function del(t)
@@ -65,6 +74,11 @@ do
 		setmetatable(t, nil)
 		t[''] = true
 		t[''] = nil
+		
+--		if TABLE_DEBUG then
+--			TABLE_DEBUG[#TABLE_DEBUG+1] = { "del", poolNum, tostring(t), debugstack() }
+--			pool[t] = nil
+--		end
 		return nil
 	end
 	local deepDel_data
@@ -170,7 +184,7 @@ end
 DogTag.joinSet = joinSet
 
 local unpackNamespaceList = setmetatable({}, {__index = function(self, key)
-	local t = newList((";"):split(key))
+	local t = {(";"):split(key)}
 	self[key] = t
 	return t
 end, __call = function(self, key)

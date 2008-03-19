@@ -76,7 +76,7 @@ function DogTag:AddTag(namespace, tag, data)
 	end
 	
 	if not Tags[namespace] then
-		Tags[namespace] = newList()
+		Tags[namespace] = {}
 	end
 	if Tags["Base"][tag] or Tags[namespace][tag] then
 		error(("Bad argument #3 to `AddTag'. %q already registered"):format(tag), 2)
@@ -320,7 +320,7 @@ function DogTag:AddAddonFinder(namespace, kind, name, func)
 		error(("Bad argument #5 to `AddAddonFinder'. Expected %q, got %q"):format("function", type(func)), 2)
 	end
 	if not AddonFinders[namespace] then
-		AddonFinders[namespace] = newList()
+		AddonFinders[namespace] = {}
 	end
 	AddonFinders[namespace][newList(kind, name, func)] = true
 end
