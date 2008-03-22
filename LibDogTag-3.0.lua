@@ -163,7 +163,15 @@ function DogTag:AddTag(namespace, tag, data)
 		else
 			error(("ret must be a string or a function which returns a string, got %s"):format(type(ret)), 2)
 		end
-		tagData.events = sortStringList(data.events)
+		if data.events then
+			if type(data.events) == "string" then
+				tagData.events = sortStringList(data.events)
+			elseif type(data.events) == "function" then
+				tagData.events = data.events
+			else
+				error(("events must be a string, function, or nil, got %s"):format(type(data.events)), 2)
+			end
+		end
 		tagData.alias = data.fakeAlias
 		if type(data) == "function" then
 			tagData.static = data.static
@@ -326,6 +334,12 @@ function DogTag:AddAddonFinder(namespace, kind, name, func)
 		AddonFinders[namespace] = {}
 	end
 	AddonFinders[namespace][newList(kind, name, func)] = true
+end
+
+local subLibraries = {}
+DogTag.subLibraries = subLibraries
+function DogTag:AddSubLibrary(major)
+	subLibraries[major] = true
 end
 
 function DogTag:ADDON_LOADED()

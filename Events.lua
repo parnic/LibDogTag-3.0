@@ -77,6 +77,10 @@ local eventData = setmetatable({}, {__index = function(self, key)
 end})
 DogTag.eventData = eventData
 
+function DogTag.hasEvent(event)
+	return not not rawget(eventData, event)
+end
+
 function DogTag:AddCallback(code, callback, ...)
 	local n = select('#', ...)
 	local kwargs
