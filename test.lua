@@ -1702,6 +1702,9 @@ assert_equal(fired, false)
 FireEvent("FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, true)
 fired = false
+FireEvent("FAKE_BLIZZARD_EVENT", 'player', 'focus')
+assert_equal(fired, true)
+fired = false
 DogTag.clearCodes("Base")
 FireEvent("FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, true)
@@ -1732,6 +1735,9 @@ assert_equal(fired, true)
 fired = false
 DogTag.clearCodes("Base")
 FireEvent("FAKE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, true)
+fired = false
+FireEvent("FAKE_BLIZZARD_EVENT", 'player', 'focus')
 assert_equal(fired, true)
 fired = false
 FireEvent("FAKE_BLIZZARD_EVENT", 'pet')
@@ -1823,6 +1829,9 @@ assert_equal(fs:GetText(), 5)
 FireEvent("OTHER_FAKE_BLIZZARD_EVENT")
 FireOnUpdate(0.05)
 assert_equal(fs:GetText(), 6)
+FireEvent("OTHER_FAKE_BLIZZARD_EVENT", 'player')
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 7)
 
 BlizzEventTest_num = 1
 GlobalCheck_data = 'player'
