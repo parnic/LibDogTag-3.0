@@ -1489,10 +1489,14 @@ assert_equal(DogTag:Evaluate("[if GlobalCheck then 'True' else FunctionNumberChe
 assert_equal(DogTag:Evaluate("[Concatenate('True' and nil:Short)]"), nil)
 GlobalCheck_data = "True"
 assert_equal(DogTag:Evaluate("[Concatenate(GlobalCheck and nil:Short)]"), nil)
+GlobalCheckBoolean_data = true
+assert_equal(DogTag:Evaluate("[Concatenate(GlobalCheckBoolean and nil:Short)]"), nil)
 
 assert_equal(DogTag:Evaluate("[Concatenate(if 'True' then nil:Short)]"), nil)
 GlobalCheck_data = "True"
 assert_equal(DogTag:Evaluate("[Concatenate(if GlobalCheck then nil:Short)]"), nil)
+GlobalCheckBoolean_data = true
+assert_equal(DogTag:Evaluate("[Concatenate(if GlobalCheckBoolean then nil:Short)]"), nil)
 
 
 assert_equal(DogTag:Evaluate("[PlusOne(1 1)]"), 12)
