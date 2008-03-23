@@ -57,7 +57,7 @@ function ptostring(...)
 		end
 		local v = select(i, ...)
 		if type(v) == "string" then
-			t[#t+1] = (("%q"):format(v):gsub("[\001-\031\128-\255]", escape_char))
+			t[#t+1] = (("%q"):format(v):gsub("\\\010", "\\n"):gsub("[\001-\031\128-\255]", escape_char))
 		elseif type(v) == "table" then
 			t[#t+1] = "{ "
 			local keys = {}
@@ -2673,7 +2673,7 @@ assert_equal(DogTag:Evaluate("[PlusOne(4 * 2)]"), "Bad number: 8")
 DogTag:RemoveCompilationStep("Base", "tag", func)
 assert_equal(DogTag:Evaluate("[PlusOne(One)]"), 2)
 
-local function func(ast, t, tag, tagData, kwargs, extraKwargs, compiledKwargs, events)
+local function func(ast, t, u, tag, tagData, kwargs, extraKwargs, compiledKwargs, events, returns)
 	if kwargs.number then
 		events["SOME_EVENT"] = true
 	end
@@ -2698,7 +2698,7 @@ FireEvent("SOME_EVENT")
 FireOnUpdate(0.05)
 assert_equal(fs:GetText(), 4)
 
-local function func(ast, t, tag, tagData, kwargs, extraKwargs, compiledKwargs, events)
+local function func(ast, t, u, tag, tagData, kwargs, extraKwargs, compiledKwargs, events, returns)
 	events["FastUpdate"] = true
 end
 DogTag:AddCompilationStep("Base", "tagevents", func)
@@ -2713,7 +2713,7 @@ DogTag:RemoveCompilationStep("Base", "tagevents", func)
 
 FireOnUpdate(0.05)
 
-local function func(ast, t, tag, tagData, kwargs, extraKwargs, compiledKwargs, events)
+local function func(ast, t, u, tag, tagData, kwargs, extraKwargs, compiledKwargs, events, returns)
 	events["Update"] = true
 end
 DogTag:AddCompilationStep("Base", "tagevents", func)
@@ -2729,7 +2729,7 @@ for i = 2, 100 do
 end
 DogTag:RemoveCompilationStep("Base", "tagevents", func)
 
-local function func(ast, t, tag, tagData, kwargs, extraKwargs, compiledKwargs, events)
+local function func(ast, t, u, tag, tagData, kwargs, extraKwargs, compiledKwargs, events, returns)
 	events["SlowUpdate"] = true
 end
 DogTag:AddCompilationStep("Base", "tagevents", func)

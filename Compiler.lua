@@ -906,10 +906,27 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 		end
 		passData = del(passData)
 		
-		local evs = evs and newSet((";"):split(evs)) or newSet()
+		evs = evs and newSet((";"):split(evs)) or newSet()
+		ret = ret and newSet((";"):split(ret)) or newSet("nil")
+		local u = newList()
 		for step in pairs(compilationSteps.tagevents[tagNS]) do
-			step(ast, t, tag, tagData, kwargs, extraKwargs, compiledKwargs, evs)
+			u[#u+1] = newList()
+			step(ast, t, u[#u], tag, tagData, kwargs, extraKwargs, compiledKwargs, evs, ret)
+			if not next(u[#u]) then
+				u[#u] = del(u[#u])
+			end
 		end
+		local r = joinSet(ret, ";")
+		ret = del(ret)
+		ret = r
+		local afterAdditions = newList()
+		for i = #u, 1, -1 do
+			for _, v in ipairs(u[i]) do
+				afterAdditions[#afterAdditions+1] = v
+			end
+			u[i] = del(u[i])
+		end
+		u = del(u)
 		
 		for k in pairs(evs) do
 			local ev_params = newList(("#"):split(k))
@@ -1107,6 +1124,11 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 		end	
 		t[#t+1] = [=[);]=]
 		t[#t+1] = "\n"
+		
+		for i,v in ipairs(afterAdditions) do
+			t[#t+1] = v
+		end
+		afterAdditions = del(afterAdditions)
 		
 		for k,v in pairs(compiledKwargs) do
 			if (not saveFirstArg or k ~= arg[1]) and v[1]:match("^arg%d+$") then
