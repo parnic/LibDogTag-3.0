@@ -229,6 +229,21 @@ local function updateFontString(fs)
 end
 DogTag.updateFontString = updateFontString
 
+function DogTag:UpdateFontString(fs)
+	local code = fsToCode[fs]
+	if code then
+		updateFontString(fs)
+	end
+end
+
+function DogTag:UpdateAllForFrame(frame)
+	for fs, f in pairs(fsToFrame) do
+		if frame == f then
+			updateFontString(fs)
+		end
+	end
+end
+
 function DogTag:AddFontString(fs, frame, code, ...)
 	if type(fs) ~= "table" then
 		error(("Bad argument #2 to `AddFontString'. Expected %q, got %q."):format("table", type(fs)), 2)

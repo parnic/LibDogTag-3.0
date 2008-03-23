@@ -282,6 +282,9 @@ function IsControlKeyDown()
 	return IsControlKeyDown_data
 end
 
+function LoadAddOn()
+end
+
 DogTag_DEBUG = true
 
 DAYS = "Day";
@@ -485,7 +488,7 @@ DogTag:AddTag("Base", "SubtractFive", {
 DogTag:AddTag("Base", "SubtractFromFive", {
 	alias = [=[Subtract(right=number, left=5)]=],
 	arg = {
-		'number', 'number', 0,
+		'number', 'number', '@req',
 	},
 	doc = "Subtract number from 5",
 	example = '[SubtractFromFive(10)] => "-5"; [SubtractFromFive] => "5"',
@@ -968,6 +971,32 @@ DogTag:AddTag("Base", "ExtraFunctionalityWithLib", {
 	example = '[ExtraFunctionalityWithLib] => ""; [ExtraFunctionalityWithLib] => "True"',
 	category = "Testing",
 })
+
+DogTag:AddTag("Base", "Thingy", {
+	code = function(value)
+		return value
+	end,
+	arg = {
+		'value', 'string', '@req',
+	},
+	ret = "string",
+	events = "THINGY_EVENT#$value",
+})
+
+DogTag:AddTag("Base", "AliasOfThingy", {
+	alias = "Thingy(value=myvalue)",
+	arg = {
+		'myvalue', 'string', '@req',
+	},
+})
+
+DogTag:AddTag("Base", "OtherAliasOfThingy", {
+	alias = "Thingy(value=myvalue:Repeat(2))",
+	arg = {
+		'myvalue', 'string', '@req',
+	},
+})
+
 
 collectgarbage('collect')
 collectgarbage('stop')
@@ -2439,7 +2468,7 @@ assert_equal(DogTag:Evaluate("[SubtractFive]", { number = 10 }), 5)
 assert_equal(DogTag:Evaluate("[SubtractFromFive(10)]"), -5)
 assert_equal(DogTag:Evaluate("[SubtractFromFive(12)]"), -7)
 assert_equal(DogTag:Evaluate("[SubtractFromFive(One)]"), 4)
-assert_equal(DogTag:Evaluate("[SubtractFromFive]"), 5)
+assert_equal(DogTag:Evaluate("[SubtractFromFive]", { number = 10 }), -5)
 
 assert_equal(DogTag:Evaluate("[ReverseSubtract(4, 2)]"), -2)
 assert_equal(DogTag:Evaluate("[ReverseSubtract(2, 4)]"), 2)
@@ -2727,6 +2756,91 @@ FireEvent("MY_EVENT", 'alpha', 'bravo')
 DogTag:FireEvent("MY_EVENT")
 DogTag:FireEvent("MY_EVENT", 'alpha', 'bravo')
 assert_equal(fired, false)
+
+assert_equal(DogTag:Evaluate("[Thingy('hey')]"), "hey")
+assert_equal(DogTag:Evaluate("[Thingy]", { value = 'hey' }), "hey")
+assert_equal(DogTag:Evaluate("[AliasOfThingy('hey')]"), "hey")
+assert_equal(DogTag:Evaluate("[AliasOfThingy]", { myvalue = 'hey' }), "hey")
+assert_equal(DogTag:Evaluate("[OtherAliasOfThingy('hey')]"), "heyhey")
+assert_equal(DogTag:Evaluate("[OtherAliasOfThingy]", { myvalue = 'hey' }), "heyhey")
+
+GlobalCheck_data = 1
+DogTag:AddFontString(fs, f, "[Thingy('hey')] [GlobalCheck]")
+assert_equal(fs:GetText(), 'hey 1')
+GlobalCheck_data = 2
+FireEvent("THINGY_EVENT", "Something")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 'hey 1')
+FireEvent("THINGY_EVENT", "hey")
+FireOnUpdate(0)
+assert_equal(fs:GetText(), 'hey 1')
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 'hey 2')
+
+GlobalCheck_data = 1
+DogTag:AddFontString(fs, f, "[AliasOfThingy('hey')] [GlobalCheck]")
+assert_equal(fs:GetText(), 'hey 1')
+GlobalCheck_data = 2
+FireEvent("THINGY_EVENT", "Something")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 'hey 1')
+FireEvent("THINGY_EVENT", "hey")
+FireOnUpdate(0)
+assert_equal(fs:GetText(), 'hey 1')
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 'hey 2')
+
+GlobalCheck_data = 1
+DogTag:AddFontString(fs, f, "[OtherAliasOfThingy('hey')] [GlobalCheck]")
+assert_equal(fs:GetText(), 'heyhey 1')
+GlobalCheck_data = 2
+FireEvent("THINGY_EVENT", "Something")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 'heyhey 1')
+FireEvent("THINGY_EVENT", "heyhey")
+FireOnUpdate(0)
+assert_equal(fs:GetText(), 'heyhey 1')
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 'heyhey 2')
+
+GlobalCheck_data = 1
+DogTag:AddFontString(fs, f, "[Thingy] [GlobalCheck]", { value = 'hey' })
+assert_equal(fs:GetText(), 'hey 1')
+GlobalCheck_data = 2
+FireEvent("THINGY_EVENT", "Something")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 'hey 1')
+FireEvent("THINGY_EVENT", "hey")
+FireOnUpdate(0)
+assert_equal(fs:GetText(), 'hey 1')
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 'hey 2')
+
+GlobalCheck_data = 1
+DogTag:AddFontString(fs, f, "[AliasOfThingy] [GlobalCheck]", { myvalue = 'hey' })
+assert_equal(fs:GetText(), 'hey 1')
+GlobalCheck_data = 2
+FireEvent("THINGY_EVENT", "Something")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 'hey 1')
+FireEvent("THINGY_EVENT", "hey")
+FireOnUpdate(0)
+assert_equal(fs:GetText(), 'hey 1')
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 'hey 2')
+
+GlobalCheck_data = 1
+DogTag:AddFontString(fs, f, "[OtherAliasOfThingy] [GlobalCheck]", { myvalue = 'hey' })
+assert_equal(fs:GetText(), 'heyhey 1')
+GlobalCheck_data = 2
+FireEvent("THINGY_EVENT", "Something")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 'heyhey 1')
+FireEvent("THINGY_EVENT", "heyhey")
+FireOnUpdate(0)
+assert_equal(fs:GetText(), 'heyhey 1')
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 'heyhey 2')
 
 local finalMemory = collectgarbage('count')
 local finalTime = os.clock()

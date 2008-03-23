@@ -1020,6 +1020,7 @@ local operators = {
 	["|"] = "LOGIC",
 	["mod"] = "MODIFIER",
 	["tag"] = "MODIFIER",
+	["kwarg"] = "MODIFIER",
 	["string"] = "MODIFIER",
 	["number"] = "MODIFIER",
 	[" "] = "CONCATENATION",
@@ -1191,6 +1192,8 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 			t[#t+1] = type_ast
 			unparse(ast[2], t, true, false, nil)
 			t[#t+1] = string_char(groupings[type_ast:byte()])
+		elseif type_ast == "kwarg" then
+			t[#t+1] = ast[2]
 		elseif type_ast == "tag" then
 			if negated then
 				t[#t+1] = '~'

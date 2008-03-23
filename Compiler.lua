@@ -879,7 +879,11 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 							if not compiledKwargs_real_param_1:match("^kwargs_[a-z]+$") then
 								local kwargs_real_param = kwargs[real_param]
 								if type(kwargs_real_param) == "table" then
-									param = unparse(kwargs_real_param)
+									if kwargs_real_param[1] == "kwarg" then
+										param = "$" .. kwargs_real_param[2]
+									else
+										param = unparse(kwargs_real_param)
+									end
 								else
 									param = kwargs_real_param or true
 								end
@@ -1532,36 +1536,38 @@ do
 		local tupleArgs = newList()
 		local extraKwargs = newList()
 		local arg = tagData.arg
-		for i = 1, #arg, 3 do
-			local argName = arg[i]
-			if argName == "..." then
-				local num = 0
-				while true do
-					num = num + 1
-					local val = ast[(i-1)/3 + startArg - 1 + num]
-					if not val then
-						break
+		if arg then
+			for i = 1, #arg, 3 do
+				local argName = arg[i]
+				if argName == "..." then
+					local num = 0
+					while true do
+						num = num + 1
+						local val = ast[(i-1)/3 + startArg - 1 + num]
+						if not val then
+							break
+						end
+						tupleArgs[num] = val
 					end
-					tupleArgs[num] = val
+					break
+				else
+					local val = ast[(i-1)/3 + startArg] or ast.kwarg and ast.kwarg[argName]
+					if not val and kwargTypes[argName] then
+						val = newList("kwarg", argName)
+						extraKwargs[val] = true
+					end
+					if not val and arg[i+2] == "@req" then
+						tupleArgs = del(tupleArgs)
+						args = del(args)
+						ast = deepDel(ast)
+						extraKwargs = deepDel(extraKwargs)
+						return nil, ("Arg #%d (%s) req'd for %s"):format((i-1)/3+1, argName, tag)
+					end
+					if not val then
+						val = arg[i+2]
+					end
+					args[argName] = val
 				end
-				break
-			else
-				local val = ast[(i-1)/3 + startArg] or ast.kwarg and ast.kwarg[argName]
-				if not val and kwargTypes[argName] then
-					val = newList("kwarg", argName)
-					extraKwargs[val] = true
-				end
-				if not val and arg[i+2] == "@req" then
-					tupleArgs = del(tupleArgs)
-					args = del(args)
-					ast = deepDel(ast)
-					extraKwargs = deepDel(extraKwargs)
-					return nil, ("Arg #%d (%s) req'd for %s"):format((i-1)/3+1, argName, tag)
-				end
-				if not val then
-					val = arg[i+2]
-				end
-				args[argName] = val
 			end
 		end
 		local parsedAlias = parse(alias)
@@ -1617,6 +1623,10 @@ local function readjustKwargs(ast, nsList, kwargTypes)
 		local tag = astType == "tag" and ast[2] or astType
 		local tagData = getTagData(tag, nsList)
 		if not tagData then
+			if kwargTypes[tag] then
+				ast[1] = "kwarg"
+				return ast
+			end
 			ast = deepDel(ast)
 			return nil, ("Unknown tag %s"):format(tostring(tag))
 		end
@@ -1683,6 +1693,24 @@ local function readjustKwargs(ast, nsList, kwargTypes)
 	return ast
 end
 
+local safeCompile__code
+local safeCompile__ast
+local safeCompile__nsList
+local safeCompile__u
+local safeCompile__cachedTags
+local safeCompile__events
+local safeCompile__functions
+local safeCompile__extraKwargs
+local function safeCompile()
+	return compile(safeCompile__ast, safeCompile__nsList, safeCompile__u, safeCompile__cachedTags, safeCompile__events, safeCompile__functions, safeCompile__extraKwargs, 'nil;number;string', 'result')
+end
+
+local function errorhandler(err)
+	local _, minor = LibStub(MAJOR_VERSION)
+	geterrorhandler()(("%s.%d: Error with code %q%s. %s"):format(MAJOR_VERSION, minor, safeCompile__code, safeCompile__nsList == "Base" and "" or " (" .. safeCompile__nsList .. ")", err))
+	return err
+end
+
 function DogTag:CreateFunctionFromCode(code, ...)
 	if type(code) ~= "string" then
 		error(("Bad argument #2 to `CreateFunctionFromCode'. Expected %q, got %q."):format("string", type(code)), 2)
@@ -1743,22 +1771,6 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	t[#t+1] = [=[local NIL = DogTag.__NIL;]=]
 	t[#t+1] = [=[local mytonumber = DogTag.__mytonumber;]=]
 	local t_num = #t
---[==[
-	for k in pairs(cachedTags) do
-		t[#t+1] = [=[local tag_]=]
-		if operators[k] then
-			t[#t+1] = operators[k]
-		else
-			t[#t+1] = k
-		end
-		t[#t+1] = [=[ = DogTag.Tags.]=]
-		local tagData, tagNS = getTagData(k, nsList)
-		t[#t+1] = tagNS
-		t[#t+1] = [=[[]=]
-		t[#t+1] = ("%q"):format(k)
-		t[#t+1] = [=[].code;]=]
-	end
-]==]
 	t[#t+1] = [=[return function(kwargs) ]=]
 	t[#t+1] = [=[local result;]=]
 	local cachedTags = figureCachedTags(ast)
@@ -1793,7 +1805,16 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	
 	local events = newList()
 	local functions = newList()
-	local ret, types, static = compile(ast, nsList, u, cachedTags, events, functions, extraKwargs, 'nil;number;string', 'result')
+	safeCompile__code, safeCompile__ast, safeCompile__nsList, safeCompile__u, safeCompile__cachedTags, safeCompile__events, safeCompile__functions, safeCompile__extraKwargs = code, ast, nsList, u, cachedTags, events, functions, extraKwargs
+	local good, ret, types, static = xpcall(safeCompile, errorhandler)
+	safeCompile__code, safeCompile__ast, safeCompile__nsList, safeCompile__u, safeCompile__cachedTags, safeCompile__events, safeCompile__functions, safeCompile__extraKwargs = nil
+	if not good then
+		u = del(u)
+		functions = del(functions)
+		events = del(events)
+		codeToEventList[nsList][kwargTypes][code] = false
+		return ("return function() return %q end"):format(tostring(ret))
+	end
 	local w = newList()
 	for k, v in pairs(functions) do
 		w[#w+1] = [=[local tag_]=]
