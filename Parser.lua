@@ -1348,6 +1348,9 @@ end
 
 function DogTag:CleanCode(code)
 	local ast = parse(code)
+	if not ast then
+		return code
+	end
 	ast = cleanAST(ast)
 	local result = unparse(ast)
 	ast = deepDel(ast)

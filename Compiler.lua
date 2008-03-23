@@ -709,7 +709,6 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 		local arg = tagData.arg
 		
 		local allArgsStatic = true
-		local firstAndNonNil_t_num = #t
 		local compiledKwargs = newList()
 		local firstAndNonNil
 		local firstMaybeNumber = false
@@ -751,18 +750,23 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 						argTypes = joinSet(a, ";")
 					end
 					a = del(a)
-				end
+				end	
+				local u = newList()
 				local arg, types, static
 				if arg_num == 1 then
 					local rawTypes
-					arg, rawTypes, static = compile(v, nsList, t, cachedTags, events, functions, extraKwargs, "boolean;nil;number;string")
-					arg, types, static = forceTypes(arg, rawTypes, static, argTypes, t)
+					arg, rawTypes, static = compile(v, nsList, u, cachedTags, events, functions, extraKwargs, "boolean;nil;number;string")
+					arg, types, static = forceTypes(arg, rawTypes, static, argTypes, u)
 					local a = newSet((";"):split(rawTypes))
 					firstMaybeNumber = a['number'] and rawTypes
 					a = del(a)
 				else
-					arg, types, static = compile(v, nsList, t, cachedTags, events, functions, extraKwargs, argTypes)
+					arg, types, static = compile(v, nsList, u, cachedTags, events, functions, extraKwargs, argTypes)
 				end	
+				for i,v in ipairs(u) do
+					t[#t+1] = v
+				end
+				u = del(u)
 				if static == nil then
 					allArgsStatic = false
 				end
@@ -1002,7 +1006,11 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 			compiledKwargs = del(compiledKwargs)
 			kwargs = del(kwargs)
 			
-			local a, b, c = forceTypes(key, type(result), result, forceToTypes, t)
+			local type_result = type(result)
+			if result == nil then
+				result = "@nil"
+			end
+			local a, b, c = forceTypes(key, type_result, result, forceToTypes, t)
 			return a, b, c, savedArg, savedArgTypes, savedArgStatic
 		end
 		
@@ -1069,11 +1077,6 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 			returns["nil"] = true
 			ret = joinSet(returns, ";")
 			returns = del(returns)
-			if firstAndNonNil_t_num then
-				for i = firstAndNonNil_t_num+1, #t do
-					t[i] = nil
-				end
-			end
 		end
 		
 		if caching then
@@ -1238,8 +1241,14 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 			end
 			t[#t+1] = storeKey
 			t[#t+1] = [=[ then ]=]
-			local arg, secondResults = compile(ast[3], nsList, t, cachedTags, events, functions, extraKwargs, "nil;number;string", storeKey)
+			local arg, secondResults, static = compile(ast[3], nsList, t, cachedTags, events, functions, extraKwargs, "nil;number;string", storeKey)
 			secondResults = newSet((";"):split(secondResults))
+			if static then
+				t[#t+1] = storeKey
+				t[#t+1] = [=[ = ]=]
+				t[#t+1] = arg
+				t[#t+1] = [=[;]=]
+			end
 			t[#t+1] = [=[end;]=]
 			for k in pairs(firstResults) do
 				if k ~= "nil" and k ~= "boolean" then
@@ -1291,12 +1300,24 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 			t[#t+1] = [=[if ]=]
 			t[#t+1] = storeKey
 			t[#t+1] = [=[ then ]=]
-			local arg, firstResults = compile(ast[3], nsList, t, cachedTags, events, functions, extraKwargs, forceToTypes, storeKey)
+			local arg, firstResults, static = compile(ast[3], nsList, t, cachedTags, events, functions, extraKwargs, forceToTypes, storeKey)
+			if static then
+				t[#t+1] = storeKey
+				t[#t+1] = [=[ = ]=]
+				t[#t+1] = arg
+				t[#t+1] = [=[;]=]
+			end
 			local totalResults = newSet((";"):split(firstResults))
 			t[#t+1] = [=[ else ]=]
 			local secondResults
 			if hasElse then
-				storeKey, secondResults = compile(ast[4], nsList, t, cachedTags, events, functions, extraKwargs, forceToTypes, storeKey)
+				storeKey, secondResults, static = compile(ast[4], nsList, t, cachedTags, events, functions, extraKwargs, forceToTypes, storeKey)
+				if static then
+					t[#t+1] = storeKey
+					t[#t+1] = [=[ = ]=]
+					t[#t+1] = arg
+					t[#t+1] = [=[;]=]
+				end
 			else
 				t[#t+1] = storeKey
 				t[#t+1] = [=[ = nil;]=]

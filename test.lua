@@ -42,6 +42,12 @@ local function key_sort(alpha, bravo)
 	end
 end
 
+local preserved = {
+	["nil"] = true,
+	["true"] = true,
+	["false"] = true,
+}
+
 local first_ptostring = true
 function ptostring(...)
 	local t = {}
@@ -68,7 +74,7 @@ function ptostring(...)
 					t[#t+1] = ", "
 				end
 				if type(a) ~= "number" or a < 1 or a > table_len(v) then
-					if type(a) == "string" and a:match("^[a-zA-Z_][a-zA-Z_0-9]*$") then
+					if type(a) == "string" and a:match("^[a-zA-Z_][a-zA-Z_0-9]*$") and not preserved[a] then
 						t[#t+1] = a
 						t[#t+1] = " = "
 					else
@@ -1315,6 +1321,7 @@ assert_equal(DogTag:Evaluate("[One]"), 1)
 assert_equal(DogTag:Evaluate("[One:PlusOne]"), 2)
 assert_equal(DogTag:Evaluate("[PlusOne(One):PlusOne]"), 3)
 assert_equal(DogTag:Evaluate("[PlusOne(number=One)]"), 2)
+GlobalCheck_data = "Hello World"
 assert_equal(DogTag:Evaluate("[GlobalCheck]"), "Hello World")
 --[[
 assert_equal(DogTag:Evaluate("[SubGlobalCheck]"), "Hello World")
@@ -1477,6 +1484,16 @@ assert_equal(DogTag:Evaluate("[if GlobalCheck then 'True' else FunctionNumberChe
 assert_equal(DogTag:Evaluate("[FunctionNumberCheck]"), 7)
 GlobalCheck_data = nil
 assert_equal(DogTag:Evaluate("[if GlobalCheck then 'True' else FunctionNumberCheck]"), 8)
+
+
+assert_equal(DogTag:Evaluate("[Concatenate('True' and nil:Short)]"), nil)
+GlobalCheck_data = "True"
+assert_equal(DogTag:Evaluate("[Concatenate(GlobalCheck and nil:Short)]"), nil)
+
+assert_equal(DogTag:Evaluate("[Concatenate(if 'True' then nil:Short)]"), nil)
+GlobalCheck_data = "True"
+assert_equal(DogTag:Evaluate("[Concatenate(if GlobalCheck then nil:Short)]"), nil)
+
 
 assert_equal(DogTag:Evaluate("[PlusOne(1 1)]"), 12)
 
@@ -2306,6 +2323,8 @@ assert_equal(DogTag:Evaluate("[true:Length]"), 4)
 assert_equal(DogTag:Evaluate("[nil:Short]"), nil)
 assert_equal(DogTag:Evaluate("[false:Short]"), nil)
 assert_equal(DogTag:Evaluate("[GlobalCheck:Short]"), nil)
+assert_equal(DogTag:Evaluate("[nil:Color('ff7f7f')]"), nil)
+assert_equal(DogTag:Evaluate("[false:Color('ff7f7f')]"), nil)
 
 assert_equal(DogTag:Evaluate("[BooleanToString(nil)]"), "false")
 assert_equal(DogTag:Evaluate("[BooleanToString(false)]"), "false")
