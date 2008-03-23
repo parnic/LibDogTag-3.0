@@ -1304,6 +1304,8 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 			t[#t+1] = [=[if ]=]
 			t[#t+1] = storeKey
 			t[#t+1] = [=[ then ]=]
+			t[#t+1] = storeKey
+			t[#t+1] = [=[ = nil;]=]
 			local arg, firstResults, static = compile(ast[3], nsList, t, cachedTags, events, functions, extraKwargs, forceToTypes, storeKey)
 			if static then
 				t[#t+1] = storeKey
