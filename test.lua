@@ -864,6 +864,16 @@ DogTag:AddTag("Base", "RetSame", {
 	end
 })
 
+DogTag:AddTag("Base", "OtherRetSame", {
+	code = function(value)
+		return value
+	end,
+	arg = {
+		'value', 'number;nil;string', '@req'
+	},
+	ret = 'number;nil;string'
+})
+
 DogTag:AddTag("Base", "DynamicCodeTest", {
 	code = function(args)
 		if args.value.isLiteral then
@@ -1486,17 +1496,29 @@ GlobalCheck_data = nil
 assert_equal(DogTag:Evaluate("[if GlobalCheck then 'True' else FunctionNumberCheck]"), 8)
 
 
-assert_equal(DogTag:Evaluate("[Concatenate('True' and nil:Short)]"), nil)
+assert_equal(DogTag:Evaluate("[Boolean('True' and nil:Short)]"), nil)
 GlobalCheck_data = "True"
-assert_equal(DogTag:Evaluate("[Concatenate(GlobalCheck and nil:Short)]"), nil)
+assert_equal(DogTag:Evaluate("[Boolean(GlobalCheck and nil:Short)]"), nil)
+assert_equal(DogTag:Evaluate("[Boolean(OtherRetSame('True') and (One - 1):Hide(0):Short)]"), nil)
 GlobalCheckBoolean_data = true
-assert_equal(DogTag:Evaluate("[Concatenate(GlobalCheckBoolean and nil:Short)]"), nil)
+assert_equal(DogTag:Evaluate("[Boolean(GlobalCheckBoolean and nil:Short)]"), nil)
+assert_equal(DogTag:Evaluate("[Boolean('True' and 0:Hide(0):Short)]"), nil)
+GlobalCheck_data = "True"
+assert_equal(DogTag:Evaluate("[Boolean(GlobalCheck and 0:Hide(0):Short)]"), nil)
+assert_equal(DogTag:Evaluate("[Boolean(RetSame('True') and 0:Hide(0):Short)]"), nil)
+GlobalCheckBoolean_data = true
+assert_equal(DogTag:Evaluate("[Boolean(GlobalCheckBoolean and 0:Hide(0):Short)]"), nil)
 
-assert_equal(DogTag:Evaluate("[Concatenate(if 'True' then nil:Short)]"), nil)
+assert_equal(DogTag:Evaluate("[Boolean(if 'True' then nil:Short)]"), nil)
 GlobalCheck_data = "True"
-assert_equal(DogTag:Evaluate("[Concatenate(if GlobalCheck then nil:Short)]"), nil)
+assert_equal(DogTag:Evaluate("[Boolean(if GlobalCheck then nil:Short)]"), nil)
 GlobalCheckBoolean_data = true
-assert_equal(DogTag:Evaluate("[Concatenate(if GlobalCheckBoolean then nil:Short)]"), nil)
+assert_equal(DogTag:Evaluate("[Boolean(if GlobalCheckBoolean then nil:Short)]"), nil)
+assert_equal(DogTag:Evaluate("[Boolean(if 'True' then 0:Hide(0):Short)]"), nil)
+GlobalCheck_data = "True"
+assert_equal(DogTag:Evaluate("[Boolean(if GlobalCheck then 0:Hide(0):Short)]"), nil)
+GlobalCheckBoolean_data = true
+assert_equal(DogTag:Evaluate("[Boolean(if GlobalCheckBoolean then 0:Hide(0):Short)]"), nil)
 
 
 assert_equal(DogTag:Evaluate("[PlusOne(1 1)]"), 12)

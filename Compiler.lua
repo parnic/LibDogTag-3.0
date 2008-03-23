@@ -1241,6 +1241,10 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 			end
 			t[#t+1] = storeKey
 			t[#t+1] = [=[ then ]=]
+			if astType == 'and' then
+				t[#t+1] = storeKey
+				t[#t+1] = [=[ = nil;]=]
+			end
 			local arg, secondResults, static = compile(ast[3], nsList, t, cachedTags, events, functions, extraKwargs, "nil;number;string", storeKey)
 			secondResults = newSet((";"):split(secondResults))
 			if static then
