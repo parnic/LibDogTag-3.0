@@ -379,6 +379,7 @@ function DogTag:ADDON_LOADED()
 				if AceLibrary then
 					AceLibrary:HasInstance(name) -- try to load
 				end
+				LoadAddOn(name)
 				if LibStub:GetLibrary(name, true) then
 					tmp_data[k] = nil
 					del(k)
