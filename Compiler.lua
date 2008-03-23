@@ -2041,7 +2041,14 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	
 	types = newSet((";"):split(types))
 	if types["string"] then
-		t[#t+1] = "if result == '' then\nresult = nil;\nelseif mytonumber(result) then\nresult = result+0;\nend;\n"
+		t[#t+1] = "if type(result) == 'string' then\n"
+		t[#t+1] = "result = result:trim();\n"
+		t[#t+1] = "if result == '' then\n"
+		t[#t+1] = "result = nil;\n"
+		t[#t+1] = "elseif mytonumber(result) then\n"
+		t[#t+1] = "result = result+0;\n"
+		t[#t+1] = "end;\n"
+		t[#t+1] = "end;\n"
 	end
 	types = del(types)
 	

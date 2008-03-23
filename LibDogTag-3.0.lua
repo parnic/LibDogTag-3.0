@@ -359,32 +359,36 @@ function DogTag:AddSubLibrary(major)
 	subLibraries[major] = true
 end
 
+local inADDON_LOADED = false
+local accessed_ADDON_LOADED = false
 function DogTag:ADDON_LOADED()
-	AceLibrary = _G.AceLibrary
+	if inADDON_LOADED then
+		accessed_ADDON_LOADED = true
+		return
+	end
+	inADDON_LOADED = true
+	accessed_ADDON_LOADED = false
 	for namespace, data in pairs(AddonFinders) do
 		local refresh = false
-		local tmp_data = data
-		data = newList()
-		AddonFinders[namespace] = data
-		for k in pairs(tmp_data) do
+		for k in pairs(data) do
 			local kind, name, func = k[1], k[2], k[3]
 			if kind == "_G" then
 				if _G[name] then
-					tmp_data[k] = nil
+					data[k] = nil
 					del(k)
 					func(_G[name])
 					refresh = true
 				end
 			elseif kind == "AceLibrary" then
 				if AceLibrary and AceLibrary:HasInstance(name) then
-					tmp_data[k] = nil
+					data[k] = nil
 					del(k)
 					func(AceLibrary(name))
 					refresh = true
 				end
 			elseif kind == "Rock" then
 				if Rock and Rock:HasLibrary(name) then
-					tmp_data[k] = nil
+					data[k] = nil
 					del(k)
 					func(Rock:GetLibrary(name))
 					refresh = true
@@ -398,20 +402,20 @@ function DogTag:ADDON_LOADED()
 				end
 				LoadAddOn(name)
 				if LibStub:GetLibrary(name, true) then
-					tmp_data[k] = nil
+					data[k] = nil
 					del(k)
 					func(LibStub:GetLibrary(name))
 					refresh = true
 				end
 			end
 		end
-		for k in pairs(tmp_data) do
-			data[k] = true
-		end
-		tmp_data = del(tmp_data)
 		if refresh then
 			clearCodes(namespace)
 		end
+	end
+	inADDON_LOADED = false
+	if accessed_ADDON_LOADED then
+		self:ADDON_LOADED()
 	end
 end
 
