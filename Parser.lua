@@ -28,8 +28,8 @@ ALPHANUM            = ('A'..'Z' | 'a'..'z' | '_'), { '0'..'9' | 'A'..'Z' | 'a'..
 MULTI_DIGIT         = '0'..'9', { '0'..'9' }
 MULTI_SPACE         = { SPACE }
 SPACE               = " " | "\t" | "\n" | "\r"
-IF_STATEMENT        = COMPARISON, [ MULTI_SPACE, "?", MULTI_SPACE, COMPARISON, [ MULTI_SPACE, "!", MULTI_SPACE, COMPARISON ] ]
-                    | "if", MULTI_SPACE, COMPARISON, MULTI_SPACE, "then", MULTI_SPACE, COMPARISON, [ MULTI_SPACE, "else", MULTI_SPACE, COMPARISON ]
+IF_STATEMENT        = COMPARISON, [ MULTI_SPACE, "?", MULTI_SPACE, IF_STATEMENT, [ MULTI_SPACE, "!", MULTI_SPACE, IF_STATEMENT ] ]
+                    | "if", MULTI_SPACE, IF_STATEMENT, MULTI_SPACE, "then", MULTI_SPACE, IF_STATEMENT, [ MULTI_SPACE, "else", MULTI_SPACE, IF_STATEMENT ]
 COMPARISON          = LOGIC, { MULTI_SPACE, ("<=" | "<" | ">" | ">=" | "=" | "~="), MULTI_SPACE, LOGIC }
 LOGIC               = CONCATENATION, { MULTI_SPACE, ( "and" | "or" | "&" | "|" | "||" ), MULTI_SPACE, CONCATENATION }
 CONCATENATION       = ADDITION, { SPACE, MULTI_SPACE, ADDITION }
@@ -622,6 +622,11 @@ function SPACE(tokens, position)
 	end
 end
 
+--[[
+IF_STATEMENT        = COMPARISON, [ MULTI_SPACE, "?", MULTI_SPACE, IF_STATEMENT, [ MULTI_SPACE, "!", MULTI_SPACE, IF_STATEMENT ] ]
+                    | "if", MULTI_SPACE, IF_STATEMENT, MULTI_SPACE, "then", MULTI_SPACE, IF_STATEMENT, [ MULTI_SPACE, "else", MULTI_SPACE, IF_STATEMENT ]
+]]
+
 function IF_STATEMENT(tokens, position)
 	if matches(tokens, position, "if") then
 		position = MULTI_SPACE(tokens, position+3)
@@ -635,7 +640,7 @@ function IF_STATEMENT(tokens, position)
 			return nil
 		end
 		position = MULTI_SPACE(tokens, position+5)
-		local position, d = COMPARISON(tokens, position)
+		local position, d = IF_STATEMENT(tokens, position)
 		if not position then
 			data = deepDel(data)
 			return nil
@@ -649,8 +654,8 @@ function IF_STATEMENT(tokens, position)
 		end
 	
 		pos = MULTI_SPACE(tokens, pos+5)
-	
-		pos, d = COMPARISON(tokens, pos)
+		
+		pos, d = IF_STATEMENT(tokens, pos)
 		if not pos then
 			return position, data
 		end
@@ -672,7 +677,7 @@ function IF_STATEMENT(tokens, position)
 	
 		pos = MULTI_SPACE(tokens, pos+1)
 	
-		local pos, d = COMPARISON(tokens, pos)
+		local pos, d = IF_STATEMENT(tokens, pos)
 		if not pos then
 			return position, data
 		end
@@ -686,8 +691,8 @@ function IF_STATEMENT(tokens, position)
 		end
 	
 		pos = MULTI_SPACE(tokens, pos+1)
-	
-		pos, d = COMPARISON(tokens, pos)
+		
+		pos, d = IF_STATEMENT(tokens, pos)
 		if not pos then
 			return position, data
 		end

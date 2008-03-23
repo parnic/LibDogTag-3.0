@@ -207,6 +207,7 @@ local function updateFontString(fs)
 	fsNeedUpdate[fs] = nil
 	fsNeedQuickUpdate[fs] = nil
 	local code = fsToCode[fs]
+	assert(code)
 	local nsList = fsToNSList[fs]
 	local kwargs = fsToKwargs[fs]
 	local kwargTypes = kwargsToKwargTypes[kwargs]
@@ -316,6 +317,7 @@ function DogTag:RemoveFontString(fs)
 	local kwargs = fsToKwargs[fs]
 	
 	fsToCode[fs], fsToFrame[fs], fsToNSList[fs], fsToKwargs[fs] = nil, nil, nil, nil
+	fsNeedUpdate[fs], fsNeedQuickUpdate[fs] = nil, nil
 	
 	local kwargTypes = kwargsToKwargTypes[kwargs]
 	
