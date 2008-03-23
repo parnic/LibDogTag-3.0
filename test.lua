@@ -155,6 +155,13 @@ local function CreateFontString(parent, name, layer)
 	function fs:GetAlpha()
 		return alpha
 	end
+	local fontObject
+	function fs:SetFontObject(object)
+		fontObject = object
+	end
+	function fs:GetFontObject()
+		return fontObject
+	end
 	return fs
 end
 local frames = {}
@@ -196,6 +203,20 @@ function CreateFrame(frameType, ...)
 	end
 	function frame:CreateFontString(...)
 		return CreateFontString(frame, ...)
+	end
+	if frameType == "GameTooltip" then
+		local owner
+		function frame:SetOwner(f)
+			owner = f
+		end
+		function frame:IsOwned(f)
+			return owner == f
+		end
+		local fsLeft, fsRight = {}, {}
+		function frame:AddFontStrings(f1, f2)
+			fsLeft[#fsLeft+1] = f1
+			fsRight[#fsRight+1] = f2
+		end
 	end
 	return frame
 end
@@ -898,6 +919,23 @@ DogTag:AddTag("Base", "DoubleBlizzEventTest", {
 	events = "DOUBLE_BLIZZARD_EVENT#$alpha;DOUBLE_BLIZZARD_EVENT#$bravo",
 	doc = "Return the results of BlizzEventTest_num after incrementing",
 	example = '[BlizzEventTest] => "1"',
+	category = "Testing"
+})
+
+local OtherDoubleBlizzEventTest = 0
+DogTag:AddTag("Base", "OtherDoubleBlizzEventTest", {
+	code = function(value)
+		OtherDoubleBlizzEventTest_num = OtherDoubleBlizzEventTest_num + 1
+		return OtherDoubleBlizzEventTest_num
+	end,
+	arg = {
+		'alpha', 'string', "@req",
+		'bravo', 'string', "@req",
+	},
+	ret = "number",
+	events = "OTHER_DOUBLE_BLIZZARD_EVENT#$alpha#$bravo",
+	doc = "Return the results of OtherDoubleBlizzEventTest_num after incrementing",
+	example = '[OtherDoubleBlizzEventTest("alpha", "bravo")] => "1"',
 	category = "Testing"
 })
 
@@ -1829,6 +1867,164 @@ assert_equal(fs:GetText(), 3)
 FireOnUpdate(0.01)
 assert_equal(fs:GetText(), 3)
 FireEvent("DOUBLE_BLIZZARD_EVENT", "focus")
+assert_equal(fs:GetText(), 3)
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 3)
+
+
+local fired = false
+local function func(code, kwargs)
+	assert_equal(code, "[OtherDoubleBlizzEventTest]")
+	assert_equal(kwargs, { alpha = "player", bravo = "pet" })
+	fired = true
+end
+DogTag:AddCallback("[OtherDoubleBlizzEventTest]", func, { alpha = "player", bravo = "pet" })
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'pet')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player', 'player')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'pet', 'pet')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player', 'pet')
+assert_equal(fired, true)
+fired = false
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'pet', 'player')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'pet', 'player', 'something')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player', 'pet', 'something')
+assert_equal(fired, true)
+fired = false
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player', 'something', 'pet')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'something', 'player', 'pet')
+assert_equal(fired, false)
+DogTag:RemoveCallback("[OtherDoubleBlizzEventTest]", func, { alpha = "player", bravo = "pet" })
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player', 'pet')
+assert_equal(fired, false)
+
+
+
+local fired = false
+local function func(code, kwargs)
+	assert_equal(code, "[OtherDoubleBlizzEventTest(alpha='player', bravo='pet')]")
+	assert_equal(kwargs, nil)
+	fired = true
+end
+DogTag:AddCallback("[OtherDoubleBlizzEventTest(alpha='player', bravo='pet')]", func)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'pet')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player', 'player')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'pet', 'pet')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player', 'pet')
+assert_equal(fired, true)
+fired = false
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'pet', 'player')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'pet', 'player', 'something')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player', 'pet', 'something')
+assert_equal(fired, true)
+fired = false
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player', 'something', 'pet')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'something', 'player', 'pet')
+assert_equal(fired, false)
+DogTag:RemoveCallback("[OtherDoubleBlizzEventTest(alpha='player', bravo='pet')]", func)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player', 'pet')
+assert_equal(fired, false)
+
+
+
+local fired = false
+local function func(code, kwargs)
+	assert_equal(code, "[OtherDoubleBlizzEventTest(alpha='player', bravo='pet')] [OtherDoubleBlizzEventTest(alpha='focus', bravo='target')]")
+	assert_equal(kwargs, nil)
+	fired = true
+end
+DogTag:AddCallback("[OtherDoubleBlizzEventTest(alpha='player', bravo='pet')] [OtherDoubleBlizzEventTest(alpha='focus', bravo='target')]", func)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'pet')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player', 'player')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'pet', 'pet')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player', 'pet')
+assert_equal(fired, true)
+fired = false
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'pet', 'player')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'pet', 'player', 'something')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player', 'pet', 'something')
+assert_equal(fired, true)
+fired = false
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player', 'something', 'pet')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'something', 'player', 'pet')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'focus')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'target')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'focus', 'focus')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'target', 'target')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'focus', 'target')
+assert_equal(fired, true)
+fired = false
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'target', 'focus')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'target', 'focus', 'something')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'focus', 'target', 'something')
+assert_equal(fired, true)
+fired = false
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'focus', 'something', 'target')
+assert_equal(fired, false)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'something', 'focus', 'target')
+assert_equal(fired, false)
+DogTag:RemoveCallback("[OtherDoubleBlizzEventTest(alpha='player', bravo='pet')] [OtherDoubleBlizzEventTest(alpha='focus', bravo='target')]", func)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player', 'pet')
+assert_equal(fired, false)
+
+
+
+OtherDoubleBlizzEventTest_num = 0
+DogTag:AddFontString(fs, f, "[OtherDoubleBlizzEventTest]", { alpha = "pet", bravo = "player" })
+assert_equal(fs:GetText(), 1)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", "player")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 1)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", "pet")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 1)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", "player", "pet")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 1)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", "pet", "player")
+FireOnUpdate(0)
+assert_equal(fs:GetText(), 1)
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 2)
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 2)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", "player", "pet")
+FireOnUpdate(1000)
+assert_equal(fs:GetText(), 2)
+FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", "pet", "player")
+FireOnUpdate(0)
+assert_equal(fs:GetText(), 2)
+FireOnUpdate(0.05)
 assert_equal(fs:GetText(), 3)
 FireOnUpdate(1000)
 assert_equal(fs:GetText(), 3)

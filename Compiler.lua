@@ -862,41 +862,52 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 		end
 		
 		for k in pairs(evs) do
-			local ev, param = ("#"):split(k, 2)
+			local ev_params = newList(("#"):split(k))
+			local ev = ev_params[1]
 			local events_ev = events[ev]
 			if events_ev ~= true then
-				if param then
-					if param:match("^%$") then
-						local real_param = param:sub(2)
-						local compiledKwargs_real_param = compiledKwargs[real_param]
-						if not compiledKwargs_real_param then
-							error(("Unknown event parameter %q for tag %s. Please inform ckknight."):format(real_param, tag))
-						end
-						local compiledKwargs_real_param_1 = compiledKwargs_real_param[1]
-						if not compiledKwargs_real_param_1:match("^kwargs_[a-z]+$") then
-							local kwargs_real_param = kwargs[real_param]
-							if type(kwargs_real_param) == "table" then
-								param = unparse(kwargs_real_param)
-							else
-								param = kwargs_real_param or true
+				if #ev_params >= 2 then
+					for i = 2, #ev_params do
+						local param = ev_params[i]
+						if param:match("^%$") then
+							local real_param = param:sub(2)
+							local compiledKwargs_real_param = compiledKwargs[real_param]
+							if not compiledKwargs_real_param then
+								error(("Unknown event parameter %q for tag %s. Please inform ckknight."):format(real_param, tag))
+							end
+							local compiledKwargs_real_param_1 = compiledKwargs_real_param[1]
+							if not compiledKwargs_real_param_1:match("^kwargs_[a-z]+$") then
+								local kwargs_real_param = kwargs[real_param]
+								if type(kwargs_real_param) == "table" then
+									param = unparse(kwargs_real_param)
+								else
+									param = kwargs_real_param or true
+								end
+								ev_params[i] = param
 							end
 						end
 					end
+					local paramResult
+					if #ev_params == 2 then
+						paramResult = ev_params[2]
+					else
+						paramResult = table.concat(ev_params, '#', 2, #ev_params)
+					end
 					if type(events_ev) == "table" then
-						if param == true then
+						if paramResult == true then
 							del(events_ev)
 							events[ev] = true
 						else
-							events_ev[param] = true
+							events_ev[paramResult] = true
 						end
-					elseif events_ev and events_ev ~= param then
-						if param == true then
+					elseif events_ev and events_ev ~= paramResult then
+						if paramResult == true then
 							events[ev] = true
 						else
-							events[ev] = newSet(events_ev, param)
+							events[ev] = newSet(events_ev, paramResult)
 						end
 					else
-						events[ev] = param
+						events[ev] = paramResult
 					end
 				else
 					if type(events_ev) == "table" then
@@ -905,6 +916,7 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 					events[ev] = true
 				end
 			end
+			ev_params = del(ev_params)
 		end
 		evs = del(evs)
 		
