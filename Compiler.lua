@@ -1743,7 +1743,7 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	t[#t+1] = [=[local NIL = DogTag.__NIL;]=]
 	t[#t+1] = [=[local mytonumber = DogTag.__mytonumber;]=]
 	local t_num = #t
---[[
+--[==[
 	for k in pairs(cachedTags) do
 		t[#t+1] = [=[local tag_]=]
 		if operators[k] then
@@ -1758,7 +1758,7 @@ function DogTag:CreateFunctionFromCode(code, ...)
 		t[#t+1] = ("%q"):format(k)
 		t[#t+1] = [=[].code;]=]
 	end
-]]
+]==]
 	t[#t+1] = [=[return function(kwargs) ]=]
 	t[#t+1] = [=[local result;]=]
 	local cachedTags = figureCachedTags(ast)
