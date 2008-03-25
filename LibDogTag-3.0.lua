@@ -59,6 +59,15 @@ DogTag.__colors = {
 	neutral = { 1, 1, 34/255 },
 	friendly = { 0.2, 0.8, 0.15 },
 	civilian = { 48/255, 113/255, 191/255 },
+	dead = { 0.6, 0.6, 0.6 },
+	disconnected = { 0.7, 0.7, 0.7 },
+	petHappy = { 0, 1, 0 },
+	petNeutral = { 1, 1, 0 },
+	petAngry = { 1, 0, 0 },
+	rage = { 226/255, 45/255, 75/255 },
+	energy = { 1, 220/255, 25/255 },
+	focus = { 1, 210/255, 0 },
+	mana = { 48/255, 113/255, 191/255 },
 }
 for class, data in pairs(_G.RAID_CLASS_COLORS) do
 	DogTag.__colors[class] = { data.r, data.g, data.b, }
