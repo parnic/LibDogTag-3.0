@@ -44,6 +44,7 @@ local codeToEventList
 do
 	local codeToEventList_mt = {__index = function(self, kwargTypes)
 		local t = newList()
+		t[""] = false
 		self[kwargTypes] = t
 		return t
 	end}
