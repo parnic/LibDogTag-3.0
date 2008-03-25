@@ -1,4 +1,4 @@
-## Interface: 20300
+## Interface: 20400
 ## LoadOnDemand: 1
 ## Title: LibDogTag-3.0
 ## Notes: A library to provide a markup syntax
