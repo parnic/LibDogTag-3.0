@@ -400,4 +400,17 @@ DogTag:AddTag("Base", "FormatDuration", {
 	example = '[1000:FormatDuration] => "16:40"; [1000:FormatDuration("s")] => "16.7 Mins"; [1000:FormatDuration("f")] => "16m 40s"; [1000:FormatDuration("e")] => "16 Mins 40 Secs"'
 })
 
+DogTag:AddTag("Base", "Icon", {
+	code = function(data, size)
+		return "|T" .. data .. ":" .. size .. "|t"
+	end,
+	arg = {
+		'data', 'string', '@req',
+		'size', 'number', 0,
+	},
+	ret = 'string',
+	doc = L["Return an icon using the given path"],
+	example = '["Interface\\Buttons\\WHITE8X8":Icon] => "|TInterface\\Buttons\\WHITE8X8:0|t"'
+})
+
 end

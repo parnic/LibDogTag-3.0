@@ -2353,6 +2353,11 @@ assert_equal(DogTag:Evaluate("[GlobalCheck:Concatenate(' World')]"), nil)
 assert_equal(DogTag:Evaluate("[Concatenate(false, ' World')]"), nil)
 assert_equal(DogTag:Evaluate("[Concatenate('Hello', nil)]"), nil)
 
+assert_equal(DogTag:Evaluate("[Append('Hello', ' There')]"), "Hello There")
+assert_equal(DogTag:Evaluate("[Prepend('There', 'Hello ')]"), "Hello There")
+assert_equal(DogTag:Evaluate("[Append('Hello', nil)]"), "Hello")
+assert_equal(DogTag:Evaluate("[Prepend('There', nil)]"), "There")
+
 assert_equal(DogTag:Evaluate("[nil:Length]"), nil)
 assert_equal(DogTag:Evaluate("[false:Length]"), nil)
 assert_equal(DogTag:Evaluate("[GlobalCheck:Length]"), nil)

@@ -26,4 +26,6 @@ for _,v in ipairs(_G.DogTag_funcs) do
 	v(DogTag)
 end
 
+DogTag.oldLib = nil
+
 _G.DogTag_funcs = nil

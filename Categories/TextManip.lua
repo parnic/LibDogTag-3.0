@@ -474,4 +474,40 @@ DogTag:AddTag("Base", "Concatenate", {
 	example = '[Concatenate("Hello", " ", "World")] => "Hello World"; [Concatenate(nil, " ", World")] => ""; [Concatenate("Hello", nil)] => ""'
 })
 
+DogTag:AddTag("Base", "Append", {
+	code = function(left, right)
+		if right then
+			return left .. right
+		else
+			return left
+		end
+	end,
+	arg = {
+		'left', 'string', "@req",
+		'right', 'string;nil', false,
+	},
+	ret = "string",
+	static = true,
+	doc = L["Append right to left if right exists"],
+	example = '["Hello":Append(" There")] => "Hello There"; ["Hello":Append(nil)] => "Hello"'
+})
+
+DogTag:AddTag("Base", "Prepend", {
+	code = function(right, left)
+		if left then
+			return left .. right
+		else
+			return right
+		end
+	end,
+	arg = {
+		'right', 'string', "@req",
+		'left', 'string;nil', false,
+	},
+	ret = "string",
+	static = true,
+	doc = L["Prepend left to right if right exists"],
+	example = '["There":Prepend("Hello ")] => "Hello There"; ["There":Prepend(nil)] => "There"'
+})
+
 end
