@@ -293,7 +293,10 @@ function DogTag:AddFontString(fs, frame, code, ...)
 	if codeToEventList_nsList_kwargTypes_code == nil then
 		local _ = codeToFunction[nsList][kwargTypes][code]
 		codeToEventList_nsList_kwargTypes_code = codeToEventList[nsList][kwargTypes][code]
-		assert(codeToEventList_nsList_kwargTypes_code ~= nil)
+		if codeToEventList_nsList_kwargTypes_code == nil then
+			local _, minor = LibStub(MAJOR_VERSION)
+			error(("%s.%d: Error with code %q%s. Event list not created. Please inform ckknight."):format(MAJOR_VERSION, minor, code, nsList == "Base" and "" or " (" .. nsList .. ")"))
+		end
 	end
 	if codeToEventList_nsList_kwargTypes_code then
 		for event, arg in pairs(codeToEventList_nsList_kwargTypes_code) do
