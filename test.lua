@@ -1110,6 +1110,10 @@ assert_equal(DogTag:CleanCode("[-1234e5]"), "[-123400000]")
 assert_equal(parse("[-1234e-5]"), -0.01234)
 assert_equal(DogTag:CleanCode("[-1234e-5]"), "[-0.01234]")
 
+assert_equal(parse("['Hello [One] There']"), 'Hello [One] There')
+assert_equal(standardize(parse("['Hello [One] There']")), 'Hello [One] There')
+assert_equal(DogTag:CleanCode("['Hello [One] There']"), "[\"Hello [One] There\"]")
+
 assert_equal(parse("[1 + 2]"), { "+", 1, 2, })
 assert_equal(DogTag:CleanCode("[1 + 2]"), "[1 + 2]")
 assert_equal(parse("[1 - 2]"), { "-", 1, 2, })

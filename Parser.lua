@@ -1053,7 +1053,7 @@ end
 local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 	local type_ast = getKind(ast)
 	if type_ast == "string" then
-		if not inner then
+		if not inner and not ast:match("[%[%]]") then
 			if t then
 				t[#t+1] = ast
 				return
@@ -1066,6 +1066,9 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 				str = "'" .. ast .. "'"
 			else
 				str = ("%q"):format(ast)
+			end
+			if not inner then
+				str = "[" .. str .. "]"
 			end
 			if t then
 				t[#t+1] = str
