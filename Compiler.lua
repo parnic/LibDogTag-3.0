@@ -2043,6 +2043,7 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	if types["string"] then
 		t[#t+1] = "if type(result) == 'string' then\n"
 		t[#t+1] = "result = result:trim();\n"
+		t[#t+1] = "result = result:gsub('  +', ' ');\n"
 		t[#t+1] = "if result == '' then\n"
 		t[#t+1] = "result = nil;\n"
 		t[#t+1] = "elseif mytonumber(result) then\n"
