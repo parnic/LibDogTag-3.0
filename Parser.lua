@@ -1112,7 +1112,7 @@ local colors = {
 	modifier = "00ff00", -- green
 	literal = "ff7f7f", -- pink
 	operator = "7f7fff", -- light blue
-	grouping = "7f7fff", -- light blue
+	grouping = "ffffff", -- white
 	kwarg = "ff0000", -- red
 	result = "ffffff", -- white
 }
@@ -1568,7 +1568,14 @@ local function unparse(ast, colorize, t, inner, negated, parentOperatorPrecedenc
 					t[#t+1] = '~'
 				end
 			end
-			t[#t+1] = ast[2]
+			if colorize then
+				t[#t+1] = "|cff"
+				t[#t+1] = colors.modifier
+				t[#t+1] = ast[2]
+				t[#t+1] = "|r"
+			else
+				t[#t+1] = ast[2]
+			end
 			if ast[4] or ast.kwarg then
 				if colorize then
 					t[#t+1] = "|cff"
