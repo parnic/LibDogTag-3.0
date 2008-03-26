@@ -2569,6 +2569,7 @@ assert_equal(DogTag:Evaluate("[One:Hide(6, 7, 8)]"), 1)
 assert_equal(DogTag:Evaluate("[One:Hide(1, 6, 7, 8)]"), nil)
 assert_equal(DogTag:Evaluate("[One:Hide(2):Hide(3)]"), 1)
 assert_equal(DogTag:Evaluate("[One:Hide(2):Hide(3):Hide(1)]"), nil)
+
 GlobalCheck_data = 1
 assert_equal(DogTag:Evaluate("[GlobalCheck:Hide(6, 7, 8)]"), 1)
 assert_equal(DogTag:Evaluate("[GlobalCheck:Hide(1, 6, 7, 8)]"), nil)
@@ -2576,6 +2577,13 @@ assert_equal(DogTag:Evaluate("[GlobalCheck:Hide(2):Hide(3)]"), 1)
 assert_equal(DogTag:Evaluate("[GlobalCheck:Hide(2):Hide(1):Hide(3)]"), nil)
 assert_equal(DogTag:Evaluate("[5:Hide(6, 7, 8)]"), 5)
 assert_equal(DogTag:Evaluate("[5:Hide(1, 2, 3, 4, 5)]"), nil)
+
+assert_equal(DogTag:Evaluate("[One:IsIn(nil)]"), nil)
+assert_equal(DogTag:Evaluate("[One:IsIn(Unknown)]"), "Unknown tag Unknown")
+assert_equal(DogTag:Evaluate("[not One:IsIn(nil)]"), 1)
+assert_equal(DogTag:Evaluate("[not One:IsIn(Unknown)]"), "Unknown tag Unknown")
+assert_equal(DogTag:Evaluate("[One:Hide(nil)]"), 1)
+assert_equal(DogTag:Evaluate("[One:Hide(Unknown)]"), "Unknown tag Unknown")
 
 assert_equal(DogTag:Evaluate("['Hello':Contains('There')]"), nil)
 assert_equal(DogTag:Evaluate("['Hello':Contains('ello')]"), "Hello")

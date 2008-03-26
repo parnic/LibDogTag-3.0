@@ -1686,7 +1686,7 @@ do
 						if not val then
 							break
 						end
-						tupleArgs[num] = val
+						tupleArgs[num] = deepCopy(val)
 					end
 					break
 				else
@@ -1705,15 +1705,15 @@ do
 					if not val then
 						val = arg[i+2]
 					end
-					args[argName] = val
+					args[argName] = deepCopy(val)
 				end
 			end
 		end
 		local parsedAlias = parse(alias)
 		if not parsedAlias then
-			tupleArgs = del(tupleArgs)
+			tupleArgs = deepDel(tupleArgs)
 			extraKwargs = deepDel(extraKwargs)
-			args = del(args)
+			args = deepDel(args)
 			ast = deepDel(ast)
 			return nil, ("Syntax error with alias %s"):format(tag)
 		end
