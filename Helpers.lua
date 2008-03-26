@@ -61,7 +61,7 @@ do
 	end
 	function del(t)
 		if type(t) ~= "table" then
-			error("Bad argument #1 to `del'. Expected table, got nil.", 2)
+			error(("Bad argument #1 to `del'. Expected %q, got %q (%s)."):format("table", type(t), tostring(t)), 2)
 		end
 		if pool[t] then
 			error("Double-free syndrome.", 2)
