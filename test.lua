@@ -1463,6 +1463,8 @@ assert_equal(DogTag:Evaluate("[nil 1234 GlobalCheck nil]"), 12345)
 GlobalCheck_data = 'Hello'
 assert_equal(DogTag:Evaluate("[nil 1234 GlobalCheck nil]"), '1234Hello')
 
+assert_equal(DogTag:Evaluate("Hello [Unknown#test]"), 'Syntax error')
+
 myfunc_num = 0
 assert_equal(DogTag:Evaluate("[FunctionNumberCheck]"), 1)
 assert_equal(DogTag:Evaluate("[true and FunctionNumberCheck]"), 2)

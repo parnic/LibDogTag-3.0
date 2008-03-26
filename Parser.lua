@@ -131,7 +131,7 @@ function DOGTAG(tokens)
 				list = data
 			end
 		elseif position < #tokens then
-			if list then
+			if type(list) == "table" then
 				list = del(list)
 			end
 			return nil
