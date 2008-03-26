@@ -1019,7 +1019,6 @@ collectgarbage('collect')
 local startMemory = collectgarbage('count')
 local startTime = os.clock()
 
-
 assert_equal(parse("[1 - 2]"), { "-", 1, 2 })
 assert_equal(parse("[1-2]"), { "-", 1, 2 })
 assert_equal(parse("[1- 2]"), { "-", 1, 2 })
@@ -2325,6 +2324,7 @@ assert_equal(DogTag:Evaluate("['%s %s':Format('Hello', 'World')]"), "Hello World
 assert_equal(DogTag:Evaluate("['%d %d':Format('Hello', 'World')]"), "bad argument #2 to '?' (number expected, got string)")
 assert_equal(DogTag:Evaluate("['%q %q':Format('Hello', 'World')]"), '"Hello" "World"')
 assert_equal(DogTag:Evaluate("['%q %q %q':Format('Hello', 'World')]"), "bad argument #4 to '?' (string expected, got no value)")
+assert_equal(DogTag:Evaluate("['%.1f':Format(CheckNilDefault(5))]"), "5.0")
 
 assert_equal(DogTag:Evaluate("[0:FormatDuration('e')]"), "0 Secs")
 assert_equal(DogTag:Evaluate("[0:FormatDuration('f')]"), "0s")

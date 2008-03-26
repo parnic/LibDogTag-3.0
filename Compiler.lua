@@ -419,6 +419,12 @@ local function forceTypes(storeKey, types, staticValue, forceToTypes, t)
 					t[#t+1] = [=[ or '');]=]
 					t[#t+1] = "\n"
 					staticValue = nil
+				elseif forceToTypes['number'] then	
+					t[#t+1] = storeKey
+					t[#t+1] = [=[ or '';]=]
+					t[#t+1] = "\n"
+					finalTypes['number'] = true
+					staticValue = nil
 				else
 					t[#t+1] = [=['';]=]
 					t[#t+1] = "\n"
