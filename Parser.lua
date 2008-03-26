@@ -1133,7 +1133,7 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 	if not operators_type_ast then
 		_G.error(("Unknown operator: %q"):format(type_ast))
 	end
-	local manualGrouping = parentOperatorPrecedence and parentOperatorPrecedence < operators_type_ast
+	local manualGrouping = inner and parentOperatorPrecedence and parentOperatorPrecedence < operators_type_ast
 	if type_ast == " " then
 		if inner then
 			if manualGrouping then
