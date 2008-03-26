@@ -27,7 +27,7 @@ do
 		-- end
 		return t
 	end
-	local function newDict(...)
+	function newDict(...)
 		poolNum = poolNum + 1
 		local t = next(pool)
 		if t then
