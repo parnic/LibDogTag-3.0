@@ -771,6 +771,7 @@ DogTag:AddTag("Base", "KwargAndTuple", {
 	globals = 'math.max';
 	doc = "Return the maximum of ... multiplied by value",
 	example = '[KwargAndTuple(5, 1, 2, 3)] => "15"',
+	category = "Testing",
 })
 
 DogTag:AddTag("Base", "TupleAndKwarg", {
@@ -789,6 +790,7 @@ DogTag:AddTag("Base", "TupleAndKwarg", {
 	globals = 'math.max';
 	doc = "Return the maximum of ... multiplied by value",
 	example = '[KwargAndTuple(5, 1, 2, 3)] => "15"',
+	category = "Testing",
 })
 
 DogTag:AddTag("Base", "Type", {
@@ -801,6 +803,7 @@ DogTag:AddTag("Base", "Type", {
 	ret = 'string',
 	doc = "Return the type of value",
 	example = '[Type(nil)] => "nil"; [Type("Hello")] => "string"; [Type(5)] => "number"',
+	category = "Testing",
 })
 
 DogTag:AddTag("Base", "BooleanToString", {
@@ -813,6 +816,7 @@ DogTag:AddTag("Base", "BooleanToString", {
 	ret = 'string',
 	doc = "Return true or false",
 	example = '[BooleanToString(nil)] => "false"; [BooleanToString("Hello")] => "true"; [BooleanToString(5)] => "true"',
+	category = "Testing",
 })
 
 DogTag:AddTag("Base", "RetNil", {
@@ -825,6 +829,7 @@ DogTag:AddTag("Base", "RetNil", {
 	ret = 'nil',
 	doc = "Return nil",
 	example = '[RetNil] => ""; [RetNil(Anything)] => ""',
+	category = "Testing",
 })
 
 local GlobalCheckBoolean_data = true
@@ -835,6 +840,7 @@ DogTag:AddTag("Base", "GlobalCheckBoolean", {
 	ret = 'boolean',
 	doc = "Return True or blank",
 	example = '[GlobalCheckBoolean] => ""; [GlobalCheckBoolean] => "True"',
+	category = "Testing",
 })
 
 DogTag:AddTag("Base", "ToString", {
@@ -847,6 +853,7 @@ DogTag:AddTag("Base", "ToString", {
 	ret = 'string',
 	doc = "Return value surrounded by tickmarks",
 	example = '[ToString(nil)] => "``"; [ToString("Hello")] => "`Hello`"; [ToString(5)] => "`5`"',
+	category = "Testing",
 })
 
 local RetSame_types

@@ -471,7 +471,8 @@ DogTag:AddTag("Base", "Concatenate", {
 	ret = "string;nil",
 	static = true,
 	doc = L["Concatenate the values of ... as long as they are all non-blank"],
-	example = '[Concatenate("Hello", " ", "World")] => "Hello World"; [Concatenate(nil, " ", World")] => ""; [Concatenate("Hello", nil)] => ""'
+	example = '[Concatenate("Hello", " ", "World")] => "Hello World"; [Concatenate(nil, " ", World")] => ""; [Concatenate("Hello", nil)] => ""',
+	category = L["Text Manipulation"],
 })
 
 DogTag:AddTag("Base", "Append", {
@@ -489,7 +490,8 @@ DogTag:AddTag("Base", "Append", {
 	ret = "string",
 	static = true,
 	doc = L["Append right to left if right exists"],
-	example = '["Hello":Append(" There")] => "Hello There"; ["Hello":Append(nil)] => "Hello"'
+	example = '["Hello":Append(" There")] => "Hello There"; ["Hello":Append(nil)] => "Hello"',
+	category = L["Text Manipulation"],
 })
 
 DogTag:AddTag("Base", "Prepend", {
@@ -507,7 +509,8 @@ DogTag:AddTag("Base", "Prepend", {
 	ret = "string",
 	static = true,
 	doc = L["Prepend left to right if right exists"],
-	example = '["There":Prepend("Hello ")] => "Hello There"; ["There":Prepend(nil)] => "There"'
+	example = '["There":Prepend("Hello ")] => "Hello There"; ["There":Prepend(nil)] => "There"',
+	category = L["Text Manipulation"],
 })
 
 end

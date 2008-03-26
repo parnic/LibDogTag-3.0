@@ -104,7 +104,8 @@ DogTag:AddTag("Base", "Max", {
 		static = true,
 	ret = "number",
 	doc = L["Return the greatest value of the given arguments"],
-	example = '[1:Max(2)] => "2"; [Max(3, 2, 1)] => "3"'
+	example = '[1:Max(2)] => "2"; [Max(3, 2, 1)] => "3"',
+	category = L["Mathematics"],
 })
 
 DogTag:AddTag("Base", "Min", {
@@ -118,7 +119,8 @@ DogTag:AddTag("Base", "Min", {
 	static = true,
 	ret = "number",
 	doc = L["Return the smallest value of the given arguments"],
-	example = '[1:Min(2)] => "1"; [Min(3, 2, 1)] => "1"'
+	example = '[1:Min(2)] => "1"; [Min(3, 2, 1)] => "1"',
+	category = L["Mathematics"],
 })
 
 DogTag:AddTag("Base", "Pi", {

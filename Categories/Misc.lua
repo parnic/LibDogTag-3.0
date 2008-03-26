@@ -229,7 +229,8 @@ DogTag:AddTag("Base", "Boolean", {
 	ret = "boolean",
 	static = true,
 	doc = L["Return True if non-blank"],
-	example = '[Boolean("Hello")] => "True"; [Boolean(nil)] => ""'
+	example = '[Boolean("Hello")] => "True"; [Boolean(nil)] => ""',
+	category = L["Miscellaneous"]
 })
 
 DogTag:AddTag("Base", "Format", {
@@ -244,21 +245,9 @@ DogTag:AddTag("Base", "Format", {
 	ret = "string",
 	static = true,
 	doc = L["Return a string formatted by format"],
-	example = '["%.3f":Format(1)] => "1.000"; ["%s %s":Format("Hello", "There")] => "Hello There"'
+	example = '["%.3f":Format(1)] => "1.000"; ["%s %s":Format("Hello", "There")] => "Hello There"',
+	category = L["Miscellaneous"]
 })
-
---[[
-	if not duration or duration >= 86400*36500 then -- 100 years
-		return negative .. "**:**:**:**"
-	elseif duration >= 86400 then
-		return format("%s%d%s %d:%02d:%02d", negative, duration/86400, L_DAY_ONELETTER_ABBR, mod(duration/3600, 24), mod(duration/60, 60), mod(duration, 60))
-	elseif duration >= 3600 then
-		return format("%s%d:%02d:%02d", negative, duration/3600, mod(duration/60, 60), mod(duration, 60))
-	else
-		return format("%s%d:%02d", negative, duration/60, mod(duration, 60))
-	end
-
-	]]
 
 local L_DAY_ONELETTER_ABBR    = DAY_ONELETTER_ABBR:gsub("%s*%%d%s*", "")
 local L_HOUR_ONELETTER_ABBR   = HOUR_ONELETTER_ABBR:gsub("%s*%%d%s*", "")
@@ -397,7 +386,8 @@ DogTag:AddTag("Base", "FormatDuration", {
 	globals = "pcall;string.format",
 	ret = "string",
 	doc = L["Return a string formatted by format. Use 'e' for extended, 'f' for full, 's' for short, 'c' for compressed."],
-	example = '[1000:FormatDuration] => "16:40"; [1000:FormatDuration("s")] => "16.7 Mins"; [1000:FormatDuration("f")] => "16m 40s"; [1000:FormatDuration("e")] => "16 Mins 40 Secs"'
+	example = '[1000:FormatDuration] => "16:40"; [1000:FormatDuration("s")] => "16.7 Mins"; [1000:FormatDuration("f")] => "16m 40s"; [1000:FormatDuration("e")] => "16 Mins 40 Secs"',
+	category = L["Miscellaneous"]
 })
 
 DogTag:AddTag("Base", "Icon", {
@@ -410,7 +400,8 @@ DogTag:AddTag("Base", "Icon", {
 	},
 	ret = 'string',
 	doc = L["Return an icon using the given path"],
-	example = '["Interface\\Buttons\\WHITE8X8":Icon] => "|TInterface\\Buttons\\WHITE8X8:0|t"'
+	example = '["Interface\\Buttons\\WHITE8X8":Icon] => "|TInterface\\Buttons\\WHITE8X8:0|t"',
+	category = L["Miscellaneous"]
 })
 
 end

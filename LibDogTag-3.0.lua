@@ -198,8 +198,29 @@ function DogTag:AddTag(namespace, tag, data)
 		tagData.dynamicCode = data.dynamicCode and true or nil
 	end
 	tagData.doc = data.doc
+	if data.doc and type(data.doc) ~= "string" then
+		error(("doc must be nil or a string, got %s"):format(type(data.doc)), 2)
+	end
 	tagData.example = data.example
+	if data.doc then
+		if type(data.example) ~= "string" then
+			error(("if doc is supplied, example must be a string, got %s"):format(type(data.example)), 2)
+		end
+	else
+		if data.example then
+			error("if doc is not supplied, example must be nil", 2)
+		end
+	end
 	tagData.category = data.category
+	if data.doc then
+		if type(data.category) ~= "string" then
+			error(("if doc is supplied, category must be a string, got %s"):format(type(data.category)), 2)
+		end
+	else
+		if data.category then
+			error("if doc is not supplied, category must be nil", 2)
+		end
+	end
 	del(data)
 end
 
