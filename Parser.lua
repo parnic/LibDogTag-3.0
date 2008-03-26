@@ -1050,15 +1050,37 @@ local function getKind(ast)
 	end
 end
 
-local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
+local colors = {
+	tag = "00ffff", -- cyan
+	number = "ff00ff", -- fushcia
+	modifier = "00ff00", -- green
+	literal = "ff7f7f", -- pink
+	operator = "7f7fff", -- light blue
+	grouping = "7f7fff", -- light blue
+	kwarg = "ff0000", -- red
+	result = "ffffff", -- white
+}
+
+local function unparse(ast, colorize, t, inner, negated, parentOperatorPrecedence)
 	local type_ast = getKind(ast)
 	if type_ast == "string" then
 		if not inner and not ast:match("[%[%]]") then
 			if t then
+				if colorize then
+					t[#t+1] = "|cff"
+					t[#t+1] = colors.literal
+				end
 				t[#t+1] = ast
+				if colorize then
+					t[#t+1] = "|r"
+				end
 				return
 			else
-				return ast
+				if colorize then
+					return "|cff" .. colors.literal .. ast .. "|r"
+				else
+					return ast
+				end
 			end
 		else
 			local str
@@ -1067,8 +1089,15 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 			else
 				str = ("%q"):format(ast)
 			end
+			if colorize then
+				str = "|cff" .. colors.literal .. str .. "|r"
+			end
 			if not inner then
-				str = "[" .. str .. "]"
+				if colorize then
+					str = "|cff" .. colors.grouping .. "[" .. "|r" .. str .. "|cff" .. colors.grouping .. "]" .. "|r"
+				else
+					str = "[" .. str .. "]"
+				end
 			end
 			if t then
 				t[#t+1] = str
@@ -1080,18 +1109,47 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 	elseif type_ast == "number" then
 		if t then
 			if not inner then
-				t[#t+1] = "["
+				if colorize then
+					t[#t+1] = "|cff"
+					t[#t+1] = colors.grouping
+					t[#t+1] = "["
+					t[#t+1] = "|r"
+				else
+					t[#t+1] = "["
+				end
+			end
+			if colorize then
+				t[#t+1] = "|cff"
+				t[#t+1] = colors.number
 			end
 			t[#t+1] = ast
+			if colorize then
+				t[#t+1] = "|r"
+			end
 			if not inner then
-				t[#t+1] = "]"
+				if colorize then
+					t[#t+1] = "|cff"
+					t[#t+1] = colors.grouping
+					t[#t+1] = "]"
+					t[#t+1] = "|r"
+				else
+					t[#t+1] = "]"
+				end
 			end
 			return
 		else
-			if not inner then
-				return ("[%s]"):format(ast)
+			if colorize then
+				if not inner then
+					return ("|cff%s[|r|cff%s%s|r|cff%s]|r"):format(colors.grouping, colors.number, ast, colors.grouping)
+				else
+					return ("|cff%s%s|r"):format(colors.number, tostring(ast))
+				end
 			else
-				return tostring(ast)
+				if not inner then
+					return ("[%s]"):format(ast)
+				else
+					return tostring(ast)
+				end
 			end
 		end
 	elseif type_ast == "nil" then
@@ -1099,31 +1157,71 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 			if not inner then
 				return
 			else
-				t[#t+1] = type_ast
+				if colorize then
+					t[#t+1] = "|cff"
+					t[#t+1] = colors.tag
+					t[#t+1] = "nil"
+					t[#t+1] = "|r"
+				else
+					t[#t+1] = "nil"
+				end
 				return
 			end
 		else
 			if not inner then
 				return ""
 			else
-				return type_ast
+				if colorize then
+					return ("|cff%snil|r"):format(colors.tag)
+				else
+					return "nil"
+				end
 			end
 		end
 	elseif type_ast == "true" or type_ast == "false" then
 		if t then
 			if not inner then
-				t[#t+1] = "["
+				if colorize then
+					t[#t+1] = "|cff"
+					t[#t+1] = colors.grouping
+					t[#t+1] = "["
+					t[#t+1] = "|r"
+				else
+					t[#t+1] = "["
+				end
 			end	
-			t[#t+1] = type_ast
+			if colorize then
+				t[#t+1] = "|cff"
+				t[#t+1] = colors.tag
+				t[#t+1] = type_ast
+				t[#t+1] = "|r"
+			else
+				t[#t+1] = type_ast
+			end
 			if not inner then
-				t[#t+1] = "]"
+				if colorize then
+					t[#t+1] = "|cff"
+					t[#t+1] = colors.grouping
+					t[#t+1] = "]"
+					t[#t+1] = "|r"
+				else
+					t[#t+1] = "]"
+				end
 			end
 			return
 		else
-			if not inner then
-				return ("[%s]"):format(type_ast)
+			if colorize then
+				if not inner then
+					return ("|cff%s[|r|cff%s%s|r|cff%s]|r"):format(colors.grouping, colors.tag, type_ast, colors.grouping)
+				else
+					return ("|cff%s%s|r"):format(colors.tag, type_ast)
+				end
 			else
-				return type_ast
+				if not inner then
+					return ("[%s]"):format(type_ast)
+				else
+					return type_ast
+				end
 			end
 		end
 	end
@@ -1140,15 +1238,29 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 	if type_ast == " " then
 		if inner then
 			if manualGrouping then
-				t[#t+1] = "("
+				if colorize then
+					t[#t+1] = "|cff"
+					t[#t+1] = colors.grouping
+					t[#t+1] = "("
+					t[#t+1] = "|r"
+				else
+					t[#t+1] = "("
+				end
 			end
-			unparse(ast[2], t, true, false, operators_type_ast)
+			unparse(ast[2], colorize, t, true, false, operators_type_ast)
 			for i = 3, #ast do
 				t[#t+1] = " "
-				unparse(ast[i], t, true, false, operators_type_ast)
+				unparse(ast[i], colorize, t, true, false, operators_type_ast)
 			end
 			if manualGrouping then
-				t[#t+1] = ")"
+				if colorize then
+					t[#t+1] = "|cff"
+					t[#t+1] = colors.grouping
+					t[#t+1] = ")"
+					t[#t+1] = "|r"
+				else
+					t[#t+1] = ")"
+				end
 			end
 		else
 			local need_to_do_last = false
@@ -1158,23 +1270,37 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 					if need_to_do_last then
 						if bracket_open then
 							t[#t+1] = " "
-							unparse(ast[i-1], t, true, false, operators_type_ast)
-							t[#t+1] = ']'
+							unparse(ast[i-1], colorize, t, true, false, operators_type_ast)
+							if colorize then
+								t[#t+1] = "|cff"
+								t[#t+1] = colors.grouping
+								t[#t+1] = "]"
+								t[#t+1] = "|r"
+							else
+								t[#t+1] = "]"
+							end
 						else
-							unparse(ast[i-1], t, false, false, operators_type_ast)
+							unparse(ast[i-1], colorize, t, false, false, operators_type_ast)
 						end
 					end
-					unparse(ast[i], t, false, false, operators_type_ast)
+					unparse(ast[i], colorize, t, false, false, operators_type_ast)
 					need_to_do_last = false
 				else
 					if need_to_do_last then
 						if bracket_open then
 							t[#t+1] = " "
 						else
-							t[#t+1] = "["
+							if colorize then
+								t[#t+1] = "|cff"
+								t[#t+1] = colors.grouping
+								t[#t+1] = "["
+								t[#t+1] = "|r"
+							else
+								t[#t+1] = "["
+							end
 							bracket_open = true
 						end
-						unparse(ast[i-1], t, true, false, operators_type_ast)
+						unparse(ast[i-1], colorize, t, true, false, operators_type_ast)
 					end
 					need_to_do_last = true
 				end
@@ -1182,40 +1308,110 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 			if need_to_do_last then
 				if bracket_open then
 					t[#t+1] = " "
-					unparse(ast[#ast], t, true, false, operators_type_ast)
-					t[#t+1] = "]"
+					unparse(ast[#ast], colorize, t, true, false, operators_type_ast)
+					if colorize then
+						t[#t+1] = "|cff"
+						t[#t+1] = colors.grouping
+						t[#t+1] = "]"
+						t[#t+1] = "|r"
+					else
+						t[#t+1] = "]"
+					end
 				else
-					unparse(ast[#ast], t, false, false, operators_type_ast)
+					unparse(ast[#ast], colorize, t, false, false, operators_type_ast)
 				end
 			end
 		end
 	else
 		if not inner then
-			t[#t+1] = '['
+			if colorize then
+				t[#t+1] = "|cff"
+				t[#t+1] = colors.grouping
+				t[#t+1] = "["
+				t[#t+1] = "|r"
+			else
+				t[#t+1] = "["
+			end
 		end
 		if manualGrouping then
-			t[#t+1] = "("
+			if colorize then
+				t[#t+1] = "|cff"
+				t[#t+1] = colors.grouping
+				t[#t+1] = "("
+				t[#t+1] = "|r"
+			else
+				t[#t+1] = "("
+			end
 		end
 		if groupings[type_ast:byte()] then
-			t[#t+1] = type_ast
-			unparse(ast[2], t, true, false, nil)
-			t[#t+1] = string_char(groupings[type_ast:byte()])
+			if colorize then
+				t[#t+1] = "|cff"
+				t[#t+1] = colors.grouping
+				t[#t+1] = type_ast
+				t[#t+1] = "|r"
+			else
+				t[#t+1] = type_ast
+			end
+			unparse(ast[2], colorize, t, true, false, nil)
+			if colorize then
+				t[#t+1] = "|cff"
+				t[#t+1] = colors.grouping
+				t[#t+1] = string_char(groupings[type_ast:byte()])
+				t[#t+1] = "|r"
+			else
+				t[#t+1] = string_char(groupings[type_ast:byte()])
+			end
 		elseif type_ast == "kwarg" then
-			t[#t+1] = ast[2]
+			if colorize then
+				t[#t+1] = "|cff"
+				t[#t+1] = colors.tag
+				t[#t+1] = ast[2]
+				t[#t+1] = "|r"
+			else
+				t[#t+1] = ast[2]
+			end
 		elseif type_ast == "tag" then
 			if negated then
-				t[#t+1] = '~'
+				if colorize then
+					t[#t+1] = "|cff"
+					t[#t+1] = colors.operator
+					t[#t+1] = '~'
+					t[#t+1] = "|r"
+				else
+					t[#t+1] = '~'
+				end
 			end
-			t[#t+1] = ast[2]
+			if colorize then
+				t[#t+1] = "|cff"
+				t[#t+1] = colors.tag
+				t[#t+1] = ast[2]
+				t[#t+1] = "|r"
+			else
+				t[#t+1] = ast[2]
+			end
 			if ast[3] or ast.kwarg then
-				t[#t+1] = '('
+				if colorize then
+					t[#t+1] = "|cff"
+					t[#t+1] = colors.grouping
+					t[#t+1] = '('
+					t[#t+1] = "|r"
+				else
+					t[#t+1] = '('
+				end
 				local first = true
 				for i = 3, #ast do
 					if not first then
-						t[#t+1] = ', '
+						if colorize then
+							t[#t+1] = "|cff"
+							t[#t+1] = colors.grouping
+							t[#t+1] = ', '
+							t[#t+1] = "|r"
+						else
+							t[#t+1] = ', '
+						end
 					end
 					first = false
-					unparse(ast[i], t, true, false, nil)
+					unparse(ast[i], colorize, t, true, false, nil)
 				end
 				if ast.kwarg then
 					local keys = newList()
@@ -1225,33 +1421,86 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 					table_sort(keys)
 					for _,k in ipairs(keys) do
 						if not first then
-							t[#t+1] = ', '
+							if colorize then
+								t[#t+1] = "|cff"
+								t[#t+1] = colors.grouping
+								t[#t+1] = ', '
+								t[#t+1] = "|r"
+							else
+								t[#t+1] = ', '
+							end
 						end
 						first = false
-						t[#t+1] = k
-						t[#t+1] = '='
-						unparse(ast.kwarg[k], t, true, false, nil)
+						if colorize then
+							t[#t+1] = "|cff"
+							t[#t+1] = colors.kwarg
+							t[#t+1] = k
+							t[#t+1] = "|r"
+							t[#t+1] = "|cff"
+							t[#t+1] = colors.operator
+							t[#t+1] = '='
+							t[#t+1] = "|r"
+						else
+							t[#t+1] = k
+							t[#t+1] = '='
+						end
+						unparse(ast.kwarg[k], colorize, t, true, false, nil)
 					end
 					keys = del(keys)
 				end
-				t[#t+1] = ')'
+				if colorize then
+					t[#t+1] = "|cff"
+					t[#t+1] = colors.grouping
+					t[#t+1] = ')'
+					t[#t+1] = "|r"
+				else
+					t[#t+1] = ')'
+				end
 			end
 		elseif type_ast == "mod" then
-			unparse(ast[3], t, true, false, operators_type_ast)
-			t[#t+1] = ':'
+			unparse(ast[3], colorize, t, true, false, operators_type_ast)
+			if colorize then
+				t[#t+1] = "|cff"
+				t[#t+1] = colors.operator
+				t[#t+1] = ':'
+				t[#t+1] = "|r"
+			else
+				t[#t+1] = ':'
+			end
 			if negated then
-				t[#t+1] = '~'
+				if colorize then
+					t[#t+1] = "|cff"
+					t[#t+1] = colors.operator
+					t[#t+1] = '~'
+					t[#t+1] = "|r"
+				else
+					t[#t+1] = '~'
+				end
 			end
 			t[#t+1] = ast[2]
 			if ast[4] or ast.kwarg then
-				t[#t+1] = '('
+				if colorize then
+					t[#t+1] = "|cff"
+					t[#t+1] = colors.grouping
+					t[#t+1] = '('
+					t[#t+1] = "|r"
+				else
+					t[#t+1] = '('
+				end
 				local first = true
 				for i = 4, #ast do
 					if not first then
-						t[#t+1] = ', '
+						if colorize then
+							t[#t+1] = "|cff"
+							t[#t+1] = colors.grouping
+							t[#t+1] = ', '
+							t[#t+1] = "|r"
+						else
+							t[#t+1] = ', '
+						end
 					end
 					first = false
-					unparse(ast[i], t, true, false, nil)
+					unparse(ast[i], colorize, t, true, false, nil)
 				end
 				if ast.kwarg then
 					local keys = newList()
@@ -1261,63 +1510,174 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 					table_sort(keys)
 					for _,k in ipairs(keys) do
 						if not first then
-							t[#t+1] = ', '
+							if colorize then
+								t[#t+1] = "|cff"
+								t[#t+1] = colors.grouping
+								t[#t+1] = ', '
+								t[#t+1] = "|r"
+							else
+								t[#t+1] = ', '
+							end
 						end
 						first = false
-						t[#t+1] = k
-						t[#t+1] = '='
-						unparse(ast.kwarg[k], t, true, false, nil)
+						if colorize then
+							t[#t+1] = "|cff"
+							t[#t+1] = colors.kwarg
+							t[#t+1] = k
+							t[#t+1] = "|r"
+							t[#t+1] = "|cff"
+							t[#t+1] = colors.operator
+							t[#t+1] = '='
+							t[#t+1] = "|r"
+						else
+							t[#t+1] = k
+							t[#t+1] = '='
+						end
+						unparse(ast.kwarg[k], colorize, t, true, false, nil)
 					end
 					keys = del(keys)
 				end
-				t[#t+1] = ')'
+				if colorize then
+					t[#t+1] = "|cff"
+					t[#t+1] = colors.grouping
+					t[#t+1] = ')'
+					t[#t+1] = "|r"
+				else
+					t[#t+1] = ')'
+				end
 			end
 		elseif type_ast == "~" then
 			if type(ast[2]) == "table" and (ast[2][1] == "tag" or ast[2][1] == "mod") then
-				unparse(ast[2], t, true, true, operators_type_ast)
+				unparse(ast[2], colorize, t, true, true, operators_type_ast)
 			else
-				t[#t+1] = '~'
-				unparse(ast[2], t, true, false, operators_type_ast)
+				if colorize then
+					t[#t+1] = "|cff"
+					t[#t+1] = colors.operator
+					t[#t+1] = "~"
+					t[#t+1] = "|r"
+				else
+					t[#t+1] = '~'
+				end
+				unparse(ast[2], colorize, t, true, false, operators_type_ast)
 			end
 		elseif type_ast == "not" then
-			t[#t+1] = 'not '
-			unparse(ast[2], t, true, false, operators_type_ast)
+			if colorize then
+				t[#t+1] = "|cff"
+				t[#t+1] = colors.operator
+				t[#t+1] = "not"
+				t[#t+1] = "|r"
+				t[#t+1] = " "
+			else
+				t[#t+1] = 'not '
+			end
+			unparse(ast[2], colorize, t, true, false, operators_type_ast)
 		elseif type_ast == "?" then
-			unparse(ast[2], t, true, false, operators_type_ast)
-			t[#t+1] = ' ? '
-			unparse(ast[3], t, true, false, operators_type_ast)
+			unparse(ast[2], colorize, t, true, false, operators_type_ast)
+			if colorize then
+				t[#t+1] = " "
+				t[#t+1] = "|cff"
+				t[#t+1] = colors.operator
+				t[#t+1] = "?"
+				t[#t+1] = "|r"
+				t[#t+1] = " "
+			else
+				t[#t+1] = ' ? '
+			end
+			unparse(ast[3], colorize, t, true, false, operators_type_ast)
 			if ast[4] then
-				t[#t+1] = ' ! '
-				unparse(ast[4], t, true, false, operators_type_ast)
+				if colorize then
+					t[#t+1] = " "
+					t[#t+1] = "|cff"
+					t[#t+1] = colors.operator
+					t[#t+1] = "!"
+					t[#t+1] = "|r"
+					t[#t+1] = " "
+				else
+					t[#t+1] = ' ! '
+				end
+				unparse(ast[4], colorize, t, true, false, operators_type_ast)
 			end
 		elseif type_ast == "if" then
-			t[#t+1] = "if "
-			unparse(ast[2], t, true, false, operators_type_ast)
-			t[#t+1] = " then "
-			unparse(ast[3], t, true, false, operators_type_ast)
+			if colorize then
+				t[#t+1] = "|cff"
+				t[#t+1] = colors.operator
+				t[#t+1] = "if"
+				t[#t+1] = "|r"
+				t[#t+1] = " "
+			else
+				t[#t+1] = 'if '
+			end
+			unparse(ast[2], colorize, t, true, false, operators_type_ast)
+			if colorize then
+				t[#t+1] = " "
+				t[#t+1] = "|cff"
+				t[#t+1] = colors.operator
+				t[#t+1] = "then"
+				t[#t+1] = "|r"
+				t[#t+1] = " "
+			else
+				t[#t+1] = ' then '
+			end
+			unparse(ast[3], colorize, t, true, false, operators_type_ast)
 			if ast[4] then
-				t[#t+1] = " else "
-				unparse(ast[4], t, true, false, operators_type_ast)
+				if colorize then
+					t[#t+1] = " "
+					t[#t+1] = "|cff"
+					t[#t+1] = colors.operator
+					t[#t+1] = "else"
+					t[#t+1] = "|r"
+					t[#t+1] = " "
+				else
+					t[#t+1] = ' else '
+				end
+				unparse(ast[4], colorize, t, true, false, operators_type_ast)
 			end
 		elseif type_ast == "unm" then
-			t[#t+1] = "-"
-			unparse(ast[2], t, true, false, operators_type_ast)
+			if colorize then
+				t[#t+1] = "|cff"
+				t[#t+1] = colors.operator
+				t[#t+1] = "-"
+				t[#t+1] = "|r"
+			else
+				t[#t+1] = "-"
+			end
+			unparse(ast[2], colorize, t, true, false, operators_type_ast)
 		elseif operators_type_ast then
-			unparse(ast[2], t, true, false, operators_type_ast)
+			unparse(ast[2], colorize, t, true, false, operators_type_ast)
 			t[#t+1] = ' '
 			if type_ast == "|" then
-				t[#t+1] = "||"
+				type_ast = "||"
+			end
+			if colorize then
+				t[#t+1] = "|cff"
+				t[#t+1] = colors.operator
+				t[#t+1] = type_ast
+				t[#t+1] = "|r"
 			else
 				t[#t+1] = type_ast
 			end
 			t[#t+1] = ' '
-			unparse(ast[3], t, true, false, operators_type_ast)
+			unparse(ast[3], colorize, t, true, false, operators_type_ast)
 		end
 		if manualGrouping then
-			t[#t+1] = ")"
+			if colorize then
+				t[#t+1] = "|cff"
+				t[#t+1] = colors.grouping
+				t[#t+1] = ")"
+				t[#t+1] = "|r"
+			else
+				t[#t+1] = ")"
+			end
 		end
 		if not inner then
-			t[#t+1] = ']'
+			if colorize then
+				t[#t+1] = "|cff"
+				t[#t+1] = colors.grouping
+				t[#t+1] = "]"
+				t[#t+1] = "|r"
+			else
+				t[#t+1] = "]"
+			end
 		end
 	end
 	
@@ -1354,13 +1714,17 @@ local function cleanAST(ast)
 	return ast
 end
 
-function DogTag:CleanCode(code)
+function DogTag:CleanCode(code, colorize)
+	if type(code) ~= "string" then
+		error(("Bad argument #2 to `CleanCode'. Expected %q, got %q"):format("string", type(code)), 2)
+	end
+	code = code:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
 	local ast = parse(code)
 	if not ast then
 		return code
 	end
 	ast = cleanAST(ast)
-	local result = unparse(ast)
+	local result = unparse(ast, colorize or false)
 	ast = deepDel(ast)
 	return result
 end
