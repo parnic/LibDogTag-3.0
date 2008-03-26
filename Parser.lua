@@ -33,7 +33,7 @@ IF_STATEMENT        = COMPARISON, [ MULTI_SPACE, "?", MULTI_SPACE, IF_STATEMENT,
 COMPARISON          = LOGIC, { MULTI_SPACE, ("<=" | "<" | ">" | ">=" | "=" | "~="), MULTI_SPACE, LOGIC }
 LOGIC               = CONCATENATION, { MULTI_SPACE, ( "and" | "or" | "&" | "|" | "||" ), MULTI_SPACE, CONCATENATION }
 CONCATENATION       = ADDITION, { SPACE, MULTI_SPACE, ADDITION }
-ADDITION            = MULTIPLICATION, { MULTI_SPACE, ( "+" | "-" ), MULTIPLICATION }
+ADDITION            = MULTIPLICATION, { SPACE, MULTI_SPACE, "-", MULTIPLICATION | MULTI_SPACE, ( "+" | "-" ), MULTI_SPACE, MULTIPLICATION }
 MULTIPLICATION      = NEGATION, { MULTI_SPACE, ( "*" | "/" | "%" ), MULTI_SPACE, NEGATION }
 NEGATION            = { ( "not" | "~" ), MULTI_SPACE, } EXPONENTIATION
 EXPONENTIATION      = CHUNK_WITH_MODIFIER, { MULTI_SPACE, "^", MULTI_SPACE CHUNK_WITH_MODIFIER }
@@ -787,6 +787,30 @@ function LOGIC(tokens, position)
 	return position, data
 end
 
+local function flattenConcatenation(ast)
+	local newAst = newList()
+	newAst[1] = ' '
+	for i = 2, #ast do
+		local v = ast[i]
+		if type(v) == "table" and v[1] == " " then
+			flattenConcatenation(v)
+			for i = 2, #v do
+				newAst[#newAst+1] = v[i]
+			end
+			v = del(v)
+		else
+			newAst[#newAst+1] = v
+		end
+	end
+	for k in pairs(ast) do
+		ast[k] = nil
+	end
+	for k, v in pairs(newAst) do
+		ast[k] = v
+	end
+	newAst = del(newAst)
+end
+
 function CONCATENATION(tokens, position)
 	local position, data = ADDITION(tokens, position)
 	if not position then
@@ -813,9 +837,14 @@ function CONCATENATION(tokens, position)
 		end
 	end
 	
+	if list then
+		flattenConcatenation(list)
+	end
+	
 	return position, list or data
 end
 
+-- ADDITION            = MULTIPLICATION, { SPACE, MULTI_SPACE, "-", MULTIPLICATION | MULTI_SPACE, ( "+" | "-" ), MULTI_SPACE, MULTIPLICATION }
 function ADDITION(tokens, position)
 	local position, data = MULTIPLICATION(tokens, position)
 	if not position then
@@ -823,22 +852,42 @@ function ADDITION(tokens, position)
 	end
 	
 	while true do
-		local pos = MULTI_SPACE(tokens, position)
-		local op = tokens[pos]
-		if op == plus_byte then
-			op = "+"
-		elseif op == minus_byte then
-			op = "-"
-		else
-			break
+		local pos = SPACE(tokens, position)
+		local pass
+		if pos then
+			pos = MULTI_SPACE(tokens, pos)
+			if tokens[pos] == minus_byte then
+				local data2
+				pass, data2 = MULTIPLICATION(tokens, pos+1)
+				if pass then
+					position = pass
+					if type(data2) == "number" then
+						data2 = -data2
+					else
+						data2 = newList("unm", data2)
+					end
+					data = newList(" ", data, data2)
+				end
+			end
 		end
-		pos = MULTI_SPACE(tokens, pos+1)
-		local pos, chunk = MULTIPLICATION(tokens, pos)
-		if not pos then
-			break
+		if not pass then
+			local pos = MULTI_SPACE(tokens, position)
+			local op = tokens[pos]
+			if op == plus_byte then
+				op = "+"
+			elseif op == minus_byte then
+				op = "-"
+			else
+				break
+			end
+			pos = MULTI_SPACE(tokens, pos+1)
+			local pos, chunk = MULTIPLICATION(tokens, pos)
+			if not pos then
+				break
+			end
+			position = pos
+			data = newList(op, data, chunk)
 		end
-		position = pos
-		data = newList(op, data, chunk)
 	end
 	
 	return position, data
