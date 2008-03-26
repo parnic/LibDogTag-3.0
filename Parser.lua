@@ -95,6 +95,8 @@ local carat_byte = ('^'):byte()
 local question_mark_byte = ('?'):byte()
 local exclamation_point_byte = ('!'):byte()
 local backslash_byte = ([=[\]=]):byte()
+local single_quote_byte = ([=[']=]):byte()
+local double_quote_byte = ([=["]=]):byte()
 
 local lower = {}
 for i = 1, 26 do
@@ -290,9 +292,6 @@ function CHUNK(tokens, position)
 	
 	pos, data = STRING(tokens, position)
 	if pos then
-		if data == "" then
-			return pos, newList("nil")
-		end
 		return pos, data
 	end
 	
@@ -447,8 +446,8 @@ function PARAM_LIST(tokens, position)
 end
 
 local quotes = {
-	[("'"):byte()] = true,
-	[('"'):byte()] = true,
+	[single_quote_byte] = true,
+	[double_quote_byte] = true,
 }
 
 function STRING(tokens, position)
@@ -476,7 +475,7 @@ function STRING(tokens, position)
 			else
 				local s = string_char(unpack(t))
 				t = del(t)
-				return i+1, s
+				return i+1, newList(string_char(c), s)
 			end
 		else
 			if lastEscape then
@@ -998,6 +997,14 @@ local standardizations = {
 
 local function standardize(ast)
 	local type_ast = type(ast)
+	if type_ast == "table" then
+		if ast[1] == "'" or ast[1] == '"' then
+			local ast_2 = ast[2]
+			ast = del(ast)
+			ast = ast_2
+			type_ast = 'string'
+		end
+	end
 	if type_ast ~= "table" then
 		if type_ast == "string" and DogTag.__mytonumber(ast) then
 			return ast+0
@@ -1110,34 +1117,69 @@ local colors = {
 	result = "ffffff", -- white
 }
 
+local function getLiteralString(str, doubleQuote)
+	local quote_byte = doubleQuote and double_quote_byte or single_quote_byte
+	local data = newList(str:byte(1, #str))
+	local t = newList()
+	t[#t+1] = quote_byte
+	for i, v in ipairs(data) do
+		if v == quote_byte then
+			t[#t+1] = backslash_byte
+			t[#t+1] = quote_byte
+		elseif v < 32 or v > 128 or v == 124 then
+			t[#t+1] = backslash_byte
+			local a, b, c = math.floor(v / 100), math.floor((v % 100) / 10), v % 10
+			t[#t+1] = a + zero_byte
+			t[#t+1] = b + zero_byte
+			t[#t+1] = c + zero_byte
+		else
+			t[#t+1] = v
+		end
+	end
+	t[#t+1] = quote_byte
+	data = del(data)
+	local s = string_char(unpack(t))
+	t = del(t)
+	return s
+end
+
 local function unparse(ast, colorize, t, inner, negated, parentOperatorPrecedence)
 	local type_ast = getKind(ast)
-	if type_ast == "string" then
-		if not inner and not ast:match("[%[%]]") then
+	if type_ast == "string" or type_ast == "'" or type_ast == '"' then
+		local data = ast
+		if type_ast ~= "string" then
+			data = ast[2]
+		end
+		if not inner and not data:match("[%[%]]") then
 			if t then
 				if colorize then
 					t[#t+1] = "|cff"
 					t[#t+1] = colors.literal
 				end
-				t[#t+1] = ast
+				t[#t+1] = data
 				if colorize then
 					t[#t+1] = "|r"
 				end
 				return
 			else
 				if colorize then
-					return "|cff" .. colors.literal .. ast .. "|r"
+					return "|cff" .. colors.literal .. data .. "|r"
 				else
-					return ast
+					return data
 				end
 			end
 		else
-			local str
-			if ast:match('"') and not ast:match("'") then
-				str = "'" .. ast .. "'"
+			local doubleQuote
+			if data:match('"') and not data:match("'") then
+				doubleQuote = false
+			elseif data:match("'") and not data:match('"') then
+				doubleQuote = true
+			elseif type_ast == "'" then
+				doubleQuote = false
 			else
-				str = ("%q"):format(ast)
+				doubleQuote = true
 			end
+			local str = getLiteralString(data, doubleQuote)
 			if colorize then
 				str = "|cff" .. colors.literal .. str .. "|r"
 			end
@@ -1755,7 +1797,7 @@ local function cleanAST(ast)
 	end
 	if groupings[astType:byte()] then
 		local ast_2 = ast[2]
-		if type(ast_2) ~= "table" or ast_2[1] == "tag" or ast_2[1] == "mod" then
+		if type(ast_2) ~= "table" or ast_2[1] == "tag" or ast_2[1] == "mod" or ast_2[1] == "'" or ast_2[1] == '"' then
 			del(ast)
 			return ast_2
 		end
