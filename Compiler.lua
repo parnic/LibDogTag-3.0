@@ -1459,6 +1459,10 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 					t[#t+1] = ("%q"):format(L["True"])
 					savedArgTypes["string"] = true
 					savedArgTypes["nil"] = nil
+				elseif savedArgTypes["boolean"] then
+					t[#t] = ("%q"):format(L["True"])
+					savedArgTypes["string"] = true
+					savedArgTypes["boolean"] = nil
 				end
 				for k in pairs(savedArgTypes) do
 					types[k] = true

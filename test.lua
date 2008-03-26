@@ -1442,6 +1442,18 @@ GlobalCheck_data = 'Hello World'
 assert_equal(DogTag:Evaluate("[GlobalCheck]"), "Hello World")
 assert_equal(DogTag:Evaluate("[not GlobalCheck]"), nil)
 assert_equal(DogTag:Evaluate("[not not GlobalCheck]"), "True")
+GlobalCheck_data = nil
+assert_equal(DogTag:Evaluate("[GlobalCheck]"), nil)
+assert_equal(DogTag:Evaluate("[not GlobalCheck]"), "True")
+assert_equal(DogTag:Evaluate("[not not GlobalCheck]"), nil)
+GlobalCheckBoolean_data = true
+assert_equal(DogTag:Evaluate("[GlobalCheckBoolean]"), "True")
+assert_equal(DogTag:Evaluate("[not GlobalCheckBoolean]"), nil)
+assert_equal(DogTag:Evaluate("[not not GlobalCheckBoolean]"), "True")
+GlobalCheckBoolean_data = false
+assert_equal(DogTag:Evaluate("[GlobalCheckBoolean]"), nil)
+assert_equal(DogTag:Evaluate("[not GlobalCheckBoolean]"), "True")
+assert_equal(DogTag:Evaluate("[not not GlobalCheckBoolean]"), nil)
 assert_equal(DogTag:Evaluate("[One + One]"), 2)
 assert_equal(DogTag:Evaluate("[Subtract(1, 2)]"), -1)
 assert_equal(DogTag:Evaluate("[Subtract(2, 1)]"), 1)
