@@ -211,26 +211,15 @@ local function enumLines(text)
 	return s
 end
 
-local newUniqueVar, delUniqueVar, clearUniqueVars, getNumUniqueVars
+local newUniqueVar, clearUniqueVars, getNumUniqueVars
 do
 	local num = 0
 	local pool = {}
 	function newUniqueVar()
-		local t = next(pool)
-		if t then
-			pool[t] = nil
-			return t
-		end
 		num = num + 1
 		return 'arg' .. num
 	end
-	function delUniqueVar(t)
-		pool[t] = true
-	end
 	function clearUniqueVars()
-		for k in pairs(pool) do
-			pool[k] = nil
-		end
 		num = 0
 	end
 	function getNumUniqueVars()
@@ -1061,9 +1050,6 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 			end
 			
 			for k,v in pairs(compiledKwargs) do
-				if v[1]:match("^arg%d+$") then
-					delUniqueVar(v[1])
-				end
 				compiledKwargs[k] = del(v)
 			end
 			compiledKwargs = del(compiledKwargs)
@@ -1131,18 +1117,13 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 		afterAdditions = del(afterAdditions)
 		
 		for k,v in pairs(compiledKwargs) do
-			if (not saveFirstArg or k ~= arg[1]) and v[1]:match("^arg%d+$") then
-				t[#t+1] = v[1]
-				delUniqueVar(v[1])
-				t[#t+1] = [=[ = nil;]=]
-				t[#t+1] = "\n"
-			end
 			compiledKwargs[k] = del(v)
 		end
 		compiledKwargs = del(compiledKwargs)
 		
 		if firstAndNonNil then
 			t[#t+1] = [=[end;]=]
+			t[#t+1] = "\n"
 			local returns = newSet((";"):split(ret))
 			returns["nil"] = true
 			ret = joinSet(returns, ";")
@@ -1276,14 +1257,6 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 		else
 			if finalTypes['number'] then
 				t[#t+1] = [=[end;]=]
-				t[#t+1] = "\n"
-			end
-		end
-		for i,v in ipairs(args) do
-			if type(v) == "string" and v:match("^arg%d+$") then
-				t[#t+1] = v
-				delUniqueVar(v)
-				t[#t+1] = [=[ = nil;]=]
 				t[#t+1] = "\n"
 			end
 		end
@@ -1446,18 +1419,12 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 			for i = t_num, #t do
 				t[i] = nil
 			end
-			if type(cond) == "string" and cond:match("^arg%d+$") then
-				delUniqueVar(cond)
-			end
 			return compile(ast[4], nsList, t, cachedTags, events, functions, extraKwargs, forceToTypes, storeKey)
 		else
 			-- non-nil
 			condResults = del(condResults)
 			for i = t_num, #t do
 				t[i] = nil
-			end
-			if type(cond) == "string" and cond:match("^arg%d+$") then
-				delUniqueVar(cond)
 			end
 			return compile(ast[3], nsList, t, cachedTags, events, functions, extraKwargs, forceToTypes, storeKey)
 		end
@@ -1501,12 +1468,6 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 				t[#t+1] = "\n"
 				t[#t+1] = [=[end;]=]
 				t[#t+1] = "\n"
-				if savedArg:match("^arg%d+$") then
-					t[#t+1] = savedArg
-					delUniqueVar(savedArg)
-					t[#t+1] = [=[ = nil;]=]
-					t[#t+1] = "\n"
-				end
 			else
 				t[#t+1] = storeKey
 				t[#t+1] = [=[ = not ]=]
@@ -2027,9 +1988,16 @@ function DogTag:CreateFunctionFromCode(code, ...)
 		events = memoizeTable(events)
 		codeToEventList[nsList][kwargTypes][code] = events
 	end
-	for i = 1, getNumUniqueVars() do
-		t[#t+1] = [=[local arg]=]
-		t[#t+1] = i
+	local num = getNumUniqueVars()
+	if num > 0 then
+		t[#t+1] = [=[local ]=]
+		for i = 1, getNumUniqueVars() do
+			if i > 1 then
+				t[#t+1] = [=[, ]=]
+			end
+			t[#t+1] = [=[arg]=]
+			t[#t+1] = i
+		end
 		t[#t+1] = [=[;]=]
 		t[#t+1] = "\n"
 	end
