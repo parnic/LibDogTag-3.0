@@ -239,6 +239,7 @@ local function getTagData(tag, nsList)
 		end
 	end
 end
+DogTag.getTagData = getTagData
 
 local function getKwargsForAST(ast, nsList, extraKwargs)
 	local tag
