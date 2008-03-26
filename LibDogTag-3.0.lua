@@ -60,6 +60,7 @@ DogTag.__colors = {
 	friendly = { 0.2, 0.8, 0.15 },
 	civilian = { 48/255, 113/255, 191/255 },
 	dead = { 0.6, 0.6, 0.6 },
+	tapped = { 0.5, 0.5, 0.5 },
 	disconnected = { 0.7, 0.7, 0.7 },
 	petHappy = { 0, 1, 0 },
 	petNeutral = { 1, 1, 0 },
