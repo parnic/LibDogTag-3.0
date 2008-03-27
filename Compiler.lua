@@ -1214,7 +1214,7 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 				lastCouldBeNil = true
 			else
 				-- non-nil
-				if lastCouldBeNil and v:match("^%(\"%s+\"%)$") then
+				if lastCouldBeNil and v:match("^%(\"%s") then
 					t[#t+1] = "("
 					if lastCouldBeNil ~= true then
 						t[#t+1] = '(('
@@ -1255,6 +1255,13 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 		end
 		t[#t+1] = [=[;]=]
 		t[#t+1] = "\n"
+		if lastCouldBeNil then
+			t[#t+1] = storeKey
+			t[#t+1] = [=[ = (]=]
+			t[#t+1] = storeKey
+			t[#t+1] = [=[):gsub("%s$", "");]=]
+			t[#t+1] = "\n"
+		end
 		if finalTypes['number'] then
 			t[#t+1] = [=[if mytonumber(]=]
 			t[#t+1] = storeKey
