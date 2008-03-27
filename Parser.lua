@@ -98,6 +98,26 @@ local backslash_byte = ([=[\]=]):byte()
 local single_quote_byte = ([=[']=]):byte()
 local double_quote_byte = ([=["]=]):byte()
 
+local string_byte = string.byte
+local string_char = string.char
+
+local function stringToTokenList(str)
+	local tokens = newList()
+	for i = 1, #str do
+		tokens[i] = string_byte(str, i)
+	end
+	return tokens
+end
+
+local function tokenListToString(tokens)
+	for i = 1, #tokens do
+		tokens[i] = string_char(tokens[i])
+	end
+	local s = table.concat(tokens)
+	tokens = del(tokens)
+	return s
+end
+
 local lower = {}
 for i = 1, 26 do
 	lower[A_byte+i-1] = a_byte+i-1
@@ -105,7 +125,7 @@ end
 
 local function matches(tokens, position, phrase)
 	for i = 1, #phrase do
-		local v = phrase:byte(i)
+		local v = string_byte(phrase, i)
 		local c = tokens[position+i-1]
 		if not c or (c ~= v and lower[c] ~= v) then
 			return false
@@ -169,9 +189,7 @@ function OUTER_STRING(tokens, position)
 	while true do
 		c = tokens[position]
 		if not c or c == open_bracket_byte then
-			local s = string_char(unpack(t))
-			t = del(t)
-			return position, s
+			return position, tokenListToString(t)
 		end
 		t[#t+1] = c
 		position = position + 1
@@ -473,9 +491,7 @@ function STRING(tokens, position)
 				lastEscape = false
 				t[#t+1] = c
 			else
-				local s = string_char(unpack(t))
-				t = del(t)
-				return i+1, newList(string_char(c), s)
+				return i+1, newList(string_char(c), tokenListToString(t))
 			end
 		else
 			if lastEscape then
@@ -519,7 +535,7 @@ function NUMBER(tokens, position)
 				number = -number
 			end
 			for i = 1, #num do
-				number = number + (10^-i)*(num:byte(i) - zero_byte)
+				number = number + (10^-i)*(string_byte(num, i) - zero_byte)
 			end
 			if negative then
 				number = -number
@@ -566,9 +582,7 @@ function ALPHANUM(tokens, position)
 		if c and ((c >= zero_byte and c <= nine_byte) or (c >= A_byte and c <= Z_byte) or (c >= a_byte and c <= z_byte) or c == underscore_byte) then
 			t[#t+1] = c
 		else
-			local s = string_char(unpack(t))
-			t = del(t)
-			return position, s
+			return position, tokenListToString(t)
 		end
 		position = position + 1
 	end
@@ -586,9 +600,7 @@ function MULTI_DIGIT(tokens, position)
 		if c and c >= zero_byte and c <= nine_byte then
 			t[#t+1] = c
 		else
-			local s = string_char(unpack(t))
-			t = del(t)
-			return position, s
+			return position, tokenListToString(t)
 		end
 		position = position + 1
 	end
@@ -979,7 +991,7 @@ local function parse(code)
 	if code == "" then
 		return newList("nil")
 	end
-	local tokens = newList(code:byte(1, #code))
+	local tokens = stringToTokenList(code)
 	local ast = DOGTAG(tokens)
 	tokens = del(tokens)
 	return ast
@@ -1138,9 +1150,7 @@ local function getLiteralString(str, doubleQuote)
 	end
 	t[#t+1] = quote_byte
 	data = del(data)
-	local s = string_char(unpack(t))
-	t = del(t)
-	return s
+	return tokenListToString(t)
 end
 
 local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
@@ -1518,7 +1528,7 @@ end
 
 function DogTag:ColorizeCode(code)
 	code = code:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
-	local tokens = newList(code:byte(1, #code))
+	local tokens = stringToTokenList(code)
 	local t = newList()
 	t[#t+1] = "|cff"
 	t[#t+1] = colors.literal
@@ -1613,7 +1623,9 @@ function DogTag:ColorizeCode(code)
 					else
 						t[#t+1] = colors.tag
 					end
-					t[#t+1] = string_char(unpack(tokens, i, j))
+					for q = i, j do
+						t[#t+1] = string_char(tokens[q])
+					end
 					t[#t+1] = "|r"
 					i = j
 				else
@@ -1633,7 +1645,9 @@ function DogTag:ColorizeCode(code)
 					if j >= i then
 						t[#t+1] = "|cff"
 						t[#t+1] = colors.number
-						t[#t+1] = string_char(unpack(tokens, i, j))
+						for q = i, j do
+							t[#t+1] = string_char(tokens[q])
+						end
 						t[#t+1] = "|r"
 						i = j
 					else

@@ -1381,6 +1381,9 @@ assert_equal(DogTag:ColorizeCode("[42]"), "|cffffffff[|r|cffff00ff42|r|cffffffff
 assert_equal(DogTag:ColorizeCode("[42.5]"), "|cffffffff[|r|cffff00ff42.5|r|cffffffff]|r")
 assert_equal(DogTag:ColorizeCode("[42e5]"), "|cffffffff[|r|cffff00ff42e5|r|cffffffff]|r")
 assert_equal(DogTag:ColorizeCode("[42.5e5]"), "|cffffffff[|r|cffff00ff42.5e5|r|cffffffff]|r")
+assert_equal(DogTag:ColorizeCode(("x"):rep(10000)), "|cffff7f7f" .. ("x"):rep(10000) .. "|r")
+assert_equal(DogTag:ColorizeCode("[" .. ("x"):rep(10000) .. "]"), "|cffffffff[|r|cff00ffff" .. ("x"):rep(10000) .. "|r|cffffffff]|r")
+assert_equal(DogTag:ColorizeCode("[" .. ("1"):rep(10000) .. "]"), "|cffffffff[|r|cffff00ff" .. ("1"):rep(10000) .. "|r|cffffffff]|r")
 
 old_DogTag_Evaluate(DogTag, "[Alpha(key=Bravo, Charlie)]")
 
@@ -1443,6 +1446,9 @@ assert_equal(DogTag:Evaluate("[CheckNilDefault]"), nil)
 assert_equal(DogTag:Evaluate("[CheckNilDefault(50)]"), 50)
 assert_equal(DogTag:Evaluate("[CheckNilDefault('Test')]"), nil)
 assert_equal(DogTag:Evaluate("[CheckNilDefault(One)]"), 1)
+assert_equal(DogTag:Evaluate(("x"):rep(10000)), ("x"):rep(10000))
+assert_equal(DogTag:Evaluate("[" .. ("x"):rep(10000) .. "]"), "Unknown tag " .. ("x"):rep(10000))
+assert_equal(DogTag:Evaluate("[" .. ("1"):rep(10000) .. "]"), 1/0)
 
 assert_equal(DogTag:Evaluate("[1 + 2]"), 3)
 assert_equal(DogTag:Evaluate("[1 - 2]"), -1)
