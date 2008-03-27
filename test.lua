@@ -1406,6 +1406,7 @@ assert_equal(DogTag:Evaluate("[GlobalCheck] [GlobalCheck] Hello"), "Hello")
 assert_equal(DogTag:Evaluate("Hello [GlobalCheck]"), "Hello")
 assert_equal(DogTag:Evaluate("Hello [GlobalCheck] [GlobalCheck]"), "Hello")
 assert_equal(DogTag:Evaluate("[GlobalCheck] [GlobalCheck] Hello [GlobalCheck] [GlobalCheck]"), "Hello")
+assert_equal(DogTag:Evaluate("[GlobalCheck] [One] [Two]"), "1 2")
 
 myfunc_num = 0
 assert_equal(DogTag:Evaluate("[FunctionNumberCheck]"), 1)

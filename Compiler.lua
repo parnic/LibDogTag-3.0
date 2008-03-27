@@ -1219,6 +1219,7 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 				else
 					t[#t+1] = v
 				end
+				lastCouldBeNil = nil
 			end
 			if types['nil'] then
 				if not next(finalTypes) then
