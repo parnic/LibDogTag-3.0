@@ -2576,7 +2576,7 @@ for name, color in pairs({
 	Green = "00ff00",
 	Blue = "0000ff",
 	Cyan = "00ffff",
-	Fuschia = "ff00ff",
+	Fuchsia = "ff00ff",
 	Yellow = "ffff00",
 	Gray = "afafaf",
 }) do
