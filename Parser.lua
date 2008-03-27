@@ -1490,6 +1490,7 @@ local reservedOperators = {
 	["="] = true,
 	["~="] = true,
 	["&"] = true,
+	["||"] = true,
 	["|"] = true,
 	["?"] = true,
 	["!"] = true,

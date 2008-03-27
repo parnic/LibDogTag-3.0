@@ -1368,6 +1368,7 @@ assert_equal(DogTag:ColorizeCode("[+]"), "|cffffffff[|r|cff7f7fff+|r|cffffffff]|
 assert_equal(DogTag:ColorizeCode("[~=]"), "|cffffffff[|r|cff7f7fff~=|r|cffffffff]|r")
 assert_equal(DogTag:ColorizeCode("[<=]"), "|cffffffff[|r|cff7f7fff<=|r|cffffffff]|r")
 assert_equal(DogTag:ColorizeCode("[>=]"), "|cffffffff[|r|cff7f7fff>=|r|cffffffff]|r")
+assert_equal(DogTag:ColorizeCode("[||]"), "|cffffffff[|r|cff7f7fff|||r|cffffffff]|r")
 assert_equal(DogTag:ColorizeCode("[Tag]"), "|cffffffff[|r|cff00ffffTag|r|cffffffff]|r")
 assert_equal(DogTag:ColorizeCode("['Hello']"), "|cffffffff[|r|cffff7f7f'Hello'|r|cffffffff]|r")
 assert_equal(DogTag:ColorizeCode("[Tag(Arg)]"), "|cffffffff[|r|cff00ffffTag|r|cffffffff(|r|cff00ffffArg|r|cffffffff)|r|cffffffff]|r")
