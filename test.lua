@@ -1691,6 +1691,7 @@ assert_equal(parse([=[[Func('Alpha\'Bravo"Charlie')]]=]), { "tag", "Func", {"'",
 assert_equal(parse([=[[Func("Alpha\"Bravo'Charlie")]]=]), { "tag", "Func", {'"', 'Alpha"Bravo\'Charlie'} })
 assert_equal(parse([=[[Func("\124cffff0000")]]=]), { "tag", "Func", {'"', '|cffff0000'} })
 assert_equal(parse([=[[Func("\123456")]]=]), { "tag", "Func", {'"', '\123' .. '456'} })
+assert_equal(parse([=[[Func("hey\nthere")]]=]), { "tag", "Func", {'"', 'hey\nthere' }})
 
 assert_equal(DogTag:CleanCode([=[['Alpha\'Bravo']]=]), "Alpha'Bravo")
 assert_equal(DogTag:CleanCode([=[["Alpha\"Bravo"]]=]), 'Alpha"Bravo')
@@ -1698,6 +1699,7 @@ assert_equal(DogTag:CleanCode([=[['Alpha\'Bravo"Charlie']]=]), "Alpha'Bravo\"Cha
 assert_equal(DogTag:CleanCode([=[["Alpha\"Bravo'Charlie"]]=]), 'Alpha"Bravo\'Charlie')
 assert_equal(DogTag:CleanCode([=[["\124cffff0000"]]=]), '|cffff0000')
 assert_equal(DogTag:CleanCode([=[["\123456"]]=]), '\123' .. '456')
+assert_equal(DogTag:CleanCode([=[["hey\nthere"]]=]), 'hey\nthere')
 
 assert_equal(DogTag:CleanCode([=[[Func('Alpha\'Bravo')]]=]), [=[[Func("Alpha'Bravo")]]=])
 assert_equal(DogTag:CleanCode([=[[Func("Alpha\"Bravo")]]=]), [=[[Func('Alpha"Bravo')]]=])
@@ -1707,6 +1709,7 @@ assert_equal(DogTag:CleanCode([=[[Func("\124cffff0000")]]=]), [=[[Func("\124cfff
 assert_equal(DogTag:CleanCode([=[[Func('\124cffff0000')]]=]), [=[[Func('\124cffff0000')]]=])
 assert_equal(DogTag:CleanCode([=[[Func("\123456")]]=]), [=[[Func("{456")]]=])
 assert_equal(DogTag:CleanCode([=[[Func('\123456')]]=]), [=[[Func('{456')]]=])
+assert_equal(DogTag:CleanCode([=[[Func('hey\nthere')]]=]), [=[[Func('hey\nthere')]]=])
 
 assert_equal(DogTag:Evaluate("[Type(nil)]"), "nil")
 assert_equal(DogTag:Evaluate("[Type('Hello')]"), "string")

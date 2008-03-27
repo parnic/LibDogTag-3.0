@@ -70,6 +70,8 @@ local a_byte = ('a'):byte()
 local Z_byte = ('Z'):byte()
 local z_byte = ('z'):byte()
 local e_byte = ('e'):byte()
+local n_byte = ('n'):byte()
+local newline_byte = ('\n'):byte()
 local zero_byte = ('0'):byte()
 local nine_byte = ('9'):byte()
 local underscore_byte = ('_'):byte()
@@ -507,6 +509,8 @@ function STRING(tokens, position)
 						i = i + 1
 					end
 					t[#t+1] = num
+				elseif v == n_byte then
+					t[#t+1] = newline_byte
 				else
 					t[#t+1] = backslash_byte
 					t[#t+1] = v
@@ -1138,6 +1142,9 @@ local function getLiteralString(str, doubleQuote)
 		if v == quote_byte then
 			t[#t+1] = backslash_byte
 			t[#t+1] = quote_byte
+		elseif v == newline_byte then
+			t[#t+1] = backslash_byte
+			t[#t+1] = n_byte
 		elseif v < 32 or v > 128 or v == 124 then
 			t[#t+1] = backslash_byte
 			local a, b, c = math.floor(v / 100), math.floor((v % 100) / 10), v % 10
