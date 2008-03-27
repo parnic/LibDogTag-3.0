@@ -2041,7 +2041,11 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	extraKwargs = del(extraKwargs)
 	ast = deepDel(ast)
 	
-	t[#t+1] = [=[return result or nil, DogTag.opacity;]=]
+	t[#t+1] = [=[local opacity = DogTag.opacity;]=]
+	t[#t+1] = "\n"
+	t[#t+1] = [=[DogTag.opacity = nil;]=]
+	t[#t+1] = "\n"
+	t[#t+1] = [=[return result or nil, opacity;]=]
 	t[#t+1] = "\n"
 	t[#t+1] = [=[end;]=]
 	t[#t+1] = "\n"

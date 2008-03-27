@@ -245,7 +245,6 @@ local function updateFontString(fs)
 	local func = codeToFunction[nsList][kwargTypes][code]
 	DogTag.__isMouseOver = DogTag.__lastMouseover == fsToFrame[fs]
 	call__func, call__kwargs, call__code, call__nsList = func, kwargs, code, nsList
-	DogTag.opacity = nil --TODO: Hi, I'm a hack. please fix me.
 	local success, ret, alpha = xpcall(call, errorhandler)
 	call__func, call__kwargs, call__code, call__nsList = nil, nil, nil, nil
 	if success then

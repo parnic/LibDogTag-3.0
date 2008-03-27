@@ -2539,6 +2539,7 @@ assert_equal(select(2, DogTag:Evaluate("[Alpha(0)]")), 0)
 assert_equal(select(2, DogTag:Evaluate("[Alpha(0.5)]")), 0.5)
 assert_equal(select(2, DogTag:Evaluate("[Alpha(2)]")), 1)
 assert_equal(select(2, DogTag:Evaluate("[Alpha(-1)]")), 0)
+assert_equal(select(2, DogTag:Evaluate("[One]")), nil)
 
 DogTag:AddFontString(fs, f, "[IsMouseOver]")
 assert_equal(fs:GetText(), nil)
