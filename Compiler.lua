@@ -1196,6 +1196,7 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 		t[#t+1] = storeKey
 		t[#t+1] = [=[ = ]=]
 		local finalTypes = newList()
+		local lastCouldBeNil = false
 		for i,v in ipairs(args) do
 			if i > 1 then
 				t[#t+1] = [=[ .. ]=]
@@ -1206,12 +1207,30 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 				t[#t+1] = "("
 				t[#t+1] = v
 				t[#t+1] = " or '')"
+				lastCouldBeNil = v
 			elseif types['nil'] then
 				-- just nil
 				t[#t+1] = "''"
+				lastCouldBeNil = true
 			else
 				-- non-nil
-				t[#t+1] = v
+				if lastCouldBeNil and v:match("^%(\"%s+\"%)$") then
+					t[#t+1] = "("
+					if lastCouldBeNil ~= true then
+						t[#t+1] = '(('
+						t[#t+1] = lastCouldBeNil
+						t[#t+1] = " or '') == ''"
+						t[#t+1] = ') and '
+					end
+					t[#t+1] = v:gsub("^%(\"%s", "(\"")
+					if lastCouldBeNil ~= true then
+						t[#t+1] = ' or '
+						t[#t+1] = v
+					end
+					t[#t+1] = ")"
+				else
+					t[#t+1] = v
+				end
 			end
 			if types['nil'] then
 				if not next(finalTypes) then
@@ -2021,8 +2040,8 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	types = newSet((";"):split(types))
 	if types["string"] then
 		t[#t+1] = "if type(result) == 'string' then\n"
-		t[#t+1] = "result = result:trim();\n"
-		t[#t+1] = "result = result:gsub('  +', ' ');\n"
+--		t[#t+1] = "result = result:trim();\n"
+--		t[#t+1] = "result = result:gsub('  +', ' ');\n"
 		t[#t+1] = "if result == '' then\n"
 		t[#t+1] = "result = nil;\n"
 		t[#t+1] = "elseif mytonumber(result) then\n"

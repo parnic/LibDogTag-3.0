@@ -1394,8 +1394,10 @@ assert_equal(DogTag:Evaluate("[PlusOne(One):PlusOne]"), 3)
 assert_equal(DogTag:Evaluate("[PlusOne(number=One)]"), 2)
 GlobalCheck_data = "Hello World"
 assert_equal(DogTag:Evaluate("[GlobalCheck]"), "Hello World")
-assert_equal(DogTag:Evaluate("[One]    [Two]"), "1 2")
-assert_equal(DogTag:Evaluate("    [One]    [Two]    "), "1 2")
+GlobalCheck_data = nil
+assert_equal(DogTag:Evaluate("[One] [GlobalCheck] [Two]"), "1 2")
+assert_equal(DogTag:Evaluate("[One]    [Two]"), "1    2")
+assert_equal(DogTag:Evaluate("    [One]    [Two]    "), "    1    2    ")
 
 myfunc_num = 0
 assert_equal(DogTag:Evaluate("[FunctionNumberCheck]"), 1)
