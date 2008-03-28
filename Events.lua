@@ -13,6 +13,7 @@ local memoizeTable = DogTag.memoizeTable
 local select2 = DogTag.select2
 local kwargsToKwargTypes = DogTag.kwargsToKwargTypes
 local codeToFunction, evaluate, fsToKwargs, fsToFrame, fsToNSList, updateFontString
+local fsNeedUpdate, fsNeedQuickUpdate
 DogTag_funcs[#DogTag_funcs+1] = function()
 	codeToFunction = DogTag.codeToFunction
 	evaluate = DogTag.evaluate
@@ -20,12 +21,34 @@ DogTag_funcs[#DogTag_funcs+1] = function()
 	fsToKwargs = DogTag.fsToKwargs
 	fsToNSList = DogTag.fsToNSList
 	updateFontString = DogTag.updateFontString
+	for fs in pairs(fsToFrame) do
+		fsNeedQuickUpdate[fs] = true
+	end
 end
 
-local fsNeedUpdate = {}
+local EventHandlers
+
+if DogTag.oldLib then
+	fsNeedUpdate = DogTag.oldLib.fsNeedUpdate
+	for k in pairs(fsNeedUpdate) do
+		fsNeedUpdate[k] = nil
+	end
+	fsNeedQuickUpdate = DogTag.oldLib.fsNeedQuickUpdate
+	for k in pairs(fsNeedQuickUpdate) do
+		fsNeedQuickUpdate[k] = nil
+	end
+	EventHandlers = DogTag.oldLib.EventHandlers or {}
+	TimerHandlers = DogTag.oldLib.TimerHandlers or {}
+else
+	fsNeedUpdate = {}
+	fsNeedQuickUpdate = {}
+	EventHandlers = {}
+	TimerHandlers = {}
+end
 DogTag.fsNeedUpdate = fsNeedUpdate
-local fsNeedQuickUpdate = {}
 DogTag.fsNeedQuickUpdate = fsNeedQuickUpdate
+DogTag.EventHandlers = EventHandlers
+DogTag.TimerHandlers = TimerHandlers
 
 local frame
 if DogTag.oldLib then
@@ -58,16 +81,44 @@ DogTag.codeToEventList = codeToEventList
 
 local callbacks
 do
-	local callbacks_mt = {__index=function(self, kwargTypes)
+	local callbacks_mt_mt = {__index=function(self, kwargTypes)
 		local t = newList()
 		self[kwargTypes] = t
 		return t
 	end}
-	callbacks = setmetatable({}, {__index=function(self, nsList)
-		local t = setmetatable(newList(), callbacks_mt)
+	local callbacks_mt = {__index=function(self, nsList)
+		local t = setmetatable(newList(), callbacks_mt_mt)
 		self[nsList] = t
 		return t
-	end})
+	end}
+	if DogTag.oldLib then
+		callbacks = DogTag.oldLib.callbacks
+		setmetatable(callbacks, nil)
+		for nsList, callbacks_nsList in pairs(callbacks) do
+			setmetatable(callbacks_nsList, nil)
+			local tmp = {}
+			for k,v in pairs(callbacks_nsList) do
+				tmp[k] = v
+				callbacks_nsList[k] = nil
+			end
+			for kwargTypes, callbacks_nsList_kwargTypes in pairs(tmp) do
+				local kwargs = next(callbacks_nsList_kwargTypes)
+				if kwargs ~= nil then
+					local realKwargTypes = kwargsToKwargTypes[kwargs]
+					callbacks_nsList[realKwargTypes] = newList()
+					for kwargs, callbacks_nsList_kwargTypes_kwargs in pairs(callbacks_nsList_kwargTypes) do
+						callbacks_nsList[realKwargTypes][memoizeTable(deepCopy(kwargs))] = callbacks_nsList_kwargTypes_kwargs
+					end
+				end
+			end
+		end
+		setmetatable(callbacks, callbacks_mt)
+		for k, v in pairs(callbacks) do
+			setmetatable(v, callbacks_mt_mt)
+		end
+	else
+		callbacks = setmetatable({}, callbacks_mt)
+	end
 end
 DogTag.callbacks = callbacks
 
@@ -165,15 +216,15 @@ function DogTag:RemoveCallback(code, callback, ...)
 	end
 end
 
-local EventHandlers = {}
-
 local function OnEvent(this, event, ...)
 	if DogTag[event] then
 		DogTag[event](DogTag, event, ...)
 	end
-	if EventHandlers[event] then
-		for func in pairs(EventHandlers[event]) do
-			func(event, ...)
+	for namespace, data in pairs(EventHandlers) do
+		if data[event] then
+			for func in pairs(data[event]) do
+				func(event, ...)
+			end
 		end
 	end
 	local arg1 = (...)
@@ -384,7 +435,6 @@ else
 	end
 end
 
-local TimerHandlers = {}
 local nextTime = 0
 local nextUpdateTime = 0
 local nextSlowUpdateTime = 0
@@ -416,10 +466,12 @@ local function OnUpdate(this, elapsed)
 		nextTime = currentTime + 50
 		local currentTime_1000 = currentTime/1000
 		for i = 1, 9 do
-			local TimerHandlers_i = TimerHandlers[i]
-			if TimerHandlers_i then
-				for func in pairs(TimerHandlers_i) do
-					func(num, currentTime_1000)
+			for ns, data in pairs(TimerHandlers) do
+				local data_i = data[i]
+				if data_i then
+					for func in pairs(data_i) do
+						func(num, currentTime_1000)
+					end
 				end
 			end
 		end
@@ -434,33 +486,49 @@ local function OnUpdate(this, elapsed)
 end
 frame:SetScript("OnUpdate", OnUpdate)
 
-function DogTag:AddEventHandler(event, func)
+function DogTag:AddEventHandler(namespace, event, func)
+	if type(namespace) ~= "string" then
+		error(("Bad argument #2 to `AddEventHandler'. Expected %q, got %q"):format("string", type(namespace)), 2)
+	end
 	if type(event) ~= "string" then
-		error(("Bad argument #2 to `AddEventHandler'. Expected %q, got %q"):format("string", type(event)), 2)
+		error(("Bad argument #3 to `AddEventHandler'. Expected %q, got %q"):format("string", type(event)), 2)
 	end
 	if type(func) ~= "function" then
-		error(("Bad argument #3 to `AddEventHandler'. Expected %q, got %q"):format("function", type(func)), 2)
+		error(("Bad argument #4 to `AddEventHandler'. Expected %q, got %q"):format("function", type(func)), 2)
 	end
-	if not EventHandlers[event] then
-		EventHandlers[event] = newList()
+	if not EventHandlers[namespace] then
+		EventHandlers[namespace] = newList()
 	end
-	EventHandlers[event][func] = true
+	if not EventHandlers[namespace][event] then
+		EventHandlers[namespace][event] = newList()
+	end
+	EventHandlers[namespace][event][func] = true
 end
 
-function DogTag:RemoveEventHandler(event, func)
+function DogTag:RemoveEventHandler(namespace, event, func)
+	if type(namespace) ~= "string" then
+		error(("Bad argument #2 to `RemoveEventHandler'. Expected %q, got %q"):format("string", type(namespace)), 2)
+	end
 	if type(event) ~= "string" then
-		error(("Bad argument #2 to `RemoveEventHandler'. Expected %q, got %q"):format("string", type(event)), 2)
+		error(("Bad argument #3 to `RemoveEventHandler'. Expected %q, got %q"):format("string", type(event)), 2)
 	end
 	if type(func) ~= "function" then
-		error(("Bad argument #3 to `RemoveEventHandler'. Expected %q, got %q"):format("function", type(func)), 2)
+		error(("Bad argument #4 to `RemoveEventHandler'. Expected %q, got %q"):format("function", type(func)), 2)
 	end
-	local EventHandlers_event = EventHandlers[event]
-	if not EventHandlers_event then
+	local EventHandlers_namespace = EventHandlers[namespace]
+	if not EventHandlers_namespace then
 		return
 	end
-	EventHandlers_event[func] = nil
-	if not next(EventHandlers_event) then
-		EventHandlers[event] = del(EventHandlers_event)
+	local EventHandlers_namespace_event = EventHandlers_namespace[event]
+	if not EventHandlers_namespace_event then
+		return
+	end
+	EventHandlers_namespace_event[func] = nil
+	if not next(EventHandlers_namespace_event) then
+		EventHandlers_namespace[event] = del(EventHandlers_namespace_event)
+	end
+	if not next(EventHandlers_namespace) then
+		EventHandlers[namespace] = del(EventHandlers_namespace)
 	end
 end
 
@@ -468,35 +536,50 @@ function DogTag:FireEvent(event, ...)
 	OnEvent(frame, event, ...)
 end
 
-function DogTag:AddTimerHandler(func, priority)
+function DogTag:AddTimerHandler(namespace, func, priority)
+	if type(namespace) ~= "string" then
+		error(("Bad argument #2 to `AddTimerHandler'. Expected %q, got %q"):format("string", type(namespace)), 2)
+	end
 	if type(func) ~= "function" then
-		error(("Bad argument #2 to `AddTimerHandler'. Expected %q, got %q"):format("function", type(func)), 2)
+		error(("Bad argument #3 to `AddTimerHandler'. Expected %q, got %q"):format("function", type(func)), 2)
 	end
 	if not priority then
 		priority = 5
 	elseif type(priority) ~= "number" then
-		error(("Bad argument #3 to `AddTimerHandler'. Expected %q, got %q"):format("number", type(priority)), 2)
+		error(("Bad argument #4 to `AddTimerHandler'. Expected %q, got %q"):format("number", type(priority)), 2)
 	elseif math.floor(priority) ~= priority then
-		error("Bad argument #3 to `AddTimerHandler'. Expected integer, got number", 2)
+		error("Bad argument #4 to `AddTimerHandler'. Expected integer, got number", 2)
 	elseif priority < 1 or priority > 9 then
-		error(("Bad argument #3 to `AddTimerHandler'. Expected [1, 9], got %d"):format(priority), 2)
+		error(("Bad argument #4 to `AddTimerHandler'. Expected [1, 9], got %d"):format(priority), 2)
 	end
-	self:RemoveTimerHandler(func)
-	if not TimerHandlers[priority] then
-		TimerHandlers[priority] = newList()
+	self:RemoveTimerHandler(namespace, func)
+	if not TimerHandlers[namespace] then
+		TimerHandlers[namespace] = newList()
 	end
-	TimerHandlers[priority][func] = true
+	if not TimerHandlers[namespace][priority] then
+		TimerHandlers[namespace][priority] = newList()
+	end
+	TimerHandlers[namespace][priority][func] = true
 end
 
-function DogTag:RemoveTimerHandler(func)
-	if type(func) ~= "function" then
-		error(("Bad argument #2 to `RemoveTimerHandler'. Expected %q, got %q"):format("function", type(func)), 2)
+function DogTag:RemoveTimerHandler(namespace, func)
+	if type(namespace) ~= "string" then
+		error(("Bad argument #2 to `RemoveTimerHandler'. Expected %q, got %q"):format("string", type(namespace)), 2)
 	end
-	for k, v in pairs(TimerHandlers) do
+	if type(func) ~= "function" then
+		error(("Bad argument #3 to `RemoveTimerHandler'. Expected %q, got %q"):format("function", type(func)), 2)
+	end
+	if not TimerHandlers[namespace] then
+		return
+	end
+	for k, v in pairs(TimerHandlers[namespace]) do
 		v[func] = nil
 		if not next(v) then
-			TimerHandlers[k] = del(v)
+			TimerHandlers[namespace][k] = del(v)
 		end
+	end
+	if not next(TimerHandlers[namespace]) then
+		TimerHandlers[namespace] = del(TimerHandlers[namespace])
 	end
 end
 

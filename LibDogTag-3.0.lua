@@ -34,18 +34,40 @@ DogTag_funcs[#DogTag_funcs+1] = function()
 	clearCodes = DogTag.clearCodes
 end
 
-local fsToFrame = {}
+local fsToFrame, fsToCode, fsToNSList, fsToKwargs, Tags, AddonFinders
+if DogTag.oldLib then
+	local oldLib = DogTag.oldLib
+	fsToFrame = oldLib.fsToFrame
+	fsToCode = oldLib.fsToCode
+	fsToNSList = oldLib.fsToNSList
+	fsToKwargs = oldLib.fsToKwargs
+	local tmp = {}
+	for fs, kwargs in pairs(fsToKwargs) do
+		tmp[fs] = memoizeTable(deepCopy(kwargs))
+		fsToKwargs[fs] = nil
+	end
+	for fs, kwargs in pairs(tmp) do
+		fsToKwargs[fs] = kwargs
+	end
+	tmp = nil
+	Tags = oldLib.Tags
+	Tags["Base"] = {}
+	AddonFinders = oldLib.AddonFinders
+	AddonFinders["Base"] = {}
+else
+	fsToFrame = {}
+	fsToCode = {}
+	fsToNSList = {}
+	fsToKwargs = {}
+	Tags = { ["Base"] = {} }
+	AddonFinders = { ["Base"] = {} }
+end
 DogTag.fsToFrame = fsToFrame
-local fsToCode = {}
 DogTag.fsToCode = fsToCode
-local fsToNSList = {}
 DogTag.fsToNSList = fsToNSList
-local fsToKwargs = {}
 DogTag.fsToKwargs = fsToKwargs
 
-local Tags = { ["Base"] = {} }
 DogTag.Tags = Tags
-local AddonFinders = { ["Base"] = {} }
 DogTag.AddonFinders = AddonFinders
 
 local sortStringList = DogTag.sortStringList
@@ -384,12 +406,6 @@ function DogTag:AddAddonFinder(namespace, kind, name, func)
 		AddonFinders[namespace] = {}
 	end
 	AddonFinders[namespace][newList(kind, name, func)] = true
-end
-
-local subLibraries = {}
-DogTag.subLibraries = subLibraries
-function DogTag:AddSubLibrary(major)
-	subLibraries[major] = true
 end
 
 local inADDON_LOADED = false

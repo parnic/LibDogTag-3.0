@@ -28,18 +28,34 @@ DogTag_funcs[#DogTag_funcs+1] = function()
 	clearCodes = DogTag.clearCodes
 end
 
-local compilationSteps = {}
+local compilationSteps
 do
 	local mt = {__index = function(self, ns)
 		self[ns] = newList()
 		return self[ns]
 	end}
-	compilationSteps.pre = setmetatable({ ['Base'] = {} }, mt)
-	compilationSteps.start = setmetatable({ ['Base'] = {} }, mt)
-	compilationSteps.tag = setmetatable({ ['Base'] = {} }, mt)
-	compilationSteps.tagevents = setmetatable({ ['Base'] = {} }, mt)
-	compilationSteps.finish = setmetatable({ ['Base'] = {} }, mt)
+	if DogTag.oldLib and DogTag.oldLib.compilationSteps then
+		compilationSteps = DogTag.oldLib.compilationSteps
+		setmetatable(compilationSteps.pre, mt)
+		compilationSteps.pre.Base = {}
+		setmetatable(compilationSteps.start, mt)
+		compilationSteps.start.Base = {}
+		setmetatable(compilationSteps.tag, mt)
+		compilationSteps.tag.Base = {}
+		setmetatable(compilationSteps.tagevents, mt)
+		compilationSteps.tagevents.Base = {}
+		setmetatable(compilationSteps.finish, mt)
+		compilationSteps.finish.Base = {}
+	else
+		compilationSteps = {}
+		compilationSteps.pre = setmetatable({ ['Base'] = {} }, mt)
+		compilationSteps.start = setmetatable({ ['Base'] = {} }, mt)
+		compilationSteps.tag = setmetatable({ ['Base'] = {} }, mt)
+		compilationSteps.tagevents = setmetatable({ ['Base'] = {} }, mt)
+		compilationSteps.finish = setmetatable({ ['Base'] = {} }, mt)
+	end
 end
+DogTag.compilationSteps = compilationSteps
 
 local correctTagCasing = setmetatable({}, {__index = function(self, tag)
 	for ns, data in pairs(Tags) do

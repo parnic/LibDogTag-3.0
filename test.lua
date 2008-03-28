@@ -3021,7 +3021,7 @@ local function func(event, ...)
 	
 	fired = true
 end
-DogTag:AddEventHandler("MY_EVENT", func)
+DogTag:AddEventHandler("Base", "MY_EVENT", func)
 FireEvent("MY_EVENT")
 assert_equal(fired, true)
 fired = false
@@ -3040,7 +3040,7 @@ expectedNumArgs = 2
 DogTag:FireEvent("MY_EVENT", 'alpha', 'bravo')
 assert_equal(fired, true)
 fired = false
-DogTag:RemoveEventHandler("MY_EVENT", func)
+DogTag:RemoveEventHandler("Base", "MY_EVENT", func)
 FireEvent("MY_EVENT")
 FireEvent("MY_EVENT", 'alpha', 'bravo')
 DogTag:FireEvent("MY_EVENT")
@@ -3165,20 +3165,116 @@ DogTag:AddTag("Special", "SpecialTag", {
 	ret = 'string;number;nil',
 })
 
+local SpecialEventTag_num = 0
+DogTag:AddTag("Special", "SpecialEventTag", {
+	code = function()
+		SpecialEventTag_num = SpecialEventTag_num + 1
+		return SpecialEventTag_num
+	end,
+	ret = 'number',
+	events = "SPECIAL_EVENT"
+})
+
+DogTag:AddTag("Base", "ChangingTag", {
+	code = function()
+		return "Hello"
+	end,
+	ret = 'string',
+})
+
+SpecialAddonFinder_fired = false
+DogTag:AddAddonFinder("Special", "_G", "SpecialGlobal", function()
+	assert_equal(SpecialAddonFinder_fired, false)
+	SpecialAddonFinder_fired = true
+end)
+
 SpecialTag_data = nil
 assert_equal(DogTag:Evaluate("[SpecialTag]", "Special"), nil)
 SpecialTag_data = 'hey'
 assert_equal(DogTag:Evaluate("[SpecialTag]", "Special"), 'hey')
 SpecialTag_data = 52
 assert_equal(DogTag:Evaluate("[SpecialTag]", "Special"), 52)
+
+assert_equal(DogTag:Evaluate("[ChangingTag]"), "Hello")
+
+DogTag:AddFontString(fs, f, "[SpecialEventTag]", "Special")
+assert_equal(fs:GetText(), 1)
+FireEvent("SPECIAL_EVENT")
+assert_equal(fs:GetText(), 1)
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), 2)
+
+local SpecialEventTag_Callback_fired = false
+DogTag:AddCallback("[SpecialEventTag]", function(code, kwargs)
+	assert_equal(code, "[SpecialEventTag]")
+	assert_equal(kwargs, nil)
+	SpecialEventTag_Callback_fired = true
+end, "Special")
+
+FireEvent("SPECIAL_EVENT")
+assert_equal(SpecialEventTag_Callback_fired, true)
+
+local SPECIAL_EVENT_CHECK_fired = false
+DogTag:AddEventHandler("Base", "SPECIAL_EVENT_CHECK", function(event, ...)
+	assert_equal(SPECIAL_EVENT_CHECK_fired, false)
+	SPECIAL_EVENT_CHECK_fired = true
+	assert(event == "SPECIAL_EVENT_CHECK")
+	assert((...) == "Good")
+end)
+
+FireEvent("SPECIAL_EVENT_CHECK", "Good")
+assert_equal(SPECIAL_EVENT_CHECK_fired, true)
+SPECIAL_EVENT_CHECK_fired = false
+
+local SPECIAL_TIMER_fired = false
+DogTag:AddTimerHandler("Base", function(currentTime, num)
+	SPECIAL_TIMER_fired = true
+end)
+
+FireOnUpdate(0.05)
+assert_equal(SPECIAL_TIMER_fired, true)
+SPECIAL_TIMER_fired = false
 
 dofile('test.lua')
 
---[[
+DogTag:AddTag("Base", "ChangingTag", {
+	code = function()
+		return "There"
+	end,
+	ret = 'string',
+})
+
 SpecialTag_data = nil
 assert_equal(DogTag:Evaluate("[SpecialTag]", "Special"), nil)
 SpecialTag_data = 'hey'
 assert_equal(DogTag:Evaluate("[SpecialTag]", "Special"), 'hey')
 SpecialTag_data = 52
 assert_equal(DogTag:Evaluate("[SpecialTag]", "Special"), 52)
-]]
+
+assert_equal(DogTag:Evaluate("[ChangingTag]"), "There")
+
+FireEvent("ADDON_LOADED")
+assert_equal(SpecialAddonFinder_fired, false)
+_G.SpecialGlobal = {}
+FireEvent("ADDON_LOADED")
+assert_equal(SpecialAddonFinder_fired, true)
+
+local num = fs:GetText()
+assert_equal(fs:GetText(), num)
+FireEvent("SPECIAL_EVENT")
+assert_equal(fs:GetText(), num)
+FireOnUpdate(0.05)
+assert_equal(fs:GetText(), num+1)
+
+FireEvent("SPECIAL_EVENT_CHECK", "Good")
+assert_equal(SPECIAL_EVENT_CHECK_fired, true)
+SPECIAL_EVENT_CHECK_fired = false
+
+SPECIAL_TIMER_fired = false
+FireOnUpdate(0.05)
+assert_equal(SPECIAL_TIMER_fired, true)
+SPECIAL_TIMER_fired = false
+
+SpecialEventTag_Callback_fired = false
+FireEvent("SPECIAL_EVENT")
+assert_equal(SpecialEventTag_Callback_fired, true)
