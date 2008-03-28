@@ -185,13 +185,13 @@ DogTag:AddTag("Base", ">=", {
 DogTag:AddTag("Base", "=", {
 	code = function(left, right)
 		if left == right or tostring(left) == tostring(right) then
-			return left
+			return left or L["True"]
 		else
 			return nil
 		end
 	end,
 	arg = {
-		'left', 'number;string', "@req",
+		'left', 'nil;number;string', "@req",
 		'right', 'nil;number;string', "@req",
 	},
 	ret = function(args)
@@ -206,7 +206,7 @@ DogTag:AddTag("Base", "=", {
 DogTag:AddTag("Base", "~=", {
 	alias = [=[not (left = right)]=],
 	arg = {
-		'left', 'number;string', "@req",
+		'left', 'nil;number;string', "@req",
 		'right', 'nil;number;string', "@req",
 	},
 	doc = L["Check if left is not equal to right, if so, return left"],
