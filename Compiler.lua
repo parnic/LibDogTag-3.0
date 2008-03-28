@@ -1656,15 +1656,15 @@ do
 			return ast
 		end
 		local astType = getASTType(ast)
-		if astType ~= "tag" and not operators[astType] then
-			for i = 2, #ast do
-				local err
-				ast[i], err = unalias(ast[i], nsList, kwargTypes)
-				if not ast[i] then
-					ast = deepDel(ast)
-					return nil, err
-				end
+		for i = 2, #ast do
+			local err
+			ast[i], err = unalias(ast[i], nsList, kwargTypes)
+			if not ast[i] then
+				ast = deepDel(ast)
+				return nil, err
 			end
+		end
+		if astType ~= "tag" and not operators[astType] then
 			return ast
 		end
 		local isTag = astType == "tag"
