@@ -1839,7 +1839,9 @@ local function readjustKwargs(ast, nsList, kwargTypes)
 		if not next(ast.kwarg) then
 			ast.kwarg = del(ast.kwarg)
 		end
-		assert(#ast == start-1)
+		if #ast ~= start-1 then
+			error(("Assertion failed: %s == %s"):format(#ast, start-1))
+		end
 	end
 	return ast
 end
