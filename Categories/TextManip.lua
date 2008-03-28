@@ -299,8 +299,8 @@ DogTag:AddTag("Base", "Substring", {
 	},
 	ret = "nil;string",
 	static = true,
-	doc = L["Truncate value to the length specified by number, adding ellipses by default"],
-	example = '["Hello":Truncate(3)] => "Hel..."; ["Hello":Truncate(3, nil)] => "Hel"',
+	doc = L["Return the characters specified by start and finish. If either are negative, it means take from the end instead of the beginning"],
+	example = '["Hello":Sub(2, 4)] => "ell"; ["Hello":Sub(2, -2)] => "ell"; ["Hello":Sub(3)] => "llo"',
 	category = L["Text manipulation"]
 })
 
