@@ -3155,6 +3155,8 @@ assert_equal(fs:GetText(), 'heyhey 2')
 assert_equal(DogTag:Evaluate("[(Two One) ? One]", "Unit"), 1)
 assert_equal(DogTag:Evaluate("[Two (One ? One)]", "Unit"), 21)
 
+assert_equal(DogTag:Evaluate("[One:Short:Color(\"95e495\")]"), "|cff95e4951|r")
+
 local finalMemory = collectgarbage('count')
 local finalTime = os.clock()
 collectgarbage('collect')

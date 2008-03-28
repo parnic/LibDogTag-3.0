@@ -1063,7 +1063,7 @@ local function standardize(ast)
 		end
 	end
 	if type_ast ~= "table" then
-		if type_ast == "string" and DogTag.__mytonumber(ast) then
+		if type_ast == "string" and DogTag.__mytonumber(ast) and not ast:match("e") then
 			return ast+0
 		end
 		return ast
