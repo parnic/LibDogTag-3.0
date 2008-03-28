@@ -1199,6 +1199,7 @@ assert_equal(DogTag:CleanCode("[1?2!3]"), "[1 ? 2 ! 3]")
 assert_equal(parse("[1?2!3?4!5]"), { "?", 1, 2, { "?", 3, 4, 5 } })
 assert_equal(parse("[if 1 then 2]"), { "if", 1, 2 })
 assert_equal(parse("[if(1)then(2)]"), { "if", { "(", 1}, {"(", 2} })
+assert_equal(parse("[ifabc then def]"), nil)
 assert_equal(parse("[if 1 then 2 end]"), { "if", 1, 2 })
 assert_equal(DogTag:CleanCode("[if 1 then 2]"), "[if 1 then\n    2\nend]")
 assert_equal(DogTag:CleanCode("[if 1 then 2 end]"), "[if 1 then\n    2\nend]")
@@ -1207,17 +1208,21 @@ assert_equal(parse("[if 1 then 2 else 3 end]"), { "if", 1, 2, 3 })
 assert_equal(DogTag:CleanCode("[if 1 then 2 else 3]"), "[if 1 then\n    2\nelse\n    3\nend]")
 assert_equal(DogTag:CleanCode("[if 1 then 2 else 3 end]"), "[if 1 then\n    2\nelse\n    3\nend]")
 assert_equal(parse("[if 1 then 2 else if 3 then 4 else 5]"), { "if", 1, 2, { "if", 3, 4, 5 } })
+assert_equal(parse("[if 1 then 2 elseif 3 then 4 else 5]"), { "if", 1, 2, { "if", 3, 4, 5 } })
 assert_equal(parse("[if 1 then 2 else if 3 then 4 else 5 end]"), { "if", 1, 2, { "if", 3, 4, 5 } })
-assert_equal(DogTag:CleanCode("[if 1 then 2 else if 3 then 4 else 5]"), "[if 1 then\n    2\nelse if 3 then\n    4\nelse\n    5\nend]")
-assert_equal(DogTag:CleanCode("[if 1 then 2 else if 3 then 4 else 5 end]"), "[if 1 then\n    2\nelse if 3 then\n    4\nelse\n    5\nend]")
+assert_equal(parse("[if 1 then 2 elseif 3 then 4 else 5 end]"), { "if", 1, 2, { "if", 3, 4, 5 } })
+assert_equal(DogTag:CleanCode("[if 1 then 2 else if 3 then 4 else 5]"), "[if 1 then\n    2\nelseif 3 then\n    4\nelse\n    5\nend]")
+assert_equal(DogTag:CleanCode("[if 1 then 2 elseif 3 then 4 else 5]"), "[if 1 then\n    2\nelseif 3 then\n    4\nelse\n    5\nend]")
+assert_equal(DogTag:CleanCode("[if 1 then 2 else if 3 then 4 else 5 end]"), "[if 1 then\n    2\nelseif 3 then\n    4\nelse\n    5\nend]")
+assert_equal(DogTag:CleanCode("[if 1 then 2 elseif 3 then 4 else 5 end]"), "[if 1 then\n    2\nelseif 3 then\n    4\nelse\n    5\nend]")
 
-assert_equal(DogTag:CleanCode("[if 1 then if 2 then 3 else 4 else if 5 then 6 else 7]"), [=[[if 1 then
+assert_equal(DogTag:CleanCode("[if 1 then if 2 then 3 else 4 elseif 5 then 6 else 7]"), [=[[if 1 then
     if 2 then
         3
     else
         4
     end
-else if 5 then
+elseif 5 then
     6
 else
     7

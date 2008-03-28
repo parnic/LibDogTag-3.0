@@ -495,7 +495,7 @@ function DogTag:OpenHelp()
 			* The {{&}} and {{and}} operators function as boolean AND. e.g. {[Alpha and Bravo]} will check if Alpha is non-false, if so, run Bravo.<br />
 			* The {{||}} and {{or}} operators function as boolean OR. e.g. {[Alpha or Bravo]} will check if Alpha is false, if so, run Bravo, otherwise just show Alpha.<br />
 			* The {{?}} operator functions as an if statement. It can be used in conjunction with {{!}} to create an if-else statement. e.g. {[IsPlayer ? "Player"]} or {[IsPlayer ? "Player" ! "NPC"]}.
-			* The {{if}} operator functions as an if statement. It can be used in conjunction with {{else}} to create an if-else statement. e.g. {[if IsPlayer then "Player" end]} or {[if IsPlayer then "Player" else "NPC" end]}.
+			* The {{if}} operator functions as an if statement. It can be used in conjunction with {{else}} to create an if-else statement. e.g. {[if IsPlayer then "Player" end]} or {[if IsPlayer then "Player" else "NPC" end] or {[if IsPlayer then "Player" elseif IsPet then "Pet" else "NPC"]}.
 			* The {{not}} and {{~}} operators turn a false value into true and true value into false. e.g. {[not IsPlayer]} or {[~IsPlayer]}
 			]=],
 				{ L["Examples"], [=[

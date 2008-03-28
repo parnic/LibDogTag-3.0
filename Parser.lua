@@ -29,7 +29,7 @@ MULTI_DIGIT         = '0'..'9', { '0'..'9' }
 MULTI_SPACE         = { SPACE }
 SPACE               = " " | "\t" | "\n" | "\r"
 IF_STATEMENT        = COMPARISON, [ MULTI_SPACE, "?", MULTI_SPACE, IF_STATEMENT, [ MULTI_SPACE, "!", MULTI_SPACE, IF_STATEMENT ] ]
-                    | "if", MULTI_SPACE, IF_STATEMENT, MULTI_SPACE, "then", MULTI_SPACE, IF_STATEMENT, [ MULTI_SPACE, "else", MULTI_SPACE, IF_STATEMENT, [ "end" ] ]
+                    | "if", MULTI_SPACE, IF_STATEMENT, MULTI_SPACE, "then", MULTI_SPACE, IF_STATEMENT, { MULTI_SPACE, "elseif" MULTI_SPACE, IF_STATEMENT, MULTI_SPACE, "then" MULTI_SPACE, IF_STATEMENT, } [ MULTI_SPACE, "else", MULTI_SPACE, IF_STATEMENT, [ "end" ] ]
 COMPARISON          = LOGIC, { MULTI_SPACE, ("<=" | "<" | ">" | ">=" | "=" | "~="), MULTI_SPACE, LOGIC }
 LOGIC               = CONCATENATION, { MULTI_SPACE, ( "and" | "or" | "&" | "|" | "||" ), MULTI_SPACE, CONCATENATION }
 CONCATENATION       = ADDITION, { SPACE, MULTI_SPACE, ADDITION }
@@ -60,6 +60,7 @@ local reserved = {
 	["if"] = true,
 	["then"] = true,
 	["else"] = true,
+	["elseif"] = true,
 	["end"] = true,
 	["and"] = true,
 	["or"] = true,
@@ -133,6 +134,10 @@ local function matches(tokens, position, phrase)
 		if not c or (c ~= v and lower[c] ~= v) then
 			return false
 		end
+	end
+	local c = tokens[position + #phrase]
+	if c and ((c >= a_byte and c <= z_byte) or (c >= A_byte and c <= Z_byte)) and phrase:match("^[a-z]+$") then
+		return false
 	end
 	return true
 end
@@ -640,8 +645,9 @@ end
 
 --[[
 IF_STATEMENT        = COMPARISON, [ MULTI_SPACE, "?", MULTI_SPACE, IF_STATEMENT, [ MULTI_SPACE, "!", MULTI_SPACE, IF_STATEMENT ] ]
-                    | "if", MULTI_SPACE, IF_STATEMENT, MULTI_SPACE, "then", MULTI_SPACE, IF_STATEMENT, [ MULTI_SPACE, "else", MULTI_SPACE, IF_STATEMENT ]
+                    | "if", MULTI_SPACE, IF_STATEMENT, MULTI_SPACE, "then", MULTI_SPACE, IF_STATEMENT, { MULTI_SPACE, "elseif" MULTI_SPACE, IF_STATEMENT, MULTI_SPACE, "then" MULTI_SPACE, IF_STATEMENT, } [ MULTI_SPACE, "else", MULTI_SPACE, IF_STATEMENT, [ "end" ] ]
 ]]
+
 
 function IF_STATEMENT(tokens, position)
 	if matches(tokens, position, "if") then
@@ -663,31 +669,56 @@ function IF_STATEMENT(tokens, position)
 		end
 		data = newList("if", data, d)
 		
+		local currentData = data
+		while true do
+			local pos = MULTI_SPACE(tokens, position)
+			if matches(tokens, pos, "elseif") then
+				pos = MULTI_SPACE(tokens, pos+6)
+		
+				pos, d = IF_STATEMENT(tokens, pos)
+				if not pos then
+					return position, data
+				end
+				pos = MULTI_SPACE(tokens, pos)
+		
+				if not matches(tokens, pos, "then") then
+					return position, data
+				end
+				pos = MULTI_SPACE(tokens, pos+4)
+		
+				local e
+				pos, e = IF_STATEMENT(tokens, pos)
+				if not pos then
+					return position, data
+				end
+				position = pos
+				currentData[4] = newList("if", d, e)
+				currentData = currentData[4]
+			else
+				break
+			end
+		end
+		
 		local pos = MULTI_SPACE(tokens, position)
 		
+		if matches(tokens, pos, "else") then
+			pos = MULTI_SPACE(tokens, pos+4)
+
+			pos, d = IF_STATEMENT(tokens, pos)
+			if not pos then
+				return position, data
+			end
+			position = pos
+			currentData[4] = d
+		end
+		
+		pos = MULTI_SPACE(tokens, position)
+
 		if matches(tokens, pos, "end") then
 			return pos+3, data
-		end
-		if not matches(tokens, pos, "else") then
+		else
 			return position, data
 		end
-	
-		pos = MULTI_SPACE(tokens, pos+4)
-		
-		pos, d = IF_STATEMENT(tokens, pos)
-		if not pos then
-			return position, data
-		end
-		position = pos
-		data[4] = d
-		
-		pos = MULTI_SPACE(tokens, pos)
-		
-		if matches(tokens, pos, "end") then
-			return pos+3, data
-		end
-	
-		return position, data
 	else
 		local position, data = COMPARISON(tokens, position)
 		if not position then
@@ -1466,7 +1497,6 @@ local function unparse(ast, t, inner, negated, parent_type_ast, indent)
 				end
 				t[#t+1] = 'else'
 				if getKind(ast[4]) == "if" then
-					t[#t+1] = ' '
 					unparse(ast[4], t, true, false, type_ast, indent)
 				else
 					t[#t+1] = '\n'
@@ -1557,6 +1587,7 @@ local reservedOperators = {
 	["if"] = true,
 	["then"] = true,
 	["else"] = true,
+	["elseif"] = true,
 	["and"] = true,
 	["end"] = true,
 	["or"] = true,
