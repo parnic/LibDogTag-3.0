@@ -209,7 +209,7 @@ DogTag:AddTag("Base", "~=", {
 		'left', 'number;string', "@req",
 		'right', 'nil;number;string', "@req",
 	},
-	doc = L["Check if left is equal to right, if so, return left"],
+	doc = L["Check if left is not equal to right, if so, return left"],
 	example = '[1 ~= 2] => "1"; [1 ~= 1] => ""',
 	category = L["Operators"]
 })
