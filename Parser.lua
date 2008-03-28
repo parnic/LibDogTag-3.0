@@ -1094,7 +1094,7 @@ local operators = {
 	["and"] = "LOGIC",
 	["or"] = "LOGIC",
 	["&"] = "LOGIC",
-	["|"] = "LOGIC",
+	["||"] = "LOGIC",
 	["mod"] = "MODIFIER",
 	["tag"] = "MODIFIER",
 	["kwarg"] = "MODIFIER",
@@ -1160,8 +1160,12 @@ local function getLiteralString(str, doubleQuote)
 	return tokenListToString(t)
 end
 
-local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
+local function unparse(ast, t, inner, negated, parent_type_ast)
+	local parentOperatorPrecedence = operators[parent_type_ast]
 	local type_ast = getKind(ast)
+	if type_ast == "|" then
+		type_ast = "||"
+	end
 	if type_ast == "string" or type_ast == "'" or type_ast == '"' then
 		local data = ast
 		if type_ast ~= "string" then
@@ -1255,16 +1259,25 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 	if not operators_type_ast then
 		_G.error(("Unknown operator: %q"):format(type_ast))
 	end
-	local manualGrouping = inner and parentOperatorPrecedence and parentOperatorPrecedence < operators_type_ast
+	local manualGrouping = false
+	if inner and parentOperatorPrecedence then
+		if parentOperatorPrecedence == operators_type_ast then
+			if type_ast ~= parent_type_ast and (type_ast == "&" or type_ast == "and" or type_ast == "||" or type_ast == "or") then
+				manualGrouping = true
+			end
+		else
+			manualGrouping = parentOperatorPrecedence < operators_type_ast
+		end
+	end
 	if type_ast == " " then
 		if inner then
 			if manualGrouping then
 				t[#t+1] = "("
 			end
-			unparse(ast[2], t, true, false, operators_type_ast)
+			unparse(ast[2], t, true, false, type_ast)
 			for i = 3, #ast do
 				t[#t+1] = " "
-				unparse(ast[i], t, true, false, operators_type_ast)
+				unparse(ast[i], t, true, false, type_ast)
 			end
 			if manualGrouping then
 				t[#t+1] = ")"
@@ -1277,13 +1290,13 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 					if need_to_do_last then
 						if bracket_open then
 							t[#t+1] = " "
-							unparse(ast[i-1], t, true, false, operators_type_ast)
+							unparse(ast[i-1], t, true, false, type_ast)
 							t[#t+1] = "]"
 						else
-							unparse(ast[i-1], t, false, false, operators_type_ast)
+							unparse(ast[i-1], t, false, false, type_ast)
 						end
 					end
-					unparse(ast[i], t, false, false, operators_type_ast)
+					unparse(ast[i], t, false, false, type_ast)
 					need_to_do_last = false
 				else
 					if need_to_do_last then
@@ -1297,7 +1310,7 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 							t[#t+1] = "["
 							bracket_open = true
 						end
-						unparse(ast[i-1], t, true, false, operators_type_ast)
+						unparse(ast[i-1], t, true, false, type_ast)
 					end
 					need_to_do_last = true
 				end
@@ -1309,10 +1322,10 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 					else
 						t[#t+1] = " "
 					end
-					unparse(ast[#ast], t, true, false, operators_type_ast)
+					unparse(ast[#ast], t, true, false, type_ast)
 					t[#t+1] = "]"
 				else
-					unparse(ast[#ast], t, false, false, operators_type_ast)
+					unparse(ast[#ast], t, false, false, type_ast)
 				end
 			end
 		end
@@ -1364,7 +1377,7 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 				t[#t+1] = ')'
 			end
 		elseif type_ast == "mod" then
-			unparse(ast[3], t, true, false, operators_type_ast)
+			unparse(ast[3], t, true, false, type_ast)
 			t[#t+1] = ':'
 			if negated then
 				t[#t+1] = '~'
@@ -1401,43 +1414,40 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 			end
 		elseif type_ast == "~" then
 			if type(ast[2]) == "table" and (ast[2][1] == "tag" or ast[2][1] == "mod") then
-				unparse(ast[2], t, true, true, operators_type_ast)
+				unparse(ast[2], t, true, true, type_ast)
 			else
 				t[#t+1] = '~'
-				unparse(ast[2], t, true, false, operators_type_ast)
+				unparse(ast[2], t, true, false, type_ast)
 			end
 		elseif type_ast == "not" then
 			t[#t+1] = 'not '
-			unparse(ast[2], t, true, false, operators_type_ast)
+			unparse(ast[2], t, true, false, type_ast)
 		elseif type_ast == "?" then
-			unparse(ast[2], t, true, false, operators_type_ast)
+			unparse(ast[2], t, true, false, type_ast)
 			t[#t+1] = ' ? '
-			unparse(ast[3], t, true, false, operators_type_ast)
+			unparse(ast[3], t, true, false, type_ast)
 			if ast[4] then
 				t[#t+1] = ' ! '
-				unparse(ast[4], t, true, false, operators_type_ast)
+				unparse(ast[4], t, true, false, type_ast)
 			end
 		elseif type_ast == "if" then
 			t[#t+1] = 'if '
-			unparse(ast[2], t, true, false, operators_type_ast)
+			unparse(ast[2], t, true, false, type_ast)
 			t[#t+1] = ' then '
-			unparse(ast[3], t, true, false, operators_type_ast)
+			unparse(ast[3], t, true, false, type_ast)
 			if ast[4] then
 				t[#t+1] = ' else '
-				unparse(ast[4], t, true, false, operators_type_ast)
+				unparse(ast[4], t, true, false, type_ast)
 			end
 		elseif type_ast == "unm" then
 			t[#t+1] = "-"
-			unparse(ast[2], t, true, false, operators_type_ast)
+			unparse(ast[2], t, true, false, type_ast)
 		elseif operators_type_ast then
-			unparse(ast[2], t, true, false, operators_type_ast)
+			unparse(ast[2], t, true, false, type_ast)
 			t[#t+1] = ' '
-			if type_ast == "|" then
-				type_ast = "||"
-			end
 			t[#t+1] = type_ast
 			t[#t+1] = ' '
-			unparse(ast[3], t, true, false, operators_type_ast)
+			unparse(ast[3], t, true, false, type_ast)
 		end
 		if manualGrouping then
 			t[#t+1] = ")"
