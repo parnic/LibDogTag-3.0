@@ -372,7 +372,7 @@ function DogTag:OpenHelp()
 	local function dropdown_OnClick()
 		UIDropDownMenu_SetSelectedValue(dropdown, this.value)
 		currentUnit = this.value
-		DogTag:AddFontString(fontString, helpFrame, currentUnit, editBox:GetText())
+		editBox:GetScript("OnTextChanged")(editBox)
 	end
 	UIDropDownMenu_Initialize(dropdown, function()
 		local info = newList()
