@@ -3278,3 +3278,12 @@ SPECIAL_TIMER_fired = false
 SpecialEventTag_Callback_fired = false
 FireEvent("SPECIAL_EVENT")
 assert_equal(SpecialEventTag_Callback_fired, true)
+
+DogTag:ClearNamespace("Special")
+
+SpecialEventTag_Callback_fired = false
+FireEvent("SPECIAL_EVENT")
+assert_equal(SpecialEventTag_Callback_fired, false)
+
+SpecialTag_data = nil
+assert_equal(DogTag:Evaluate("[SpecialTag]", "Special"), "Unknown tag SpecialTag")

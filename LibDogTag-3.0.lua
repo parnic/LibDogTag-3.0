@@ -468,4 +468,16 @@ function DogTag:ADDON_LOADED()
 	end
 end
 
+function DogTag:ClearNamespace(namespace)
+	if type(namespace) ~= "string" then
+		error(("Bad argument #2 to `ClearNamespace'. Expected %q, got %q"):format("string", type(namespace)), 2)
+	end
+	Tags[namespace] = nil
+	AddonFinders[namespace] = nil
+	self.EventHandlers[namespace] = nil
+	self.TimerHandlers[namespace] = nil
+	clearCodes(namespace)
+	collectgarbage('collect')
+end
+
 end
