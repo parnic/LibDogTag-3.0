@@ -449,7 +449,7 @@ DogTag:AddTag("Base", "Abbreviate", {
 	static = true,
 	doc = L["Abbreviate value if a space is found"],
 	example = '["Hello":Abbreviate] => "Hello"; ["Hello World":Abbreviate] => "HW"',
-	category = L["Text Manipulation"],
+	category = L["Text manipulation"],
 })
 
 DogTag:AddTag("Base", "Concatenate", {
@@ -472,7 +472,7 @@ DogTag:AddTag("Base", "Concatenate", {
 	static = true,
 	doc = L["Concatenate the values of ... as long as they are all non-blank"],
 	example = '[Concatenate("Hello", " ", "World")] => "Hello World"; [Concatenate(nil, " ", World")] => ""; [Concatenate("Hello", nil)] => ""',
-	category = L["Text Manipulation"],
+	category = L["Text manipulation"],
 })
 
 DogTag:AddTag("Base", "Append", {
@@ -491,7 +491,7 @@ DogTag:AddTag("Base", "Append", {
 	static = true,
 	doc = L["Append right to left if right exists"],
 	example = '["Hello":Append(" There")] => "Hello There"; ["Hello":Append(nil)] => "Hello"',
-	category = L["Text Manipulation"],
+	category = L["Text manipulation"],
 })
 
 DogTag:AddTag("Base", "Prepend", {
@@ -510,7 +510,7 @@ DogTag:AddTag("Base", "Prepend", {
 	static = true,
 	doc = L["Prepend left to right if right exists"],
 	example = '["There":Prepend("Hello ")] => "Hello There"; ["There":Prepend(nil)] => "There"',
-	category = L["Text Manipulation"],
+	category = L["Text manipulation"],
 })
 
 end

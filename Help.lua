@@ -689,7 +689,7 @@ function DogTag:OpenHelp()
 					local good = true
 					if searches then
 						for i, v in ipairs(searches) do
-							if not data.topLine:match(v) then
+							if not data.topLine:match(v) and not category:match(v) then
 								good = false
 							end
 						end
@@ -708,7 +708,7 @@ function DogTag:OpenHelp()
 							t[#t+1] = "{"
 							t[#t+1] = example
 							t[#t+1] = "} =&gt; \""
-							t[#t+1] = (tostring(DogTag:Evaluate(example, "Unit") or '')):gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;")
+							t[#t+1] = (tostring(DogTag:Evaluate(example, "Unit") or '')):gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"):gsub("}", "&rbrace;"):gsub("{", "&lbrace;")
 							t[#t+1] = "\""
 						end
 						t[#t+1] = "<br/>"
