@@ -655,7 +655,9 @@ local function forceTypes(storeKey, types, staticValue, forceToTypes, t)
 end
 
 local function compile(ast, nsList, t, cachedTags, events, functions, extraKwargs, forceToTypes, storeKey, saveFirstArg)
-	assert(#t == 0)
+	if #t ~= 0 then
+		error(("Assertion failed: %s == %s"):format(#t, 0))
+	end
 	local astType = getASTType(ast)
 	if astType == 'nil' or ast == "@undef" then
 		if storeKey then
