@@ -398,10 +398,14 @@ DogTag_funcs[#DogTag_funcs+1] = function()
 	fsNeedQuickUpdate = DogTag.fsNeedQuickUpdate
 end
 
-local function clearCodes(namespace)
+local codesToClear = {}
+local function _clearCodes()
+	if not next(codesToClear) then
+		return
+	end
 	for nsList, codeToFunction_nsList in pairs(codeToFunction) do
 		for _, ns in ipairs(unpackNamespaceList[nsList]) do
-			if ns == namespace then
+			if codesToClear[ns] then
 				for kwargTypes, d in pairs(codeToFunction_nsList) do
 					if type(kwargTypes) ~= "number" then
 						codeToFunction_nsList[kwargTypes] = del(d)
@@ -414,7 +418,7 @@ local function clearCodes(namespace)
 	end
 	for nsList, codeToEventList_nsList in pairs(codeToEventList) do
 		for _, ns in ipairs(unpackNamespaceList[nsList]) do
-			if ns == namespace then
+			if codesToClear[ns] then
 				for kwargTypes, d in pairs(codeToEventList_nsList) do
 					if type(kwargTypes) ~= "number" then
 						codeToEventList_nsList[kwargTypes] = del(d)
@@ -431,7 +435,7 @@ local function clearCodes(namespace)
 	
 	for nsList, callbacks_nsList in pairs(callbacks) do
 		for _, ns in ipairs(unpackNamespaceList[nsList]) do
-			if ns == namespace then
+			if codesToClear[ns] then
 				for kwargTypes, callbacks_nsList_kwargTypes in pairs(callbacks_nsList) do
 					local codeToEventList_nsList_kwargTypes = codeToEventList[nsList][kwargTypes]
 					for kwargs, data in pairs(callbacks_nsList_kwargTypes) do
@@ -469,6 +473,13 @@ local function clearCodes(namespace)
 		end
 		fsNeedQuickUpdate[fs] = true
 	end
+	for k in pairs(codesToClear) do
+		codesToClear[k] = nil
+	end
+end
+DogTag._clearCodes = _clearCodes
+local function clearCodes(namespace)
+	codesToClear[namespace or ''] = true
 end
 DogTag.clearCodes = clearCodes
 

@@ -1891,7 +1891,7 @@ fired = false
 FireEvent("FAKE_BLIZZARD_EVENT", 'player', 'focus')
 assert_equal(fired, true)
 fired = false
-DogTag.clearCodes("Base")
+DogTag.clearCodes()
 FireEvent("FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, true)
 fired = false
@@ -2009,7 +2009,7 @@ FireOnUpdate(0.05)
 assert_equal(fs:GetText(), 4)
 FireOnUpdate(0.01)
 assert_equal(fs:GetText(), 4)
-DogTag.clearCodes()
+DogTag.clearCodes("Base")
 FireOnUpdate(0)
 assert_equal(fs:GetText(), 5)
 FireEvent("OTHER_FAKE_BLIZZARD_EVENT")
@@ -2117,6 +2117,8 @@ FireEvent("DOUBLE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, false)
 FireEvent("DOUBLE_BLIZZARD_EVENT", 'pet')
 assert_equal(fired, false)
+
+FireOnUpdate(1000)
 
 DoubleBlizzEventTest_num = 0
 DogTag:AddFontString(fs, f, "[DoubleBlizzEventTest]", { alpha = "pet", bravo = "player" })
@@ -2840,36 +2842,48 @@ local function func(ast, kwargTypes)
 	return ast
 end
 DogTag:AddCompilationStep("Base", "pre", func)
+FireOnUpdate(0)
 assert_equal(DogTag:Evaluate("[FakeOne]"), 1)
 DogTag:RemoveCompilationStep("Base", "pre", func)
+FireOnUpdate(0)
 assert_equal(DogTag:Evaluate("[FakeOne]"), 100)
 DogTag:AddCompilationStep("Base", "pre", func)
+FireOnUpdate(0)
 assert_equal(DogTag:Evaluate("[FakeOne]"), 1)
 DogTag:RemoveAllCompilationSteps("Base", "pre")
+FireOnUpdate(0)
 assert_equal(DogTag:Evaluate("[FakeOne]"), 100)
 DogTag:AddCompilationStep("Base", "pre", func)
+FireOnUpdate(0)
 assert_equal(DogTag:Evaluate("[FakeOne]"), 1)
 DogTag:RemoveAllCompilationSteps("Base")
+FireOnUpdate(0)
 assert_equal(DogTag:Evaluate("[FakeOne]"), 100)
 DogTag:AddCompilationStep("Base", "pre", func)
+FireOnUpdate(0)
 assert_equal(DogTag:Evaluate("[PlusOne(number=FakeOne)]"), 2)
 assert_equal(DogTag:Evaluate("[PlusOne(FakeOne)]"), 2)
 DogTag:RemoveAllCompilationSteps("Base")
+FireOnUpdate(0)
 
 local function func(t, ast, kwargTypes, extraKwargs)
 	t[#t+1] = [=[result = '`' .. tostring(result) .. '`']=]
 end
 DogTag:AddCompilationStep("Base", "finish", func)
+FireOnUpdate(0)
 assert_equal(DogTag:Evaluate("Hello"), '`Hello`')
 DogTag:RemoveCompilationStep("Base", "finish", func)
+FireOnUpdate(0)
 
 local function func(t, ast, kwargTypes, extraKwargs)
 	t[#t+1] = [=[result = '`' .. tostring(result) .. '`']=]
 end
 assert_equal(DogTag:Evaluate("Hello"), 'Hello')
 DogTag:AddCompilationStep("Base", "finish", func)
+FireOnUpdate(0)
 assert_equal(DogTag:Evaluate("Hello"), '`Hello`')
 DogTag:RemoveCompilationStep("Base", "finish", func)
+FireOnUpdate(0)
 assert_equal(DogTag:Evaluate("Hello"), 'Hello')
 
 local function func(t, ast, kwargTypes, extraKwargs)
@@ -2877,8 +2891,10 @@ local function func(t, ast, kwargTypes, extraKwargs)
 end
 assert_equal(DogTag:Evaluate("Hello"), 'Hello')
 DogTag:AddCompilationStep("Base", "start", func)
+FireOnUpdate(0)
 assert_equal(DogTag:Evaluate("Hello"), 'omgpants')
 DogTag:RemoveCompilationStep("Base", "start", func)
+FireOnUpdate(0)
 assert_equal(DogTag:Evaluate("Hello"), 'Hello')
 
 local function func(ast, t, tag, tagData, kwargs, extraKwargs, compiledKwargs)
@@ -2892,12 +2908,14 @@ local function func(ast, t, tag, tagData, kwargs, extraKwargs, compiledKwargs)
 end
 assert_equal(DogTag:Evaluate("[PlusOne(One)]"), 2)
 DogTag:AddCompilationStep("Base", "tag", func)
+FireOnUpdate(0)
 assert_equal(DogTag:Evaluate("[PlusOne(One)]"), "Bad number: 1")
 assert_equal(DogTag:Evaluate("[PlusOne(1)]"), "Bad number: 1")
 assert_equal(DogTag:Evaluate("[PlusOne(10)]"), 11)
 assert_equal(DogTag:Evaluate("[PlusOne(One * 10)]"), 11)
 assert_equal(DogTag:Evaluate("[PlusOne(4 * 2)]"), "Bad number: 8")
 DogTag:RemoveCompilationStep("Base", "tag", func)
+FireOnUpdate(0)
 assert_equal(DogTag:Evaluate("[PlusOne(One)]"), 2)
 
 local function func(ast, t, u, tag, tagData, kwargs, extraKwargs, compiledKwargs, events, returns)
@@ -2907,6 +2925,7 @@ local function func(ast, t, u, tag, tagData, kwargs, extraKwargs, compiledKwargs
 end
 
 DogTag:AddCompilationStep("Base", "tagevents", func)
+FireOnUpdate(0)
 BlizzEventTest_num = 0
 DogTag:AddFontString(fs, f, "[BlizzEventTest('never')]")
 assert_equal(fs:GetText(), 1)
@@ -2963,6 +2982,7 @@ local function func(ast, t, u, tag, tagData, kwargs, extraKwargs, compiledKwargs
 	events["SlowUpdate"] = true
 end
 DogTag:AddCompilationStep("Base", "tagevents", func)
+FireOnUpdate(0)
 BlizzEventTest_num = 0
 DogTag:RemoveFontString(fs)
 DogTag:AddFontString(fs, f, "[BlizzEventTest('never')]")
@@ -3280,6 +3300,7 @@ FireEvent("SPECIAL_EVENT")
 assert_equal(SpecialEventTag_Callback_fired, true)
 
 DogTag:ClearNamespace("Special")
+FireOnUpdate(0)
 
 SpecialEventTag_Callback_fired = false
 FireEvent("SPECIAL_EVENT")

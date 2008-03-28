@@ -25,13 +25,13 @@ local getNamespaceList = DogTag.getNamespaceList
 local memoizeTable = DogTag.memoizeTable
 local kwargsToKwargTypes = DogTag.kwargsToKwargTypes
 local fsNeedUpdate, fsNeedQuickUpdate, codeToFunction, codeToEventList, eventData, clearCodes
+local clearCodes = DogTag.clearCodes
 DogTag_funcs[#DogTag_funcs+1] = function()
 	fsNeedUpdate = DogTag.fsNeedUpdate
 	fsNeedQuickUpdate = DogTag.fsNeedQuickUpdate
 	codeToFunction = DogTag.codeToFunction
 	codeToEventList = DogTag.codeToEventList
 	eventData = DogTag.eventData
-	clearCodes = DogTag.clearCodes
 end
 
 local fsToFrame, fsToCode, fsToNSList, fsToKwargs, Tags, AddonFinders
@@ -244,6 +244,7 @@ function DogTag:AddTag(namespace, tag, data)
 		end
 	end
 	del(data)
+	clearCodes(namespace)
 end
 
 local call__func, call__kwargs, call__code, call__nsList

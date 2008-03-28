@@ -14,6 +14,7 @@ local select2 = DogTag.select2
 local kwargsToKwargTypes = DogTag.kwargsToKwargTypes
 local codeToFunction, evaluate, fsToKwargs, fsToFrame, fsToNSList, updateFontString
 local fsNeedUpdate, fsNeedQuickUpdate
+local _clearCodes
 DogTag_funcs[#DogTag_funcs+1] = function()
 	codeToFunction = DogTag.codeToFunction
 	evaluate = DogTag.evaluate
@@ -24,6 +25,7 @@ DogTag_funcs[#DogTag_funcs+1] = function()
 	for fs in pairs(fsToFrame) do
 		fsNeedQuickUpdate[fs] = true
 	end
+	_clearCodes = DogTag._clearCodes
 end
 
 local EventHandlers
@@ -440,6 +442,7 @@ local nextUpdateTime = 0
 local nextSlowUpdateTime = 0
 local num = 0
 local function OnUpdate(this, elapsed)
+	_clearCodes()
 	num = num + 1
 	local currentTime = GetMilliseconds()
 	local oldMouseover = DogTag.__lastMouseover
