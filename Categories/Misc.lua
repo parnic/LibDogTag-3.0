@@ -180,7 +180,7 @@ for name, color in pairs({
 		arg = {
 			'value', 'string;undef', "@undef",
 		},
-		doc = L["Return the color or wrap value with %s color"]:format(name),
+		doc = L["Return the color or wrap value with %s color"]:format(L[name]),
 		example = ('["Hello":%s] => "|cff%sHello|r"; [%s "Hello"] => "|cff%sHello"'):format(name, color, name, color),
 		category = L["Miscellaneous"]
 	})
