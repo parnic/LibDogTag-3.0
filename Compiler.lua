@@ -1787,10 +1787,12 @@ local function readjustKwargs(ast, nsList, kwargTypes)
 		if not ast.kwarg then
 			ast.kwarg = newList()
 		end
+		local arg_num = 0
+		local hitTuple = false
+		local ast_len = #ast
 		if arg then
-			local ast_len = #ast
-			local hitTuple = false
-			for i = 1, #arg, 3 do
+			arg_num = #arg
+			for i = 1, arg_num, 3 do
 				local argName = arg[i]
 				local default = arg[i+2]
 				if default == true then
@@ -1803,7 +1805,7 @@ local function readjustKwargs(ast, nsList, kwargTypes)
 						ast.kwarg["..." .. num] = ast[j]
 						ast[j] = nil
 					end
-					for j = i+3, #arg, 3 do
+					for j = i+3, arg_num, 3 do
 						argName = arg[j]
 						default = arg[j+2]
 						if not ast.kwarg[argName] and not kwargTypes[argName] then
@@ -1831,11 +1833,11 @@ local function readjustKwargs(ast, nsList, kwargTypes)
 					end
 				end
 			end
-			if not hitTuple then
-				if #arg/3 < (ast_len - start + 1) then
-					ast = deepDel(ast)
-					return nil, ("Too many args for %s"):format(tag)
-				end
+		end	
+		if not hitTuple then
+			if arg_num/3 < (ast_len - start + 1) then
+				ast = deepDel(ast)
+				return nil, ("Too many args for %s"):format(tag)
 			end
 		end
 		if not next(ast.kwarg) then

@@ -2583,6 +2583,8 @@ assert_equal(select(3, DogTag:Evaluate("Hello")), nil)
 assert_equal(select(3, DogTag:Evaluate("[ThickOutline] Hello")), 'OUTLINE, THICKOUTLINE')
 assert_equal(select(3, DogTag:Evaluate("Hello")), nil)
 
+assert_equal(DogTag:Evaluate("[Outline(1)]"), "Too many args for Outlin")
+
 DogTag:AddFontString(fs, f, "[Outline]")
 assert_equal(fs:GetText(), nil)
 assert_equal(fs:GetAlpha(), 1)
