@@ -495,7 +495,7 @@ function DogTag:OpenHelp()
 			* The {{&}} and {{and}} operators function as boolean AND. e.g. {[Alpha and Bravo]} will check if Alpha is non-false, if so, run Bravo.<br />
 			* The {{||}} and {{or}} operators function as boolean OR. e.g. {[Alpha or Bravo]} will check if Alpha is false, if so, run Bravo, otherwise just show Alpha.<br />
 			* The {{?}} operator functions as an if statement. It can be used in conjunction with {{!}} to create an if-else statement. e.g. {[IsPlayer ? "Player"]} or {[IsPlayer ? "Player" ! "NPC"]}.
-			* The {{if}} operator functions as an if statement. It can be used in conjunction with {{else}} to create an if-else statement. e.g. {[if IsPlayer then "Player"]} or {[if IsPlayer then "Player" else "NPC"]}.
+			* The {{if}} operator functions as an if statement. It can be used in conjunction with {{else}} to create an if-else statement. e.g. {[if IsPlayer then "Player" end]} or {[if IsPlayer then "Player" else "NPC" end]}.
 			* The {{not}} and {{~}} operators turn a false value into true and true value into false. e.g. {[not IsPlayer]} or {[~IsPlayer]}
 			]=],
 				{ L["Examples"], [=[
@@ -507,7 +507,7 @@ function DogTag:OpenHelp()
 					{[Status || (IsPlayer ? HP(known=true)) || PercentHP:Percent]} will deliver similar returns as to that above, but in a slightly different format which should be fairly apparent already.<br /><br />
 					But to clarify, the nested {{(IsPlayer ? HP(known=true))}} creates an if statement which means that if {{IsPlayer}} is false, the whole value is taken to be false, and if you've read this far you deserve a cookie. If {{IsPlayer}} is true, the actual returned value of this nested expression is actually the term following the AND -- in this case, {{HP(known=true)}}. So this will show {{HP(known=true)}} if {{IsPlayer}} is found true (that is, if the unit is actually a player).
 				]=], [=[
-					{[if IsFriend then -MissingHP:Green else HP:Red]}<br /> 
+					{[if IsFriend then -MissingHP:Green else HP:Red end]}<br /> 
 					Will return one of the following (but only one):<br /><br />
 					* If the unit is friendly, it will display the amount of health they must be healed to meet their maximum. It will be displayed in green, and with a negative sign in front of it.<br /> 
 					* If the unit is an enemy, it will display their current health. As this sequence is written, it will not consider whether it is a valid health value or not. On enemies where the health value is uncertain, it will show a percentage (but without a percent sign), until a more reliable value can be determined. This value will be displayed in red.

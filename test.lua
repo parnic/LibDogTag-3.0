@@ -1193,14 +1193,49 @@ assert_equal(DogTag:CleanCode("[1 || 2]"), "[1 || 2]")
 assert_equal(parse("[Alpha Bravo]"), { " ", { "tag", "Alpha" }, { "tag", "Bravo"}, })
 assert_equal(DogTag:CleanCode("[One Bravo]"), "[One Bravo]")
 assert_equal(parse("[1 ? 2]"), { "?", 1, 2 })
-assert_equal(DogTag:CleanCode("[1 ? 2]"), "[1 ? 2]")
+assert_equal(DogTag:CleanCode("[1?2]"), "[1 ? 2]")
 assert_equal(parse("[1 ? 2 ! 3]"), { "?", 1, 2, 3 })
-assert_equal(DogTag:CleanCode("[1 ? 2 ! 3]"), "[1 ? 2 ! 3]")
-assert_equal(parse("[1 ? 2 ! 3 ? 4 ! 5]"), { "?", 1, 2, { "?", 3, 4, 5 } })
+assert_equal(DogTag:CleanCode("[1?2!3]"), "[1 ? 2 ! 3]")
+assert_equal(parse("[1?2!3?4!5]"), { "?", 1, 2, { "?", 3, 4, 5 } })
 assert_equal(parse("[if 1 then 2]"), { "if", 1, 2 })
-assert_equal(DogTag:CleanCode("[if 1 then 2]"), "[if 1 then 2]")
+assert_equal(parse("[if(1)then(2)]"), { "if", { "(", 1}, {"(", 2} })
+assert_equal(parse("[if 1 then 2 end]"), { "if", 1, 2 })
+assert_equal(DogTag:CleanCode("[if 1 then 2]"), "[if 1 then\n    2\nend]")
+assert_equal(DogTag:CleanCode("[if 1 then 2 end]"), "[if 1 then\n    2\nend]")
 assert_equal(parse("[if 1 then 2 else 3]"), { "if", 1, 2, 3 })
+assert_equal(parse("[if 1 then 2 else 3 end]"), { "if", 1, 2, 3 })
+assert_equal(DogTag:CleanCode("[if 1 then 2 else 3]"), "[if 1 then\n    2\nelse\n    3\nend]")
+assert_equal(DogTag:CleanCode("[if 1 then 2 else 3 end]"), "[if 1 then\n    2\nelse\n    3\nend]")
 assert_equal(parse("[if 1 then 2 else if 3 then 4 else 5]"), { "if", 1, 2, { "if", 3, 4, 5 } })
+assert_equal(parse("[if 1 then 2 else if 3 then 4 else 5 end]"), { "if", 1, 2, { "if", 3, 4, 5 } })
+assert_equal(DogTag:CleanCode("[if 1 then 2 else if 3 then 4 else 5]"), "[if 1 then\n    2\nelse if 3 then\n    4\nelse\n    5\nend]")
+assert_equal(DogTag:CleanCode("[if 1 then 2 else if 3 then 4 else 5 end]"), "[if 1 then\n    2\nelse if 3 then\n    4\nelse\n    5\nend]")
+
+assert_equal(DogTag:CleanCode("[if 1 then if 2 then 3 else 4 else if 5 then 6 else 7]"), [=[[if 1 then
+    if 2 then
+        3
+    else
+        4
+    end
+else if 5 then
+    6
+else
+    7
+end]]=])
+
+assert_equal(DogTag:CleanCode("[if 1 then if 2 then 3 else 4 else (if 5 then 6 else 7)]"), [=[[if 1 then
+    if 2 then
+        3
+    else
+        4
+    end
+else
+    (if 5 then
+        6
+    else
+        7
+    end)
+end]]=])
 
 assert_equal(parse("[Func('Hello' 'There')]"), { "tag", "Func", {" ", {"'", "Hello"}, {"'", "There"}} })
 assert_equal(DogTag:CleanCode("[Func('Hello' 'There')]"), "[Func('Hello' 'There')]")
@@ -1305,9 +1340,9 @@ assert_equal(DogTag:CleanCode("[1 + (2 ? 3)]"), "[1 + (2 ? 3)]")
 assert_equal(parse("[(2 ? 3 ! 4) + 1]"), { "+", { "(", { "?", 2, 3, 4 } }, 1 })
 assert_equal(DogTag:CleanCode("[(2 ? 3 ! 4) + 1]"), "[(2 ? 3 ! 4) + 1]")
 assert_equal(parse("[1 + (if 2 then 3)]"), { "+", 1, { "(", { "if", 2, 3 } } })
-assert_equal(DogTag:CleanCode("[1 + (if 2 then 3)]"), "[1 + (if 2 then 3)]")
+assert_equal(DogTag:CleanCode("[1 + (if 2 then 3)]"), "[1 + (if 2 then\n    3\nend)]")
 assert_equal(parse("[(if 2 then 3 else 4) + 1]"), { "+", { "(", { "if", 2, 3, 4 } }, 1 })
-assert_equal(DogTag:CleanCode("[(if 2 then 3 else 4) + 1]"), "[(if 2 then 3 else 4) + 1]")
+assert_equal(DogTag:CleanCode("[(if 2 then 3 else 4) + 1]"), "[(if 2 then\n    3\nelse\n    4\nend) + 1]")
 
 assert_equal(parse("[Alpha(Bravo + Charlie)]"), { "tag", "Alpha", { "+", {"tag", "Bravo"}, {"tag", "Charlie"} } })
 assert_equal(DogTag:CleanCode("[Alpha(Bravo + Charlie)]"), "[Alpha(Bravo + Charlie)]")
@@ -1698,6 +1733,7 @@ assert_equal(parse([=[["\1alpha"]]=]), {'"', '\001alpha' })
 assert_equal(parse([=[["\12alpha"]]=]), {'"', '\012alpha' })
 assert_equal(parse([=[["\123alpha"]]=]), {'"', '\123alpha' })
 assert_equal(parse([=[["\124cffff0000"]]=]), {'"', '|cffff0000' })
+assert_equal(parse([=[["\124\124cffff0000"]]=]), {'"', '||cffff0000' })
 assert_equal(parse([=[["\123456"]]=]), {'"', '\123' .. '456' })
 
 assert_equal(parse([=[[Func('Alpha\'Bravo')]]=]), { "tag", "Func", {"'", "Alpha'Bravo"} })
@@ -1705,6 +1741,7 @@ assert_equal(parse([=[[Func("Alpha\"Bravo")]]=]), { "tag", "Func", {'"', 'Alpha"
 assert_equal(parse([=[[Func('Alpha\'Bravo"Charlie')]]=]), { "tag", "Func", {"'", "Alpha'Bravo\"Charlie"} })
 assert_equal(parse([=[[Func("Alpha\"Bravo'Charlie")]]=]), { "tag", "Func", {'"', 'Alpha"Bravo\'Charlie'} })
 assert_equal(parse([=[[Func("\124cffff0000")]]=]), { "tag", "Func", {'"', '|cffff0000'} })
+assert_equal(parse([=[[Func("\124\124cffff0000")]]=]), { "tag", "Func", {'"', '||cffff0000'} })
 assert_equal(parse([=[[Func("\123456")]]=]), { "tag", "Func", {'"', '\123' .. '456'} })
 assert_equal(parse([=[[Func("hey\nthere")]]=]), { "tag", "Func", {'"', 'hey\nthere' }})
 
@@ -1713,6 +1750,7 @@ assert_equal(DogTag:CleanCode([=[["Alpha\"Bravo"]]=]), 'Alpha"Bravo')
 assert_equal(DogTag:CleanCode([=[['Alpha\'Bravo"Charlie']]=]), "Alpha'Bravo\"Charlie")
 assert_equal(DogTag:CleanCode([=[["Alpha\"Bravo'Charlie"]]=]), 'Alpha"Bravo\'Charlie')
 assert_equal(DogTag:CleanCode([=[["\124cffff0000"]]=]), '|cffff0000')
+assert_equal(DogTag:CleanCode([=[["\124\124cffff0000"]]=]), '||cffff0000')
 assert_equal(DogTag:CleanCode([=[["\123456"]]=]), '\123' .. '456')
 assert_equal(DogTag:CleanCode([=[["hey\nthere"]]=]), 'hey\nthere')
 
@@ -1721,7 +1759,9 @@ assert_equal(DogTag:CleanCode([=[[Func("Alpha\"Bravo")]]=]), [=[[Func('Alpha"Bra
 assert_equal(DogTag:CleanCode([=[[Func('Alpha\'Bravo"Charlie')]]=]), [=[[Func('Alpha\'Bravo"Charlie')]]=])
 assert_equal(DogTag:CleanCode([=[[Func("Alpha\"Bravo'Charlie")]]=]), [=[[Func("Alpha\"Bravo'Charlie")]]=])
 assert_equal(DogTag:CleanCode([=[[Func("\124cffff0000")]]=]), [=[[Func("\124cffff0000")]]=])
+assert_equal(DogTag:CleanCode([=[[Func("\124\124cffff0000")]]=]), [=[[Func("||cffff0000")]]=])
 assert_equal(DogTag:CleanCode([=[[Func('\124cffff0000')]]=]), [=[[Func('\124cffff0000')]]=])
+assert_equal(DogTag:CleanCode([=[[Func('\124\124cffff0000')]]=]), [=[[Func('||cffff0000')]]=])
 assert_equal(DogTag:CleanCode([=[[Func("\123456")]]=]), [=[[Func("{456")]]=])
 assert_equal(DogTag:CleanCode([=[[Func('\123456')]]=]), [=[[Func('{456')]]=])
 assert_equal(DogTag:CleanCode([=[[Func('hey\nthere')]]=]), [=[[Func('hey\nthere')]]=])
@@ -1742,6 +1782,8 @@ assert_equal(DogTag:CleanCode([=[[One or Two or Three]]=]), [=[[One or Two or Th
 assert_equal(DogTag:CleanCode([=[[One&Two||Three]]=]), [=[[(One & Two) || Three]]=])
 assert_equal(DogTag:CleanCode([=[[One and Two or Three]]=]), [=[[(One and Two) or Three]]=])
 assert_equal(DogTag:CleanCode([=[[One||Two&Three]]=]), [=[[(One || Two) & Three]]=])
+assert_equal(DogTag:CleanCode([=[[One or Two and Three]]=]), [=[[(One or Two) and Three]]=])
+
 assert_equal(DogTag:CleanCode([=[[One or Two and Three]]=]), [=[[(One or Two) and Three]]=])
 
 assert_equal(DogTag:Evaluate("[Type(nil)]"), "nil")

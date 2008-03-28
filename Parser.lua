@@ -29,7 +29,7 @@ MULTI_DIGIT         = '0'..'9', { '0'..'9' }
 MULTI_SPACE         = { SPACE }
 SPACE               = " " | "\t" | "\n" | "\r"
 IF_STATEMENT        = COMPARISON, [ MULTI_SPACE, "?", MULTI_SPACE, IF_STATEMENT, [ MULTI_SPACE, "!", MULTI_SPACE, IF_STATEMENT ] ]
-                    | "if", MULTI_SPACE, IF_STATEMENT, MULTI_SPACE, "then", MULTI_SPACE, IF_STATEMENT, [ MULTI_SPACE, "else", MULTI_SPACE, IF_STATEMENT ]
+                    | "if", MULTI_SPACE, IF_STATEMENT, MULTI_SPACE, "then", MULTI_SPACE, IF_STATEMENT, [ MULTI_SPACE, "else", MULTI_SPACE, IF_STATEMENT, [ "end" ] ]
 COMPARISON          = LOGIC, { MULTI_SPACE, ("<=" | "<" | ">" | ">=" | "=" | "~="), MULTI_SPACE, LOGIC }
 LOGIC               = CONCATENATION, { MULTI_SPACE, ( "and" | "or" | "&" | "|" | "||" ), MULTI_SPACE, CONCATENATION }
 CONCATENATION       = ADDITION, { SPACE, MULTI_SPACE, ADDITION }
@@ -60,6 +60,7 @@ local reserved = {
 	["if"] = true,
 	["then"] = true,
 	["else"] = true,
+	["end"] = true,
 	["and"] = true,
 	["or"] = true,
 	["not"] = true,
@@ -644,7 +645,7 @@ IF_STATEMENT        = COMPARISON, [ MULTI_SPACE, "?", MULTI_SPACE, IF_STATEMENT,
 
 function IF_STATEMENT(tokens, position)
 	if matches(tokens, position, "if") then
-		position = MULTI_SPACE(tokens, position+3)
+		position = MULTI_SPACE(tokens, position+2)
 		local position, data = COMPARISON(tokens, position)
 		if not position then
 			return nil
@@ -654,7 +655,7 @@ function IF_STATEMENT(tokens, position)
 			data = deepDel(data)
 			return nil
 		end
-		position = MULTI_SPACE(tokens, position+5)
+		position = MULTI_SPACE(tokens, position+4)
 		local position, d = IF_STATEMENT(tokens, position)
 		if not position then
 			data = deepDel(data)
@@ -664,11 +665,14 @@ function IF_STATEMENT(tokens, position)
 		
 		local pos = MULTI_SPACE(tokens, position)
 		
+		if matches(tokens, pos, "end") then
+			return pos+3, data
+		end
 		if not matches(tokens, pos, "else") then
 			return position, data
 		end
 	
-		pos = MULTI_SPACE(tokens, pos+5)
+		pos = MULTI_SPACE(tokens, pos+4)
 		
 		pos, d = IF_STATEMENT(tokens, pos)
 		if not pos then
@@ -676,6 +680,12 @@ function IF_STATEMENT(tokens, position)
 		end
 		position = pos
 		data[4] = d
+		
+		pos = MULTI_SPACE(tokens, pos)
+		
+		if matches(tokens, pos, "end") then
+			return pos+3, data
+		end
 	
 		return position, data
 	else
@@ -1138,14 +1148,20 @@ local function getLiteralString(str, doubleQuote)
 	local data = newList(str:byte(1, #str))
 	local t = newList()
 	t[#t+1] = quote_byte
-	for i, v in ipairs(data) do
+	local i = 1
+	while i <= #data do
+		local v = data[i]
 		if v == quote_byte then
 			t[#t+1] = backslash_byte
 			t[#t+1] = quote_byte
 		elseif v == newline_byte then
 			t[#t+1] = backslash_byte
 			t[#t+1] = n_byte
-		elseif v < 32 or v > 128 or v == 124 then
+		elseif v == pipe_byte and data[i+1] == pipe_byte then
+			t[#t+1] = pipe_byte
+			t[#t+1] = pipe_byte
+			i = i + 1
+		elseif v < 32 or v > 128 or v == pipe_byte then
 			t[#t+1] = backslash_byte
 			local a, b, c = math.floor(v / 100), math.floor((v % 100) / 10), v % 10
 			t[#t+1] = a + zero_byte
@@ -1154,13 +1170,17 @@ local function getLiteralString(str, doubleQuote)
 		else
 			t[#t+1] = v
 		end
+		i = i + 1
 	end
 	t[#t+1] = quote_byte
 	data = del(data)
 	return tokenListToString(t)
 end
 
-local function unparse(ast, t, inner, negated, parent_type_ast)
+local function unparse(ast, t, inner, negated, parent_type_ast, indent)
+	if not indent then
+		indent = 0
+	end
 	local parentOperatorPrecedence = operators[parent_type_ast]
 	local type_ast = getKind(ast)
 	if type_ast == "|" then
@@ -1274,10 +1294,10 @@ local function unparse(ast, t, inner, negated, parent_type_ast)
 			if manualGrouping then
 				t[#t+1] = "("
 			end
-			unparse(ast[2], t, true, false, type_ast)
+			unparse(ast[2], t, true, false, type_ast, indent)
 			for i = 3, #ast do
 				t[#t+1] = " "
-				unparse(ast[i], t, true, false, type_ast)
+				unparse(ast[i], t, true, false, type_ast, indent)
 			end
 			if manualGrouping then
 				t[#t+1] = ")"
@@ -1290,13 +1310,13 @@ local function unparse(ast, t, inner, negated, parent_type_ast)
 					if need_to_do_last then
 						if bracket_open then
 							t[#t+1] = " "
-							unparse(ast[i-1], t, true, false, type_ast)
+							unparse(ast[i-1], t, true, false, type_ast, indent)
 							t[#t+1] = "]"
 						else
-							unparse(ast[i-1], t, false, false, type_ast)
+							unparse(ast[i-1], t, false, false, type_ast, indent)
 						end
 					end
-					unparse(ast[i], t, false, false, type_ast)
+					unparse(ast[i], t, false, false, type_ast, indent)
 					need_to_do_last = false
 				else
 					if need_to_do_last then
@@ -1310,7 +1330,7 @@ local function unparse(ast, t, inner, negated, parent_type_ast)
 							t[#t+1] = "["
 							bracket_open = true
 						end
-						unparse(ast[i-1], t, true, false, type_ast)
+						unparse(ast[i-1], t, true, false, type_ast, indent)
 					end
 					need_to_do_last = true
 				end
@@ -1322,10 +1342,10 @@ local function unparse(ast, t, inner, negated, parent_type_ast)
 					else
 						t[#t+1] = " "
 					end
-					unparse(ast[#ast], t, true, false, type_ast)
+					unparse(ast[#ast], t, true, false, type_ast, indent)
 					t[#t+1] = "]"
 				else
-					unparse(ast[#ast], t, false, false, type_ast)
+					unparse(ast[#ast], t, false, false, type_ast, indent)
 				end
 			end
 		end
@@ -1338,7 +1358,7 @@ local function unparse(ast, t, inner, negated, parent_type_ast)
 		end
 		if groupings[type_ast:byte()] then
 			t[#t+1] = type_ast
-			unparse(ast[2], t, true, false, nil)
+			unparse(ast[2], t, true, false, nil, indent)
 			t[#t+1] = string_char(groupings[type_ast:byte()])
 		elseif type_ast == "kwarg" then
 			t[#t+1] = ast[2]
@@ -1355,7 +1375,7 @@ local function unparse(ast, t, inner, negated, parent_type_ast)
 						t[#t+1] = ', '
 					end
 					first = false
-					unparse(ast[i], t, true, false, nil)
+					unparse(ast[i], t, true, false, nil, indent)
 				end
 				if ast.kwarg then
 					local keys = newList()
@@ -1370,14 +1390,14 @@ local function unparse(ast, t, inner, negated, parent_type_ast)
 						first = false
 						t[#t+1] = k
 						t[#t+1] = '='
-						unparse(ast.kwarg[k], t, true, false, nil)
+						unparse(ast.kwarg[k], t, true, false, nil, indent)
 					end
 					keys = del(keys)
 				end
 				t[#t+1] = ')'
 			end
 		elseif type_ast == "mod" then
-			unparse(ast[3], t, true, false, type_ast)
+			unparse(ast[3], t, true, false, type_ast, indent)
 			t[#t+1] = ':'
 			if negated then
 				t[#t+1] = '~'
@@ -1391,7 +1411,7 @@ local function unparse(ast, t, inner, negated, parent_type_ast)
 						t[#t+1] = ', '
 					end
 					first = false
-					unparse(ast[i], t, true, false, nil)
+					unparse(ast[i], t, true, false, nil, indent)
 				end
 				if ast.kwarg then
 					local keys = newList()
@@ -1406,7 +1426,7 @@ local function unparse(ast, t, inner, negated, parent_type_ast)
 						first = false
 						t[#t+1] = k
 						t[#t+1] = '='
-						unparse(ast.kwarg[k], t, true, false, nil)
+						unparse(ast.kwarg[k], t, true, false, nil, indent)
 					end
 					keys = del(keys)
 				end
@@ -1414,40 +1434,68 @@ local function unparse(ast, t, inner, negated, parent_type_ast)
 			end
 		elseif type_ast == "~" then
 			if type(ast[2]) == "table" and (ast[2][1] == "tag" or ast[2][1] == "mod") then
-				unparse(ast[2], t, true, true, type_ast)
+				unparse(ast[2], t, true, true, type_ast, indent)
 			else
 				t[#t+1] = '~'
-				unparse(ast[2], t, true, false, type_ast)
+				unparse(ast[2], t, true, false, type_ast, indent)
 			end
 		elseif type_ast == "not" then
 			t[#t+1] = 'not '
-			unparse(ast[2], t, true, false, type_ast)
+			unparse(ast[2], t, true, false, type_ast, indent)
 		elseif type_ast == "?" then
-			unparse(ast[2], t, true, false, type_ast)
+			unparse(ast[2], t, true, false, type_ast, indent)
 			t[#t+1] = ' ? '
-			unparse(ast[3], t, true, false, type_ast)
+			unparse(ast[3], t, true, false, type_ast, indent)
 			if ast[4] then
 				t[#t+1] = ' ! '
-				unparse(ast[4], t, true, false, type_ast)
+				unparse(ast[4], t, true, false, type_ast, indent)
 			end
 		elseif type_ast == "if" then
 			t[#t+1] = 'if '
-			unparse(ast[2], t, true, false, type_ast)
-			t[#t+1] = ' then '
-			unparse(ast[3], t, true, false, type_ast)
+			unparse(ast[2], t, true, false, type_ast, indent)
+			t[#t+1] = ' then'
+			t[#t+1] = '\n'
+			for i = 1, indent+1 do
+				t[#t+1] = '    '
+			end
+			unparse(ast[3], t, true, false, type_ast, indent+1)
 			if ast[4] then
-				t[#t+1] = ' else '
-				unparse(ast[4], t, true, false, type_ast)
+				t[#t+1] = '\n'
+				for i = 1, indent do
+					t[#t+1] = '    '
+				end
+				t[#t+1] = 'else'
+				if getKind(ast[4]) == "if" then
+					t[#t+1] = ' '
+					unparse(ast[4], t, true, false, type_ast, indent)
+				else
+					t[#t+1] = '\n'
+					for i = 1, indent+1 do
+						t[#t+1] = '    '
+					end
+					unparse(ast[4], t, true, false, type_ast, indent+1)
+					t[#t+1] = '\n'
+					for i = 1, indent do
+						t[#t+1] = '    '
+					end
+					t[#t+1] = 'end'
+				end
+			else
+				t[#t+1] = '\n'
+				for i = 1, indent do
+					t[#t+1] = '    '
+				end
+				t[#t+1] = 'end'
 			end
 		elseif type_ast == "unm" then
 			t[#t+1] = "-"
-			unparse(ast[2], t, true, false, type_ast)
+			unparse(ast[2], t, true, false, type_ast, indent)
 		elseif operators_type_ast then
-			unparse(ast[2], t, true, false, type_ast)
+			unparse(ast[2], t, true, false, type_ast, indent)
 			t[#t+1] = ' '
 			t[#t+1] = type_ast
 			t[#t+1] = ' '
-			unparse(ast[3], t, true, false, type_ast)
+			unparse(ast[3], t, true, false, type_ast, indent)
 		end
 		if manualGrouping then
 			t[#t+1] = ")"
@@ -1510,6 +1558,7 @@ local reservedOperators = {
 	["then"] = true,
 	["else"] = true,
 	["and"] = true,
+	["end"] = true,
 	["or"] = true,
 	["not"] = true,
 	["+"] = true,
