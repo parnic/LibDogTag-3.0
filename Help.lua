@@ -270,6 +270,40 @@ function DogTag:OpenHelp()
 	html:SetJustifyH("LEFT")
 	html:SetJustifyV("TOP")
 	
+	
+	local searchBox = CreateFrame("EditBox", helpFrame:GetName() .. "_SearchBox", helpFrame)
+	searchBox:SetFontObject(ChatFontNormal)
+	searchBox:SetHeight(17)
+	searchBox:SetAutoFocus(false)
+	
+	local searchBox_line1 = searchBox:CreateTexture(searchBox:GetName() .. "_Line1", "BACKGROUND")
+	searchBox_line1:SetTexture([[Interface\Buttons\WHITE8X8]])
+	searchBox_line1:SetHeight(1)
+	searchBox_line1:SetPoint("TOPLEFT", searchBox, "BOTTOMLEFT", 0, 1)
+	searchBox_line1:SetPoint("TOPRIGHT", searchBox, "BOTTOMRIGHT", 0, 1)
+	searchBox_line1:SetVertexColor(3/4, 3/4, 3/4, 1)
+	
+	local searchBox_line2 = searchBox:CreateTexture(searchBox:GetName() .. "_Line2", "BACKGROUND")
+	searchBox_line2:SetTexture([[Interface\Buttons\WHITE8X8]])
+	searchBox_line2:SetWidth(1)
+	searchBox_line2:SetPoint("TOPLEFT", searchBox, "TOPRIGHT", -1, 0)
+	searchBox_line2:SetPoint("BOTTOMLEFT", searchBox, "BOTTOMRIGHT", -1, 0)
+	searchBox_line2:SetVertexColor(3/4, 3/4, 3/4, 1)
+	
+	local searchBox_line3 = searchBox:CreateTexture(searchBox:GetName() .. "_Line3", "BACKGROUND")
+	searchBox_line3:SetTexture([[Interface\Buttons\WHITE8X8]])
+	searchBox_line3:SetHeight(1)
+	searchBox_line3:SetPoint("BOTTOMLEFT", searchBox, "TOPLEFT", 0, -1)
+	searchBox_line3:SetPoint("BOTTOMRIGHT", searchBox, "TOPRIGHT", 0, -1)
+	searchBox_line3:SetVertexColor(3/8, 3/8, 3/8, 1)
+	
+	local searchBox_line4 = searchBox:CreateTexture(searchBox:GetName() .. "_Line4", "BACKGROUND")
+	searchBox_line4:SetTexture([[Interface\Buttons\WHITE8X8]])
+	searchBox_line4:SetWidth(1)
+	searchBox_line4:SetPoint("TOPRIGHT", searchBox, "TOPLEFT", 1, 0)
+	searchBox_line4:SetPoint("BOTTOMRIGHT", searchBox, "BOTTOMLEFT", 1, 0)
+	searchBox_line4:SetVertexColor(3/8, 3/8, 3/8, 1)
+	
 	local editBox = CreateFrame("EditBox", helpFrame:GetName() .. "_EditBox", helpFrame)
 	editBox:SetFontObject(ChatFontNormal)
 	editBox:SetHeight(17)
@@ -328,6 +362,11 @@ function DogTag:OpenHelp()
 	
 	editBox:SetText("[Name]")
 	
+	searchBox:SetScript("OnEscapePressed", function(this)
+		this:ClearFocus()
+	end)
+	searchBox:SetScript("OnEnterPressed", searchBox:GetScript("OnEscapePressed"))
+	
 	local dropdown = CreateFrame("Frame", helpFrame:GetName() .. "_DropDown", helpFrame, "UIDropDownMenuTemplate")
 	
 	local function dropdown_OnClick()
@@ -367,6 +406,9 @@ function DogTag:OpenHelp()
 	
 	dropdown:SetPoint("BOTTOMLEFT", helpFrame, "BOTTOMLEFT", -5, 6)
 	editBox:SetPoint("LEFT", _G[dropdown:GetName() .. "Button"], "RIGHT", 5, 0)
+	searchBox:SetPoint("RIGHT", closeButton, "LEFT", -5, 0)
+	searchBox:SetPoint("BOTTOM", closeButton, "BOTTOM", 0, 5)
+	searchBox:SetPoint("LEFT", header, "RIGHT", 15, 0)
 	
 	local function _fix__handler(text)
 		if text:sub(1, 2) == "{{" and text:sub(-2) == "}}" then
@@ -523,9 +565,6 @@ function DogTag:OpenHelp()
 		return text
 	end
 	
-	local tagsData = { 
-		{L["Tags"], }
-	}
 	local tags = newList()
 	local tagCategories_tmp = newSet()
 	local Tags, getTagData = DogTag.Tags, DogTag.getTagData
@@ -554,84 +593,147 @@ function DogTag:OpenHelp()
 	end
 	tagCategories_tmp = del(tagCategories_tmp)
 	table.sort(tagCategories)
-	for _,category in ipairs(tagCategories) do
+	
+	local tagCache = {}
+	
+	for _, k in ipairs(tags) do
+		local tagData = getTagData(k, "Base;Unit")
+		local v = tagData.doc
+		local arg = tagData.arg
+		
+		tagCache[k] = {}
+		tagCache[k].category = tagData.category
+		
 		local t = newList()
-		for _,k in ipairs(tags) do
-			local tagData = getTagData(k, "Base;Unit")
-			if tagData.category == category then
-				local v = tagData.doc
-				local arg = tagData.arg
-				t[#t+1] = "{["
-				t[#t+1] = k
-				if arg then
-					t[#t+1] = "("
-					for i = 1, #arg, 3 do
-						if i > 1 then
-							t[#t+1] = ", "
+		
+		t[#t+1] = "{["
+		t[#t+1] = k
+		if arg then
+			t[#t+1] = "("
+			for i = 1, #arg, 3 do
+				if i > 1 then
+					t[#t+1] = ", "
+				end
+				local argName, argTypes, argDefault = arg[i], arg[i+1], arg[i+2]
+				t[#t+1] = argName
+				if argName ~= "..." and argDefault ~= "@req" then
+					t[#t+1] = "="
+					if argDefault == "@undef" then
+						t[#t+1] = "undef"
+					elseif argDefault == false then
+						if argTypes:match("boolean") then
+							t[#t+1] = "false"
+						else
+							t[#t+1] = "nil"
 						end
-						local argName, argTypes, argDefault = arg[i], arg[i+1], arg[i+2]
-						t[#t+1] = argName
-						if argName ~= "..." and argDefault ~= "@req" then
-							t[#t+1] = "="
-							if argDefault == "@undef" then
-								t[#t+1] = "undef"
-							elseif argDefault == false then
-								if argTypes:match("boolean") then
-									t[#t+1] = "false"
-								else
-									t[#t+1] = "nil"
-								end
-							elseif type(argDefault) == "string" then
-								t[#t+1] = ("%q"):format(argDefault)
-							else
-								t[#t+1] = tostring(argDefault)
+					elseif type(argDefault) == "string" then
+						t[#t+1] = ("%q"):format(argDefault)
+					else
+						t[#t+1] = tostring(argDefault)
+					end
+				end
+			end
+			t[#t+1] = ")"
+		end
+		t[#t+1] = "]}"
+		t[#t+1] = " - "
+		t[#t+1] = v -- highlightWords(v)
+		if tagData.alias then
+			t[#t+1] = " - "
+			t[#t+1] = L["alias for "]
+			t[#t+1] = "{["
+			t[#t+1] = tagData.alias
+			t[#t+1] = "]}"
+		end
+		tagCache[k].topLine = table.concat(t)
+		t = del(t)
+		tagCache[k].examples = {}
+		local examples = newList((";"):split(tagData.example))
+		for i, u in ipairs(examples) do
+			local tag, result = u:trim():match("(.*) => (.*)")
+			tagCache[k].examples[tag] = true
+		end
+		examples = del(examples)
+	end
+	
+	local function caseDesensitize__handler(c)
+		return ("[%s%s]"):format(c:lower(), c:upper())
+	end
+	local function caseDesensitize(searchText)
+		return searchText:gsub("%a", caseDesensitize__handler)
+	end
+	
+	local function escapeSearch(searchText)
+		return searchText:gsub("([%%%[%]%^%$%.%+%*%?%(%)])", "%%%1")
+	end
+	
+	local tagsHTML
+	local function updateTagsPage(searchText)
+		local title = L["Tags"]
+		searchText = (searchText or ''):trim():gsub("%s%s+", " ")
+		local searches
+		if searchText ~= '' then
+			title = L["Tags matching %q"]:format(searchText)
+			searches = newList((" "):split(searchText))
+			for i, v in ipairs(searches) do
+				searches[i] = caseDesensitize(escapeSearch(v))
+			end
+		end
+		local tagsData = newList(newList(title))
+		for _, category in ipairs(tagCategories) do
+			local t = newList()
+			for _, k in ipairs(tags) do
+				local data = tagCache[k]
+			
+				if data.category == category then
+					local good = true
+					if searches then
+						for i, v in ipairs(searches) do
+							if not data.topLine:match(v) then
+								good = false
 							end
 						end
 					end
-					t[#t+1] = ")"
-				end
-				t[#t+1] = "]}"
-				t[#t+1] = " - "
-				t[#t+1] = v -- highlightWords(v)
-				if tagData.alias then
-					t[#t+1] = " - "
-					t[#t+1] = L["alias for "]
-					t[#t+1] = "{["
-					t[#t+1] = tagData.alias
-					t[#t+1] = "]}"
-				end
-				t[#t+1] = "<br />"
-				t[#t+1] = L["e.g. "]
-				local examples = newList((";"):split(tagData.example))
-				for i, u in ipairs(examples) do
-					if i > 1 then
-						t[#t+1] = ", "
+					if good then
+						t[#t+1] = data.topLine
+						t[#t+1] = "<br/>"
+						t[#t+1] = "e.g. "
+						local first = true
+						for example in pairs(data.examples) do
+							if first then
+								first = false
+							else
+								t[#t+1] = "; "
+							end
+							t[#t+1] = "{"
+							t[#t+1] = example
+							t[#t+1] = "} =&gt; \""
+							t[#t+1] = (tostring(DogTag:Evaluate(example, "Unit") or '')):gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;")
+							t[#t+1] = "\""
+						end
+						t[#t+1] = "<br/>"
+						t[#t+1] = "<br/>"
 					end
-					local tag, result = u:trim():match("(.*) => (.*)")
-					t[#t+1] = "{"
-					t[#t+1] = tag
-					t[#t+1] = "}"
-					t[#t+1] = " => "
-					t[#t+1] = result:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;")
 				end
-				examples = del(examples)
-				t[#t+1] = "<br />"
-				t[#t+1] = "<br />"
 			end
+			while t[#t] == "<br/>" do
+				t[#t] = nil
+			end
+			if #t > 0 then
+				tagsData[1][#tagsData[1]+1] = newList(category, table.concat(t))
+			end
+			t = del(t)
 		end
-		while t[#t] == "<br />" do
-			t[#t] = nil
+		tagsHTML = dataToHTML(tagsData)
+		for i, v in ipairs(tagsData[1]) do
+			if type(v) == "table" then
+				del(v)
+			end
+			tagsData[1][i] = nil
 		end
-		local result = table.concat(t)
-		t = del(t)
-		if result:len() > 0 then
-			tagsData[1][#tagsData[1]+1] = { category, result }
-		end
+		tagsData[1] = del(tagsData[1])
+		tagsData = del(tagsData)
 	end
-	tagCategories = del(tagCategories)
-	tags = del(tags)
-	local tagsHTML = dataToHTML(tagsData)
-	tagsData = nil
 	
 	local tabCount = 0
 	local function makeTab(name)
@@ -666,11 +768,28 @@ function DogTag:OpenHelp()
 	end
 	
 	function tab2:Select()
+		updateTagsPage(searchBox:GetText())
 		html.text = tagsHTML
 		html:SetText(tagsHTML)
 	end
 	
 	tab1:Select()
+	
+	local nextUpdateTime = 0
+	searchBox:SetScript("OnUpdate", function(this)
+		if GetTime() < nextUpdateTime then
+			return
+		end
+		nextUpdateTime = GetTime() + 5
+		if PanelTemplates_GetSelectedTab(helpFrame) == 2 then
+			updateTagsPage(this:GetText())
+			html.text = tagsHTML
+			html:SetText(tagsHTML)
+		end
+	end)
+	searchBox:SetScript("OnTextChanged", function(this)
+		nextUpdateTime = GetTime() + 0.5
+	end)
 	
 	function DogTag:OpenHelp()
 		helpFrame:Show()
