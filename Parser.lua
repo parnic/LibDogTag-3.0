@@ -1288,7 +1288,11 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 				else
 					if need_to_do_last then
 						if bracket_open then
-							t[#t+1] = " "
+							if type(ast[i-2]) == "table" and ast[i-2][1] == "tag" and (ast[i-2][2] == "Alpha" or ast[i-2][2] == "Outline" or ast[i-2][2] == "ThickOutline") then
+								t[#t+1] = "]["
+							else
+								t[#t+1] = " "
+							end
 						else
 							t[#t+1] = "["
 							bracket_open = true
@@ -1300,7 +1304,11 @@ local function unparse(ast, t, inner, negated, parentOperatorPrecedence)
 			end
 			if need_to_do_last then
 				if bracket_open then
-					t[#t+1] = " "
+					if type(ast[#ast-1]) == "table" and ast[#ast-1][1] == "tag" and (ast[#ast-1][2] == "Alpha" or ast[#ast-1][2] == "Outline" or ast[#ast-1][2] == "ThickOutline") then
+						t[#t+1] = "]["
+					else
+						t[#t+1] = " "
+					end
 					unparse(ast[#ast], t, true, false, operators_type_ast)
 					t[#t+1] = "]"
 				else
