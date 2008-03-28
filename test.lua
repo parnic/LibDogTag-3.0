@@ -139,124 +139,136 @@ function assert_equal(alpha, bravo)
 	end
 end
 
-local function CreateFontString(parent, name, layer)
-	local fs = {
-		[0] = newproxy(), -- fake userdata
-	}
-	function fs:GetObjectType()
-		return "FontString"
+if not DogTag_Test_SecondTime then
+	local function CreateFontString(parent, name, layer)
+		local fs = {
+			[0] = newproxy(), -- fake userdata
+		}
+		function fs:GetObjectType()
+			return "FontString"
+		end
+		local text
+		function fs:SetText(x)
+			text = x
+		end
+		function fs:GetText()
+			return text
+		end
+		local alpha = 1
+		function fs:SetAlpha(a)
+			alpha = a
+		end
+		function fs:GetAlpha()
+			return alpha
+		end
+		local fontObject
+		function fs:SetFontObject(object)
+			fontObject = object
+		end
+		function fs:GetFontObject()
+			return fontObject
+		end
+		local fontName, fontSize, fontOutline = "Fritz", 14, ""
+		function fs:GetFont()
+			return fontName, fontSize, fontOutline
+		end
+		function fs:SetFont(a, b, c)
+			fontName, fontSize, fontOutline = a, b, c or ''
+		end
+		return fs
 	end
-	local text
-	function fs:SetText(x)
-		text = x
-	end
-	function fs:GetText()
-		return text
-	end
-	local alpha = 1
-	function fs:SetAlpha(a)
-		alpha = a
-	end
-	function fs:GetAlpha()
-		return alpha
-	end
-	local fontObject
-	function fs:SetFontObject(object)
-		fontObject = object
-	end
-	function fs:GetFontObject()
-		return fontObject
-	end
-	local fontName, fontSize, fontOutline = "Fritz", 14, ""
-	function fs:GetFont()
-		return fontName, fontSize, fontOutline
-	end
-	function fs:SetFont(a, b, c)
-		fontName, fontSize, fontOutline = a, b, c or ''
-	end
-	return fs
-end
-local frames = {}
-local frameRegisteredEvents = {}
-local ALL_EVENTS = newproxy()
-function CreateFrame(frameType, ...)
-	local frame = {
-		[0] = newproxy(), -- fake userdata
-	}
-	frames[frame] = true
-	function frame:GetObjectType()
-		return frameType
-	end
-	function frame:GetFrameType()
-		return frameType
-	end
-	local scripts = {}
-	function frame:SetScript(script, func)
-		scripts[script] = func
-	end
-	function frame:GetScript(script)
-		return scripts[script]
-	end
-	local events = {}
-	frameRegisteredEvents[frame] = events
-	function frame:RegisterEvent(event)
-		events[event] = true
-	end
-	function frame:UnregisterEvent(event)
-		events[event] = nil
-	end
-	function frame:UnregisterAllEvents()
-		for event in pairs(events) do
+	local frames = {}
+	local frameRegisteredEvents = {}
+	local ALL_EVENTS = newproxy()
+	function CreateFrame(frameType, ...)
+		local frame = {
+			[0] = newproxy(), -- fake userdata
+		}
+		frames[frame] = true
+		function frame:GetObjectType()
+			return frameType
+		end
+		function frame:GetFrameType()
+			return frameType
+		end
+		local scripts = {}
+		function frame:SetScript(script, func)
+			scripts[script] = func
+		end
+		function frame:GetScript(script)
+			return scripts[script]
+		end
+		local events = {}
+		frameRegisteredEvents[frame] = events
+		function frame:RegisterEvent(event)
+			events[event] = true
+		end
+		function frame:UnregisterEvent(event)
 			events[event] = nil
 		end
-	end
-	function frame:RegisterAllEvents()
-		events[ALL_EVENTS] = true
-	end
-	function frame:CreateFontString(...)
-		return CreateFontString(frame, ...)
-	end
-	if frameType == "GameTooltip" then
-		local owner
-		function frame:SetOwner(f)
-			owner = f
+		function frame:UnregisterAllEvents()
+			for event in pairs(events) do
+				events[event] = nil
+			end
 		end
-		function frame:IsOwned(f)
-			return owner == f
+		function frame:RegisterAllEvents()
+			events[ALL_EVENTS] = true
 		end
-		local fsLeft, fsRight = {}, {}
-		function frame:AddFontStrings(f1, f2)
-			fsLeft[#fsLeft+1] = f1
-			fsRight[#fsRight+1] = f2
+		function frame:CreateFontString(...)
+			return CreateFontString(frame, ...)
 		end
+		local isShown = 1
+		function frame:Show()
+			isShown = 1
+		end
+		function frame:Hide()
+			isShown = nil
+		end
+		function frame:IsShown()
+			return isShown
+		end
+		if frameType == "GameTooltip" then
+			local owner
+			function frame:SetOwner(f)
+				owner = f
+			end
+			function frame:IsOwned(f)
+				return owner == f
+			end
+			local fsLeft, fsRight = {}, {}
+			function frame:AddFontStrings(f1, f2)
+				fsLeft[#fsLeft+1] = f1
+				fsRight[#fsRight+1] = f2
+			end
+		end
+		return frame
 	end
-	return frame
-end
 
-local currentTime = 1e5 -- initial time
-function GetTime()
-	return currentTime
-end
-
-function FireOnUpdate(elapsed)
-	if not elapsed then
-		elapsed = 1
+	local currentTime = 1e5 -- initial time
+	function GetTime()
+		return math.floor(currentTime*1000 + 0.5) / 1000
 	end
-	currentTime = currentTime + elapsed
-	for frame in pairs(frames) do
-		local OnUpdate = frame:GetScript("OnUpdate")
-		if OnUpdate then
-			OnUpdate(frame, elapsed)
+
+	function FireOnUpdate(elapsed)
+		if not elapsed then
+			elapsed = 1
+		end
+		currentTime = currentTime + elapsed
+		for frame in pairs(frames) do
+			local OnUpdate = frame:GetScript("OnUpdate")
+			if OnUpdate and frame:IsShown() then
+				OnUpdate(frame, elapsed)
+			end
 		end
 	end
-end
 
-function FireEvent(event, ...)
-	for frame in pairs(frames) do
-		if frameRegisteredEvents[frame][event] or frameRegisteredEvents[frame][ALL_EVENTS] then
-			local OnEvent = frame:GetScript("OnEvent")
-			if OnEvent then
-				OnEvent(frame, event, ...)
+	function FireEvent(event, ...)
+		for frame in pairs(frames) do
+			if frameRegisteredEvents[frame][event] or frameRegisteredEvents[frame][ALL_EVENTS] then
+				local OnEvent = frame:GetScript("OnEvent")
+				if OnEvent then
+					OnEvent(frame, event, ...)
+				end
 			end
 		end
 	end
@@ -2926,7 +2938,7 @@ for i = 2, 100 do
 end
 DogTag:RemoveCompilationStep("Base", "tagevents", func)
 
-FireOnUpdate(0.05)
+--FireOnUpdate(0.05)
 
 local function func(ast, t, u, tag, tagData, kwargs, extraKwargs, compiledKwargs, events, returns)
 	events["Update"] = true
@@ -2937,10 +2949,13 @@ DogTag:RemoveFontString(fs)
 DogTag:AddFontString(fs, f, "[BlizzEventTest('never')]")
 assert_equal(fs:GetText(), 1)
 for i = 2, 100 do
-	FireOnUpdate(0.1)
-	assert_equal(fs:GetText(), i-1)
-	FireOnUpdate(0.05)
-	assert_equal(fs:GetText(), i)
+	for j = 1, 3 do
+		FireOnUpdate(0.05)
+		local x = fs:GetText()
+		if x ~= i and x ~= i-1 then
+			error(("Bad value %d %d %d"):format(i, j, x))
+		end
+	end
 end
 DogTag:RemoveCompilationStep("Base", "tagevents", func)
 
@@ -2953,10 +2968,13 @@ DogTag:RemoveFontString(fs)
 DogTag:AddFontString(fs, f, "[BlizzEventTest('never')]")
 assert_equal(fs:GetText(), 1)
 for i = 2, 100 do
-	FireOnUpdate(0.05)
-	assert_equal(fs:GetText(), i)
-	FireOnUpdate(9.95)
-	assert_equal(fs:GetText(), i)
+	for j = 1, 200 do
+		FireOnUpdate(0.05)
+		local x = fs:GetText()
+		if x ~= i and x ~= i-1 then
+			error(("Bad value %d %d %d"):format(i, j, x))
+		end
+	end
 end
 DogTag:RemoveCompilationStep("Base", "tagevents", func)
 
@@ -3126,3 +3144,41 @@ print("Memory after collect:", finalMemoryAfterCollect*1024)
 print("Time:", finalTime)
 
 print("LibDogTag-3.0: Tests succeeded")
+
+if DogTag_Test_SecondTime then
+	return
+end
+
+_G.MyAddonToBeFound = nil
+LibStub.libs.MyLibToBeFound = nil
+LibStub.minors.MyLibToBeFound = nil
+LibStub.libs.LibToProvideExtraFunctionality = nil
+LibStub.minors.LibToProvideExtraFunctionality = nil
+DogTag_Test_SecondTime = true
+LibStub.minors["LibDogTag-3.0"] = 1 -- reset version
+
+local SpecialTag_data = nil
+DogTag:AddTag("Special", "SpecialTag", {
+	code = function()
+		return SpecialTag_data
+	end,
+	ret = 'string;number;nil',
+})
+
+SpecialTag_data = nil
+assert_equal(DogTag:Evaluate("[SpecialTag]", "Special"), nil)
+SpecialTag_data = 'hey'
+assert_equal(DogTag:Evaluate("[SpecialTag]", "Special"), 'hey')
+SpecialTag_data = 52
+assert_equal(DogTag:Evaluate("[SpecialTag]", "Special"), 52)
+
+dofile('test.lua')
+
+--[[
+SpecialTag_data = nil
+assert_equal(DogTag:Evaluate("[SpecialTag]", "Special"), nil)
+SpecialTag_data = 'hey'
+assert_equal(DogTag:Evaluate("[SpecialTag]", "Special"), 'hey')
+SpecialTag_data = 52
+assert_equal(DogTag:Evaluate("[SpecialTag]", "Special"), 52)
+]]

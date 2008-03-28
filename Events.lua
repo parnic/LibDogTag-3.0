@@ -373,6 +373,17 @@ local function OnEvent(this, event, ...)
 end
 frame:SetScript("OnEvent", OnEvent)
 
+local GetMilliseconds
+if DogTag_DEBUG then
+	function GetMilliseconds()
+		return math.floor(GetTime() * 1000 + 0.5)
+	end
+else
+	function GetMilliseconds()
+		return GetTime() * 1000
+	end
+end
+
 local TimerHandlers = {}
 local nextTime = 0
 local nextUpdateTime = 0
@@ -380,7 +391,7 @@ local nextSlowUpdateTime = 0
 local num = 0
 local function OnUpdate(this, elapsed)
 	num = num + 1
-	local currentTime = GetTime()
+	local currentTime = GetMilliseconds()
 	local oldMouseover = DogTag.__lastMouseover
 	local newMouseover = GetMouseFocus()
 	DogTag.__lastMouseover = newMouseover
@@ -395,19 +406,20 @@ local function OnUpdate(this, elapsed)
 	if currentTime >= nextTime then
 		DogTag:FireEvent("FastUpdate")
 		if currentTime >= nextUpdateTime then
-			nextUpdateTime = currentTime + 0.15
+			nextUpdateTime = currentTime + 150
 			DogTag:FireEvent("Update")
 		end
 		if currentTime >= nextSlowUpdateTime then
-			nextSlowUpdateTime = currentTime + 10
+			nextSlowUpdateTime = currentTime + 10000
 			DogTag:FireEvent("SlowUpdate")
 		end
-		nextTime = currentTime + 0.05
+		nextTime = currentTime + 50
+		local currentTime_1000 = currentTime/1000
 		for i = 1, 9 do
 			local TimerHandlers_i = TimerHandlers[i]
 			if TimerHandlers_i then
 				for func in pairs(TimerHandlers_i) do
-					func(num, currentTime)
+					func(num, currentTime_1000)
 				end
 			end
 		end

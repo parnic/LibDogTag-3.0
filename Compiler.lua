@@ -435,16 +435,24 @@ local function forceTypes(storeKey, types, staticValue, forceToTypes, t)
 			finalTypes['string'] = true
 		elseif forceToTypes['number'] then
 			if type(storeKey) == "string" and storeKey:match("^arg%d+$") then
-				t[#t+1] = [=[if not ]=]
-				t[#t+1] = storeKey
-				t[#t+1] = [=[ then]=]
-				t[#t+1] = "\n"
-				t[#t+1] = storeKey
-				t[#t+1] = [=[ = ]=]
-				t[#t+1] = [=[0;]=]
-				t[#t+1] = "\n"
-				t[#t+1] = "end;\n"
-				staticValue = 0
+				if unfulfilledTypes["string"] then
+					t[#t+1] = storeKey
+					t[#t+1] = [=[ = tonumber(]=]
+					t[#t+1] = storeKey
+					t[#t+1] = [=[) or 0;]=]
+					t[#t+1] = "\n"
+				else
+					t[#t+1] = [=[if not ]=]
+					t[#t+1] = storeKey
+					t[#t+1] = [=[ then]=]
+					t[#t+1] = "\n"
+					t[#t+1] = storeKey
+					t[#t+1] = [=[ = ]=]
+					t[#t+1] = [=[0;]=]
+					t[#t+1] = "\n"
+					t[#t+1] = "end;\n"
+				end
+				staticValue = nil
 			else
 				if storeKey == "nil" then
 					storeKey = "0"

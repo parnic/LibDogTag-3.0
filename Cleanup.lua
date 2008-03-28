@@ -9,6 +9,7 @@ local DogTag, oldMinor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 _G.DogTag_MINOR_VERSION = nil
 if not DogTag then
 	_G.DogTag_funcs = nil
+	collectgarbage('collect')
 	return
 end
 
@@ -29,3 +30,5 @@ end
 DogTag.oldLib = nil
 
 _G.DogTag_funcs = nil
+
+collectgarbage('collect')
