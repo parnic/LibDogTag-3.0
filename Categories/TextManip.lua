@@ -111,7 +111,7 @@ DogTag:AddTag("Base", "VeryShort", {
 	ret = "number;string",
 	static = true,
 	doc = L["Shorten value to its closest denomination"],
-	example = '[1234:VeryShort] => "1k"; [123456:VeryShort] => "123k"; [Text(12345/23456):VeryShort] => "12k/23k"',
+	example = '[1234:VeryShort] => "1k"; [123456:VeryShort] => "123k"; ["12345/23456":VeryShort] => "12k/23k"',
 	category = L["Text manipulation"]
 })
 
