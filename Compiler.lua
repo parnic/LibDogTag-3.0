@@ -2088,9 +2088,13 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	
 	t[#t+1] = [=[local opacity = DogTag.opacity;]=]
 	t[#t+1] = "\n"
+	t[#t+1] = [=[local outline = DogTag.outline;]=]
+	t[#t+1] = "\n"
 	t[#t+1] = [=[DogTag.opacity = nil;]=]
 	t[#t+1] = "\n"
-	t[#t+1] = [=[return result or nil, opacity;]=]
+	t[#t+1] = [=[DogTag.outline = nil;]=]
+	t[#t+1] = "\n"
+	t[#t+1] = [=[return result or nil, opacity, outline;]=]
 	t[#t+1] = "\n"
 	t[#t+1] = "end;\n"
 	
@@ -2128,20 +2132,13 @@ local function evaluate(code, nsList, kwargs)
 		kwargs = newList()
 	end
 	call__func, call__kwargs, call__code, call__nsList = func, kwargs, code, nsList
-	local success, text, opacity = xpcall(call, errorhandler)
+	local success, text, opacity, outline = xpcall(call, errorhandler)
 	call__func, call__kwargs, call__code, call__nsList = nil, nil, nil, nil
 	if madeKwargs then
 		kwargs = del(kwargs)
 	end
 	if success then
-		if opacity then
-			if opacity > 1 then
-				opacity = 1
-			elseif opacity < 0 then
-				opacity = 0
-			end
-		end
-		return text, opacity
+		return text, opacity, outline
 	end
 end
 DogTag.evaluate = evaluate

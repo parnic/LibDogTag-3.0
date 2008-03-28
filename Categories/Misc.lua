@@ -51,6 +51,11 @@ DogTag:AddTag("Base", "CurrentTime", {
 
 DogTag:AddTag("Base", "Alpha", {
 	code = function(number)
+		if number > 1 then
+			number = 1
+		elseif number < 0 then
+			number = 0
+		end
 		DogTag.opacity = number
 	end,
 	arg = {
@@ -59,6 +64,26 @@ DogTag:AddTag("Base", "Alpha", {
 	ret = "nil",
 	doc = L["Set the transparency of the FontString according to argument"],
 	example = '[Alpha(1)] => "Bright"; [Alpha(0)] => "Dim"',
+	category = L["Miscellaneous"]
+})
+
+DogTag:AddTag("Base", "Outline", {
+	code = function(number)
+		DogTag.outline = "OUTLINE"
+	end,
+	ret = "nil",
+	doc = L["Set the FontString to be outlined"],
+	example = '[Outline "Hello"] => "Bold"',
+	category = L["Miscellaneous"]
+})
+
+DogTag:AddTag("Base", "ThickOutline", {
+	code = function(number)
+		DogTag.outline = "OUTLINE, THICKOUTLINE"
+	end,
+	ret = "nil",
+	doc = L["Set the FontString to be outlined thickly"],
+	example = '[ThickOutline "Hello"] => "Very Bold"',
 	category = L["Miscellaneous"]
 })
 

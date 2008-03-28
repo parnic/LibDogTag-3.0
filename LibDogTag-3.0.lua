@@ -245,18 +245,15 @@ local function updateFontString(fs)
 	local func = codeToFunction[nsList][kwargTypes][code]
 	DogTag.__isMouseOver = DogTag.__lastMouseover == fsToFrame[fs]
 	call__func, call__kwargs, call__code, call__nsList = func, kwargs, code, nsList
-	local success, ret, alpha = xpcall(call, errorhandler)
+	local success, ret, alpha, outline = xpcall(call, errorhandler)
 	call__func, call__kwargs, call__code, call__nsList = nil, nil, nil, nil
 	if success then
 		fs:SetText(ret)
 		if alpha then
-			if alpha < 0 then
-				alpha = 0
-			elseif alpha > 1 then
-				alpha = 1
-			end
 			fs:SetAlpha(alpha)
 		end
+		local a, b = fs:GetFont()
+		fs:SetFont(a, b, outline or '')
 	end
 end
 DogTag.updateFontString = updateFontString
@@ -363,6 +360,8 @@ function DogTag:RemoveFontString(fs)
 	end
 	
 	fs:SetText(nil)
+	local a, b = fs:GetFont()
+	fs:SetFont(a, b, "")
 end
 
 function DogTag:AddAddonFinder(namespace, kind, name, func)

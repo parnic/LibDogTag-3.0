@@ -167,6 +167,13 @@ local function CreateFontString(parent, name, layer)
 	function fs:GetFontObject()
 		return fontObject
 	end
+	local fontName, fontSize, fontOutline = "Fritz", 14, ""
+	function fs:GetFont()
+		return fontName, fontSize, fontOutline
+	end
+	function fs:SetFont(a, b, c)
+		fontName, fontSize, fontOutline = a, b, c or ''
+	end
 	return fs
 end
 local frames = {}
@@ -395,16 +402,24 @@ end
 
 DogTag:Evaluate("")
 
+local function tuple(...)
+	local x = { ... }
+	local n = select('#', ...)
+	return function()
+		return unpack(x, 1, n)
+	end
+end
+
 local old_DogTag_Evaluate = DogTag.Evaluate
 function DogTag:Evaluate(...)
 	local start = DogTag.getPoolNum()
-	local rets = { old_DogTag_Evaluate(self, ...) }
+	local rets = tuple(old_DogTag_Evaluate(self, ...))
 	local finish = DogTag.getPoolNum()
 	local change = finish - start
 	if change ~= 0 then
 --		error(("Unknown table usage: %d instead of %d"):format(change, 0), 2)
 	end
-	return unpack(rets)
+	return rets()
 end
 
 local old_DogTag_CleanCode = DogTag.CleanCode
@@ -2555,6 +2570,31 @@ assert_equal(select(2, DogTag:Evaluate("[Alpha(2)]")), 1)
 assert_equal(select(2, DogTag:Evaluate("[Alpha(-1)]")), 0)
 assert_equal(select(2, DogTag:Evaluate("[One]")), nil)
 
+DogTag:AddFontString(fs, f, "[Alpha(0.5)]")
+assert_equal(fs:GetText(), nil)
+assert_equal(fs:GetAlpha(), 0.5)
+DogTag:RemoveFontString(fs)
+fs:SetAlpha(1)
+
+assert_equal(DogTag:Evaluate("[Outline] Hello"), "Hello")
+assert_equal(DogTag:Evaluate("[ThickOutline] Hello"), "Hello")
+assert_equal(select(3, DogTag:Evaluate("[Outline] Hello")), 'OUTLINE')
+assert_equal(select(3, DogTag:Evaluate("Hello")), nil)
+assert_equal(select(3, DogTag:Evaluate("[ThickOutline] Hello")), 'OUTLINE, THICKOUTLINE')
+assert_equal(select(3, DogTag:Evaluate("Hello")), nil)
+
+DogTag:AddFontString(fs, f, "[Outline]")
+assert_equal(fs:GetText(), nil)
+assert_equal(fs:GetAlpha(), 1)
+assert_equal(select(3, fs:GetFont()), "OUTLINE")
+DogTag:RemoveFontString(fs)
+
+DogTag:AddFontString(fs, f, "[ThickOutline]")
+assert_equal(fs:GetText(), nil)
+assert_equal(fs:GetAlpha(), 1)
+assert_equal(select(3, fs:GetFont()), "OUTLINE, THICKOUTLINE")
+DogTag:RemoveFontString(fs)
+
 DogTag:AddFontString(fs, f, "[IsMouseOver]")
 assert_equal(fs:GetText(), nil)
 GetMouseFocus_data = f
@@ -2567,6 +2607,9 @@ GetMouseFocus_data = nil
 FireOnUpdate(0)
 assert_equal(fs:GetText(), nil)
 DogTag:RemoveFontString(fs)
+
+assert_equal(select(3, fs:GetFont()), "")
+assert_equal(fs:GetAlpha(), 1)
 
 assert_equal(DogTag:Evaluate("['Hello':Color('ff0000')]"), "|cffff0000Hello|r")
 assert_equal(DogTag:Evaluate("['There':Color('00ff00')]"), "|cff00ff00There|r")
