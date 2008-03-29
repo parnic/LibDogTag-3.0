@@ -382,6 +382,8 @@ function DogTag:OpenHelp()
 		local data = this.htmlFunc()
 		html.text = data
 		html:SetText(data)
+		
+		helpFrame.mainPane.scrollBar:SetValue(0)
 	end
 	
 	local treeLineNum = 0
@@ -570,6 +572,11 @@ function DogTag:OpenHelp()
 	searchBox:SetHeight(17)
 	searchBox:SetAutoFocus(false)
 	
+	local searchBox_bg = searchBox:CreateTexture(searchBox:GetName() .. "_Background", "BACKGROUND")
+	searchBox_bg:SetTexture(0, 0, 0)
+	searchBox_bg:SetPoint("BOTTOMLEFT", 1, 1)
+	searchBox_bg:SetPoint("TOPRIGHT", -1, -1)
+	
 	local searchBox_line1 = searchBox:CreateTexture(searchBox:GetName() .. "_Line1", "BACKGROUND")
 	searchBox_line1:SetTexture([[Interface\Buttons\WHITE8X8]])
 	searchBox_line1:SetHeight(1)
@@ -602,6 +609,11 @@ function DogTag:OpenHelp()
 	editBox:SetFontObject(ChatFontNormal)
 	editBox:SetMultiLine(true)
 	editBox:SetAutoFocus(false)
+	
+	local editBox_bg = editBox:CreateTexture(editBox:GetName() .. "_Background", "BACKGROUND")
+	editBox_bg:SetTexture(0, 0, 0)
+	editBox_bg:SetPoint("BOTTOMLEFT", 1, 1)
+	editBox_bg:SetPoint("TOPRIGHT", -1, -1)
 	
 	local editBox_label = editBox:CreateFontString(editBox:GetName() .. "_Label", "ARTWORK", "GameFontHighlightSmall")
 	editBox_label:SetText(L["Test area:"])
@@ -645,7 +657,7 @@ function DogTag:OpenHelp()
 	local bg = fontString_holder:CreateTexture(fontString_holder:GetName() .. "_Background", "BACKGROUND")
 	bg:SetPoint("BOTTOMLEFT", 1, 1)
 	bg:SetPoint("TOPRIGHT", -1, -1)
-	bg:SetTexture(0, 0, 0)
+	bg:SetTexture(0.1, 0.1, 0.1, 0.5)
 	
 	local fontString = fontString_holder:CreateFontString(helpFrame:GetName() .. "_FontString", "ARTWORK")
 	fontString:SetAllPoints()
@@ -1192,12 +1204,17 @@ function DogTag:OpenHelp()
 			return
 		end
 		this:SetScript("OnUpdate", nil)
-		if selectedTreeLine == searchLine then
-			searchLine:Click()
-		end
+		
+		searchLine:Click()
 	end
 	
+	local lastText = ''
 	searchBox:SetScript("OnTextChanged", function(this)
+		local text = this:GetText()
+		if text == lastText then
+			return
+		end
+		lastText = text
 		nextUpdateTime = GetTime() + 0.5
 
 		searchBox:SetScript("OnUpdate", OnUpdate)
