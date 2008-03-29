@@ -1169,10 +1169,10 @@ end
 
 local colors = {
 	tag = "00ffff", -- cyan
-	number = "ff00ff", -- fushcia
+	number = "ff7f7f", -- pink
 	modifier = "00ff00", -- green
 	literal = "ff7f7f", -- pink
-	operator = "7f7fff", -- light blue
+	operator = "ff7fff", -- fuchsia
 	grouping = "ffffff", -- white
 	kwarg = "ff0000", -- red
 	result = "ffffff", -- white
