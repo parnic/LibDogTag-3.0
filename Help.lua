@@ -821,6 +821,19 @@ function DogTag:OpenHelp()
 	searchBox:SetPoint("LEFT", searchBox_text, "RIGHT", 3, 0)
 	searchBox:SetWidth(120)
 	
+	local function escapeHTML__handler(c)
+		if c == "&" then
+			return "&amp;"
+		elseif c == "<" then
+			return "&lt;"
+		elseif c == ">" then
+			return "&gt;"
+		end
+	end
+	local function escapeHTML(text)
+		return (text:gsub("([&<>])", escapeHTML__handler))
+	end
+	
 	local function _fix__handler(text)
 		if text:sub(1, 2) == "{{" and text:sub(-2) == "}}" then
 			local x = text:sub(3, -3)
@@ -832,123 +845,90 @@ function DogTag:OpenHelp()
 		return DogTag:ColorizeCode(text:sub(2, -2))
 	end
 	local function fix__handler(text)
-		return _fix__handler(text):gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;")
-	end
-	local function fix__handler2(text)
-		return "|cffffffff" .. text:sub(1, -2) .. '|cffffffff"|r'
+		return escapeHTML(_fix__handler(text))
 	end
 	local function fix(text)
-		return text:gsub('(%b"")', fix__handler2):gsub("(%b{})", fix__handler):gsub("&lbrace;", "{"):gsub("&rbrace;", "}")
+		return text:gsub("(%b{})", fix__handler)
 	end
 	
-	local function dataToHTML(data)
-		local t = newList()
-		t[#t+1] = "<html>"
-		t[#t+1] = "<body>"
-		for _,h1 in ipairs(data) do
-			local title = h1[1]
-			t[#t+1] = "<h1>"
-			t[#t+1] = fix(title)
-			t[#t+1] = "</h1>"
-			local description = type(h1[2]) == "string" and h1[2]
-			if description then
-				t[#t+1] = "<p>"
-				t[#t+1] = fix(description)
-				t[#t+1] = "</p>"
-				t[#t+1] = "<br />"
-			end
-			for i = description and 3 or 2, #h1 do
-				local h2 = h1[i]
-				local title = h2[1]
-				local description = type(h2[2]) == "string" and h2[2]
-				t[#t+1] = "<h2>"
-				t[#t+1] = fix(title)
-				t[#t+1] = "</h2>"
-				if description then
-					t[#t+1] = "<p>"
-					t[#t+1] = fix(description)
-					t[#t+1] = "</p>"
-					t[#t+1] = "<br />"
-				end
-				for j = description and 3 or 2, #h2 do
-					local h3 = h2[j]
-					local title = h3[1]
-					t[#t+1] = "<h2>"
-					t[#t+1] = fix(title)
-					t[#t+1] = "</h2>"
-					for k = 2, #h3 do
-						local description = h3[k]
-						t[#t+1] = "<p>"
-						t[#t+1] = fix(description)
-						t[#t+1] = "</p>"
-						t[#t+1] = "<br />"
-					end
-				end
-			end
-		end
-		while t[#t] == "<br />" do
-			t[#t] = nil
-		end
-		t[#t+1] = "</body>"
-		t[#t+1] = "</html>"
-		local result = table.concat(t)
-		t = del(t)
-		return result
-	end
-	
-	local syntaxHTML = dataToHTML({
-		{
-			L["Syntax"], [=[LibDogTag-3.0 works by allowing normal text with interspersed tags wrapped in brackets, e.g. {Hello [Tag] There}. Syntax is in the standard form alpha {[Tag]} bravo where alpha is a literal word, bravo is a literal word and {[Tag]} will be replaced by the associated dynamic text. All tags and modifiers are case-insensitive, but will be corrected to proper casing if the tags are legal.]=],
-			{ L["Modifiers"], [=[Modifiers can change how a tag's output looks. For example, the {{:Hide(0)}} modifier will hide the result if it is equal to the number {{0}}, so {[HP:Hide(0)]} will show the current health except when it's equal to {{0}}, at which point it will be blank. You can chain together multiple modifiers as well, e.g. {[MissingHP:Hide(0):Red]} will show the missing health as red and not show it if it's equal to {{0}}. Modifiers are actually syntactic sugar for tags. {[HP:Hide(0)]} is exactly the same as {[Hide(HP, 0)]}. All modifiers work this way and all tags can be used as modifiers if they accept an argument.]=] },
-			{ L["Arguments"], [=[Tags and modifiers can also take an argument, and can be fed in in a syntax similar to {[Tag(argument)]} or {[Tag:Modifier(argument)]}. You can specify arguments out of order by name Using the syntax {[HP(unit='player')]}. This is exactly equal to {[HP('player')]} and {['player':HP]}.]=] },
-			{ L["Literals"], [=[Strings require either double or single quotes and are used like ["Hello" ' There']. Numbers can be typed just as normal numbers, e.g. {[1234 56.78 1e6]}. There are also the literals {{nil}}, {{true}}, and {{false}}, which act just like tags.]=]},
-			{ L["Logic Branching (if statements)"], [=[
+	local syntaxHTML = fix([=[<html><body>
+		<h1>Syntax</h1>
+		<p>
+			LibDogTag-3.0 works by allowing normal text with interspersed tags wrapped in brackets, e.g. {Hello [Tag] There}. Syntax is in the standard form alpha {[Tag]} bravo where alpha is a literal word, bravo is a literal word and {[Tag]} will be replaced by the associated dynamic text. All tags and modifiers are case-insensitive, but will be corrected to proper casing if the tags are legal.
+			<br/><br/>
+		</p>
+		<h2>Modifiers</h2>
+		<p>
+			Modifiers can change how a tag's output looks. For example, the {{:Hide(0)}} modifier will hide the result if it is equal to the number {{0}}, so {[HP:Hide(0)]} will show the current health except when it's equal to {{0}}, at which point it will be blank. You can chain together multiple modifiers as well, e.g. {[MissingHP:Hide(0):Red]} will show the missing health as red and not show it if it's equal to {{0}}. Modifiers are actually syntactic sugar for tags. {[HP:Hide(0)]} is exactly the same as {[Hide(HP, 0)]}. All modifiers work this way and all tags can be used as modifiers if they accept an argument.
+			<br/><br/>
+		</p>
+		<h2>Arguments</h2>
+		<p>
+			Tags and modifiers can also take an argument, and can be fed in in a syntax similar to {[Tag(argument)]} or {[Tag:Modifier(argument)]}. You can specify arguments out of order by name Using the syntax {[HP(unit='player')]}. This is exactly equal to {[HP('player')]} and {['player':HP]}.
+			<br/><br/>
+		</p>
+		<h2>Literals</h2>
+		<p>
+			Strings require either double or single quotes and are used like {["Hello" ' There']}. Numbers can be typed just as normal numbers, e.g. {[1234 56.78 1e6]}. There are also the literals {{nil}}, {{true}}, and {{false}}, which act just like tags.
+			<br/><br/>
+		</p>
+		<h2>Logic Branching (if statements)</h2>
+		<p>
 			* The {{&}} and {{and}} operators function as boolean AND. e.g. {[Alpha and Bravo]} will check if Alpha is non-false, if so, run Bravo.<br />
 			* The {{||}} and {{or}} operators function as boolean OR. e.g. {[Alpha or Bravo]} will check if Alpha is false, if so, run Bravo, otherwise just show Alpha.<br />
-			* The {{?}} operator functions as an if statement. It can be used in conjunction with {{!}} to create an if-else statement. e.g. {[IsPlayer ? "Player"]} or {[IsPlayer ? "Player" ! "NPC"]}.
-			* The {{if}} operator functions as an if statement. It can be used in conjunction with {{else}} to create an if-else statement. e.g. {[if IsPlayer then "Player" end]} or {[if IsPlayer then "Player" else "NPC" end] or {[if IsPlayer then "Player" elseif IsPet then "Pet" else "NPC"]}.
+			* The {{?}} operator functions as an if statement. It can be used in conjunction with {{!}} to create an if-else statement. e.g. {[IsPlayer ? "Player"]} or {[IsPlayer ? "Player" ! "NPC"]}.<br />
+			* The {{if}} operator functions as an if statement. It can be used in conjunction with {{else}} to create an if-else statement. e.g. {[if IsPlayer then "Player" end]} or {[if IsPlayer then "Player" else "NPC" end]} or {[if IsPlayer then "Player" elseif IsPet then "Pet" else "NPC"]}.<br />
 			* The {{not}} and {{~}} operators turn a false value into true and true value into false. e.g. {[not IsPlayer]} or {[~IsPlayer]}
-			]=],
-				{ L["Examples"], [=[
-					{[Status || FractionalHP(known=true) || PercentHP]}<br />
-					Will return one of the following (but only one): <br /><br />
-					* "Dead", "Offline", "Ghost", etc -- no further information since the OR indicates that there is already a legitimate return<br />
-					* "3560/8490" or "130/6575" (but not "62/100" unless the target in fact has {{100}} hit points) -- and not "0/2340" or "0/3592" because that would mean it is dead and that would have already been taken care of by the first tag in the sequence<br />
-					* "25" or "35" or "72" (percent health) -- if the unit is not dead, offline, etc, and your addon is uncertain of your target's maximum and current health, it will display percent health.<br /><br />
-					{[Status || (IsPlayer ? HP(known=true)) || PercentHP:Percent]} will deliver similar returns as to that above, but in a slightly different format which should be fairly apparent already.<br /><br />
-					But to clarify, the nested {{(IsPlayer ? HP(known=true))}} creates an if statement which means that if {{IsPlayer}} is false, the whole value is taken to be false, and if you've read this far you deserve a cookie. If {{IsPlayer}} is true, the actual returned value of this nested expression is actually the term following the AND -- in this case, {{HP(known=true)}}. So this will show {{HP(known=true)}} if {{IsPlayer}} is found true (that is, if the unit is actually a player).
-				]=], [=[
-					{[if IsFriend then -MissingHP:Green else HP:Red end]}<br /> 
-					Will return one of the following (but only one):<br /><br />
-					* If the unit is friendly, it will display the amount of health they must be healed to meet their maximum. It will be displayed in green, and with a negative sign in front of it.<br /> 
-					* If the unit is an enemy, it will display their current health. As this sequence is written, it will not consider whether it is a valid health value or not. On enemies where the health value is uncertain, it will show a percentage (but without a percent sign), until a more reliable value can be determined. This value will be displayed in red.
-				]=]}
-			},
-			{ "Unit specification", [=[
-				Units are typically pre-specified by the addon which uses DogTag, whether {{"player"}}, {{"mouseover"}}, or otherwise. You can override the unit a specific tag or modifier operates on by using the form {[Tag(unit="myunit")]} or {[Tag:Modifier(unit="myunit")]}. e.g. {[HP(unit='player')]} gets the player's health.
-			]=], { "List of example units", [=[
-				* player - your character<br />
-				* target - your target<br />
-				* targettarget - your target's target<br />
-				* pet - your pet<br />
-				* mouseover - the unit you are currently hovering over<br />
-				* focus - your focus unit<br />
-				* party1 - the first member of your party<br />
-				* partypet2 - the pet of the second member of your party<br />
-				* raid3 - the third member of your raid<br />
-				* raidpet4 - the pet of the fourth member of your raid<br />
-				]=] }
-			},
-			{ "Arithmetic operators", [=[
-			You can use arithmetic operators in your DogTag sequences without issue, they function as expected with proper order-of-operations.
+			<br/><br/>
+		</p>
+		<h3>Examples</h3>
+		<p>
+			{[Status || FractionalHP(known=true) || PercentHP]}<br />
+			Will return one of the following (but only one): <br /><br />
+			* "|cffffffffDead|r", "|cffffffffOffline|r", "|cffffffffGhost|r", etc -- no further information since the OR indicates that there is already a legitimate return<br />
+			* "|cffffffff3560/8490|r" or "|cffffffff130/6575|r" (but not "|cffffffff62/100|r" unless the target in fact has {{100}} hit points) -- and not "|cffffffff0/2340|r" or "|cffffffff0/3592|r" because that would mean it is dead and that would have already been taken care of by the first tag in the sequence<br />
+			* "|cffffffff25|r" or "|cffffffff35|r" or "|cffffffff72|r" (percent health) -- if the unit is not dead, offline, etc, and your addon is uncertain of your target's maximum and current health, it will display percent health.<br /><br />
+			{[Status || (IsPlayer ? HP(known=true)) || PercentHP:Percent]} will deliver similar returns as to that above, but in a slightly different format which should be fairly apparent already.<br /><br />
+			But to clarify, the nested {{(IsPlayer ? HP(known=true))}} creates an if statement which means that if {{IsPlayer}} is false, the whole value is taken to be false, and if you've read this far you deserve a cookie. If {{IsPlayer}} is true, the actual returned value of this nested expression is actually the term following the AND -- in this case, {{HP(known=true)}}. So this will show {{HP(known=true)}} if {{IsPlayer}} is found true (that is, if the unit is actually a player).<br/>
+			<br/>
+			{[if IsFriend then -MissingHP:Green else HP:Red end]}<br /> 
+			Will return one of the following (but only one):<br /><br />
+			* If the unit is friendly, it will display the amount of health they must be healed to meet their maximum. It will be displayed in green, and with a negative sign in front of it.<br /> 
+			* If the unit is an enemy, it will display their current health. As this sequence is written, it will not consider whether it is a valid health value or not. On enemies where the health value is uncertain, it will show a percentage (but without a percent sign), until a more reliable value can be determined. This value will be displayed in red.
+			<br/><br/>
+		</p>
+		<h2>Unit specification</h2>
+		<p>
+			Units are typically pre-specified by the addon which uses DogTag, whether {{"player"}}, {{"mouseover"}}, or otherwise. You can override the unit a specific tag or modifier operates on by using the form {[Tag(unit="myunit")]} or {[Tag:Modifier(unit="myunit")]}. e.g. {[HP(unit='player')]} gets the player's health.
+			<br/><br/>
+		</p>
+		<h3>List of example units</h3>
+		<p>
+			* player - your character<br />
+			* target - your target<br />
+			* targettarget - your target's target<br />
+			* pet - your pet<br />
+			* mouseover - the unit you are currently hovering over<br />
+			* focus - your focus unit<br />
+			* party1 - the first member of your party<br />
+			* partypet2 - the pet of the second member of your party<br />
+			* raid3 - the third member of your raid<br />
+			* raidpet4 - the pet of the fourth member of your raid
+			<br/><br/>
+		</p>
+		<h2>Arithmetic operators</h2>
+		<p>
+			You can use arithmetic operators in your DogTag sequences without issue, they function as expected with proper order-of-operations.<br/><br/>
 			* {{+}} - Addition<br />
 			* {{-}} - Subtraction<br />
 			* {{*}} - Multiplication<br />
 			* {{/}} - Division<br />
 			* {{%}} - Modulus<br />
 			* {{^}} - Exponentiation
-			]=]},
-			{ "Comparison operators", [=[
+			<br/><br/>
+		</p>
+		<h2>Comparison operators</h2>
+		<p>
 			You can use comparison operators in your DogTag very similarly to arithmetic operators.<br /><br />
 			* {{=}} - Equality<br />
 			* {{~=}} - Inequality<br />
@@ -956,12 +936,13 @@ function DogTag:OpenHelp()
 			* {{>}} - Greater than<br />
 			* {{<=}} - Less than or equal<br />
 			* {{>=}} - Greater than or equal
-			]=]},
-			{ "Concatenation", [=[
-			Concatenation (joining two pieces of text together) is very easy, all you have to do is place them next to each other separated by a space, e.g. {['Hello' " There"]} =&gt; "Hello There". For a more true-to-life example, {[HP '/' MaxHP]} => "50/100".
-			]=]}
-		}
-	})
+			<br/><br/>
+		</p>
+		<h2>Concatenation</h2>
+		<p>
+			Concatenation (joining two pieces of text together) is very easy, all you have to do is place them next to each other separated by a space, e.g. {['Hello' " There"]} =&gt; "|cffffffffHello There|r". For a more true-to-life example, {[HP '/' MaxHP]} => "|cffffffff50/100|r".
+		</p>
+	</body></html>]=])
 	
 	local treeLine = getTreeLine(false, treeView, L["Syntax"], function()
 		return syntaxHTML
@@ -1039,19 +1020,6 @@ function DogTag:OpenHelp()
 		t = del(t)
 		return s
 	end)
-	
-	local function escapeHTML__handler(c)
-		if c == "&" then
-			return "&amp;"
-		elseif c == "<" then
-			return "&lt;"
-		elseif c == ">" then
-			return "&gt;"
-		end
-	end
-	local function escapeHTML(text)
-		return (text:gsub("([&<>])", escapeHTML__handler))
-	end
 	
 	local Tags = DogTag.Tags
 	

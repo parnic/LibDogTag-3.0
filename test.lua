@@ -1614,6 +1614,7 @@ GlobalCheck_data = 5
 assert_equal(DogTag:Evaluate("[nil 1234 GlobalCheck nil]"), 12345)
 GlobalCheck_data = 'Hello'
 assert_equal(DogTag:Evaluate("[nil 1234 GlobalCheck nil]"), '1234Hello')
+assert_equal(DogTag:Evaluate("['+' 1234]"), '+1234')
 
 assert_equal(DogTag:Evaluate("Hello [Unknown#test]"), 'Syntax error')
 

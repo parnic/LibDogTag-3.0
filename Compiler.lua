@@ -293,11 +293,11 @@ local function mytonumber(value)
 	end
 	if value:match("^0x") then
 		return nil
-	end
-	if value:match("%.$") or value:match("%.%d*0$") then
+	elseif value:match("%.$") or value:match("%.%d*0$") then
 		return nil
-	end
-	if value:match("^0%d+") then
+	elseif value:match("^0%d+") then
+		return nil
+	elseif value:match("^%+") then
 		return nil
 	end
 	return tonumber(value)
