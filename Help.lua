@@ -1185,24 +1185,22 @@ function DogTag:OpenHelp()
 			end)
 		end
 	end
-	--[[
+	
 	local nextUpdateTime = 0
-	searchBox:SetScript("OnUpdate", function(this)
+	local function OnUpdate(this)
 		if GetTime() < nextUpdateTime then
 			return
 		end
-		nextUpdateTime = GetTime() + 5
-		if PanelTemplates_GetSelectedTab(helpFrame) == 2 then
-			updateTagsPage(this:GetText())
-			html.text = tagsHTML
-			html:SetText(tagsHTML)
-		end
-	end)
-	]]
-	searchBox:SetScript("OnTextChanged", function(this)
+		this:SetScript("OnUpdate", nil)
 		if selectedTreeLine == searchLine then
 			searchLine:Click()
 		end
+	end
+	
+	searchBox:SetScript("OnTextChanged", function(this)
+		nextUpdateTime = GetTime() + 0.5
+
+		searchBox:SetScript("OnUpdate", OnUpdate)
 	end)
 	
 	treeView:Reposition()
