@@ -304,7 +304,7 @@ end
 DogTag.__mytonumber = mytonumber
 
 local allOperators = {
-	[" "] = true,
+	["concat"] = true,
 	["and"] = true,
 	["or"] = true,
 	["if"] = true,
@@ -1186,7 +1186,7 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 		end
 		local a, b, c = forceTypes(storeKey, ret, nil, forceToTypes, t)
 		return a, b, c, savedArg, savedArgTypes, savedArgStatic
-	elseif astType == ' ' then
+	elseif astType == "concat" then
 		local t_num = #t
 		local args = newList()
 		local argTypes = newList()

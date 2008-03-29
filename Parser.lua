@@ -154,7 +154,7 @@ function DOGTAG(tokens)
 				if isConcatList then
 					list[#list+1] = data
 				else
-					list = newList(" ", list, data)
+					list = newList("concat", list, data)
 					isConcatList = true
 				end
 			else
@@ -845,10 +845,10 @@ end
 
 local function flattenConcatenation(ast)
 	local newAst = newList()
-	newAst[1] = ' '
+	newAst[1] = "concat"
 	for i = 2, #ast do
 		local v = ast[i]
-		if type(v) == "table" and v[1] == " " then
+		if type(v) == "table" and v[1] == "concat" then
 			flattenConcatenation(v)
 			for i = 2, #v do
 				newAst[#newAst+1] = v[i]
@@ -889,7 +889,7 @@ function CONCATENATION(tokens, position)
 		if list then
 			list[#list+1] = chunk
 		else
-			list = newList(" ", data, chunk)
+			list = newList("concat", data, chunk)
 		end
 	end
 	
@@ -922,7 +922,7 @@ function ADDITION(tokens, position)
 					else
 						data2 = newList("unm", data2)
 					end
-					data = newList(" ", data, data2)
+					data = newList("concat", data, data2)
 				end
 			end
 		end
@@ -1141,7 +1141,7 @@ local operators = {
 	["kwarg"] = "MODIFIER",
 	["string"] = "MODIFIER",
 	["number"] = "MODIFIER",
-	[" "] = "CONCATENATION",
+	["concat"] = "CONCATENATION",
 	["~"] = "NEGATION",
 	["not"] = "NEGATION",
 	["if"] = "IF_STATEMENT",
@@ -1320,7 +1320,7 @@ local function unparse(ast, t, inner, negated, parent_type_ast, indent)
 			manualGrouping = parentOperatorPrecedence < operators_type_ast
 		end
 	end
-	if type_ast == " " then
+	if type_ast == "concat" then
 		if inner then
 			if manualGrouping then
 				t[#t+1] = "("
