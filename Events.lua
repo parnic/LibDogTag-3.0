@@ -404,10 +404,26 @@ local function OnEvent(this, event, ...)
 				for k in pairs(param) do
 					if k == arg1 then
 						good = true
-					elseif k:match("^%$") then
-						good = kwargs[k:sub(2)] == arg1
-					elseif k:match("^%[.*%]$") then
-						good = evaluate(k, nsList, kwargs) == arg1
+					else	
+						local multiArg = newList(("#"):split(k))
+						for i, v in ipairs(multiArg) do
+							local arg = select(i, ...)
+							if not arg then
+								good = false
+							elseif v == arg then
+								good = true
+							elseif v:match("^%$") then
+								good = kwargs[v:sub(2)] == arg
+							elseif v:match("^%[.*%]$") then
+								good = evaluate(v, nsList, kwargs) == arg
+							else
+								good = false
+							end
+							if not good then
+								break
+							end
+						end
+						multiArg = del(multiArg)
 					end
 					if good then
 						break
