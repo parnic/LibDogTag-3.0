@@ -415,7 +415,7 @@ function DogTag:OpenHelp()
 			local x = text:sub(3, -3)
 			x = "[" .. x .. "]"
 			x = DogTag:ColorizeCode(x)
-			local y = x:match("^|cff%x%x%x%x%x%x%[|r(|cff%x%x%x%x%x%x.*|r)|cff%x%x%x%x%x%x%]|r$")
+			local y = x:match("^|cff%x%x%x%x%x%x%[(|cff%x%x%x%x%x%x.*)|cff%x%x%x%x%x%x%]|r$") .. "|r"
 			return y
 		end
 		return DogTag:ColorizeCode(text:sub(2, -2))
