@@ -55,6 +55,10 @@ local tostring = _G.tostring
 local tonumber = _G.tonumber
 local unpack = _G.unpack
 local newList, del, deepDel = DogTag.newList, DogTag.del, DogTag.deepDel
+local correctASTCasing
+DogTag_funcs[#DogTag_funcs+1] = function()
+	correctASTCasing = DogTag.correctASTCasing
+end
 
 local reserved = {
 	["if"] = true,
@@ -1578,6 +1582,7 @@ function DogTag:CleanCode(code)
 		return code
 	end
 	ast = cleanAST(ast)
+	correctASTCasing(ast)
 	local result = unparse(ast)
 	ast = deepDel(ast)
 	return result

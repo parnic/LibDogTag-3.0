@@ -95,6 +95,7 @@ local function correctASTCasing(ast)
 		correctASTCasing(ast[i])
 	end
 end
+DogTag.correctASTCasing = correctASTCasing
 
 local codeToFunction
 do

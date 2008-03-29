@@ -161,8 +161,6 @@ function DogTag:OpenHelp()
 	bg = del(bg)
 	treeView:SetBackdropBorderColor(0.6, 0.6, 0.6)
 	treeView:SetBackdropColor(0, 0, 0)
-	treeView:SetPoint("TOPLEFT", helpFrame, "TOPLEFT", 12, -35)
-	treeView:SetPoint("BOTTOMRIGHT", helpFrame, "BOTTOMLEFT", 162, 30)
 	local scrollFrame = CreateFrame("ScrollFrame", treeView:GetName() .. "_ScrollFrame", treeView)
 	local scrollChild = CreateFrame("Frame", scrollFrame:GetName() .. "_Frame", scrollFrame)
 	local scrollBar = CreateFrame("Slider", scrollFrame:GetName() .. "_ScrollBar", scrollFrame, "UIPanelScrollBarTemplate")
@@ -456,7 +454,8 @@ function DogTag:OpenHelp()
 	mainPane:SetBackdropBorderColor(0.6, 0.6, 0.6)
 	mainPane:SetBackdropColor(0, 0, 0)
 	mainPane:SetPoint("TOPLEFT", treeView, "TOPRIGHT", -3, 0)
-	mainPane:SetPoint("BOTTOMRIGHT", helpFrame, "BOTTOMRIGHT", -12, 30)
+	mainPane:SetPoint("RIGHT", helpFrame, "RIGHT", -12, 0)
+	mainPane:SetPoint("BOTTOM", treeView, "BOTTOM")
 	
 	local scrollFrame = CreateFrame("ScrollFrame", mainPane:GetName() .. "_ScrollFrame", mainPane)
 	local scrollChild = CreateFrame("Frame", mainPane:GetName() .. "_ScrollChild", scrollFrame)
@@ -601,9 +600,12 @@ function DogTag:OpenHelp()
 	
 	local editBox = CreateFrame("EditBox", helpFrame:GetName() .. "_EditBox", helpFrame)
 	editBox:SetFontObject(ChatFontNormal)
-	editBox:SetHeight(17)
-	editBox:SetWidth(200)
+	editBox:SetMultiLine(true)
 	editBox:SetAutoFocus(false)
+	
+	local editBox_label = editBox:CreateFontString(editBox:GetName() .. "_Label", "ARTWORK", "GameFontHighlightSmall")
+	editBox_label:SetText(L["Test area:"])
+	editBox_label:SetPoint("BOTTOMLEFT", editBox, "TOPLEFT", 0, 3)
 	
 	local editBox_line1 = editBox:CreateTexture(editBox:GetName() .. "_Line1", "BACKGROUND")
 	editBox_line1:SetTexture([[Interface\Buttons\WHITE8X8]])
@@ -638,8 +640,40 @@ function DogTag:OpenHelp()
 	local fontString = helpFrame:CreateFontString(helpFrame:GetName() .. "_FontString", "ARTWORK")
 	fontString:SetPoint("LEFT", editBox, "RIGHT", 20, 0)
 	fontString:SetPoint("BOTTOMRIGHT", helpFrame, "BOTTOMRIGHT", -20, 13)
-	fontString:SetHeight(17)
+	fontString:SetPoint("TOP", editBox, "TOP", 0, -20)
 	fontString:SetFontObject(ChatFontNormal)
+	
+	local fontString_label = helpFrame:CreateFontString(fontString:GetName() .. "_Label", "ARTWORK", "GameFontHighlightSmall")
+	fontString_label:SetText(L["Output:"])
+	fontString_label:SetPoint("BOTTOMLEFT", fontString, "TOPLEFT", 0, 3)
+	
+	local fontString_line1 = helpFrame:CreateTexture(fontString:GetName() .. "_Line1", "ARTWORK")
+	fontString_line1:SetTexture([[Interface\Buttons\WHITE8X8]])
+	fontString_line1:SetHeight(1)
+	fontString_line1:SetPoint("TOPLEFT", fontString, "BOTTOMLEFT", 0, 1)
+	fontString_line1:SetPoint("TOPRIGHT", fontString, "BOTTOMRIGHT", 0, 1)
+	fontString_line1:SetVertexColor(3/8, 3/8, 3/8, 1)
+	
+	local fontString_line2 = helpFrame:CreateTexture(fontString:GetName() .. "_Line2", "ARTWORK")
+	fontString_line2:SetTexture([[Interface\Buttons\WHITE8X8]])
+	fontString_line2:SetWidth(1)
+	fontString_line2:SetPoint("TOPLEFT", fontString, "TOPRIGHT", -1, 0)
+	fontString_line2:SetPoint("BOTTOMLEFT", fontString, "BOTTOMRIGHT", -1, 0)
+	fontString_line2:SetVertexColor(3/8, 3/8, 3/8, 1)
+	
+	local fontString_line3 = helpFrame:CreateTexture(fontString:GetName() .. "_Line3", "ARTWORK")
+	fontString_line3:SetTexture([[Interface\Buttons\WHITE8X8]])
+	fontString_line3:SetHeight(1)
+	fontString_line3:SetPoint("BOTTOMLEFT", fontString, "TOPLEFT", 0, -1)
+	fontString_line3:SetPoint("BOTTOMRIGHT", fontString, "TOPRIGHT", 0, -1)
+	fontString_line3:SetVertexColor(3/4, 3/4, 3/4, 1)
+	
+	local fontString_line4 = helpFrame:CreateTexture(fontString:GetName() .. "_Line4", "ARTWORK")
+	fontString_line4:SetTexture([[Interface\Buttons\WHITE8X8]])
+	fontString_line4:SetWidth(1)
+	fontString_line4:SetPoint("TOPRIGHT", fontString, "TOPLEFT", 1, 0)
+	fontString_line4:SetPoint("BOTTOMRIGHT", fontString, "BOTTOMLEFT", 1, 0)
+	fontString_line4:SetVertexColor(3/4, 3/4, 3/4, 1)
 	
 	editBox:SetScript("OnEscapePressed", function(this)
 		this:ClearFocus()
@@ -648,11 +682,63 @@ function DogTag:OpenHelp()
 	
 	editBox:SetScript("OnEnterPressed", editBox:GetScript("OnEscapePressed"))
 	
-	editBox:SetScript("OnTextChanged", function(this)
+	local function updateFontString(text)
+		text = text or editBox:GetText():gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
 		local kwargs = newList()
 		kwargs.unit = currentUnit
-		DogTag:AddFontString(fontString, helpFrame, editBox:GetText(), "Unit", kwargs)
+		DogTag:AddFontString(fontString, helpFrame, text, "Unit", kwargs)
 		kwargs = del(kwargs)
+	end
+	
+	local fs = helpFrame:CreateFontString(nil, "ARTWORK")
+	local lastText
+	editBox:SetScript("OnTextChanged", function(this)
+		local colorText = this:GetText()
+		if lastText == colorText then
+			return
+		end
+		local text = colorText:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+		updateFontString(text)
+		
+		lastText = DogTag:ColorizeCode(text):gsub("|r", "")
+		local position = this:GetCursorPosition()
+		local skip = 0
+		for i = 1, position do
+			if colorText:byte(i) == ("|"):byte() then
+				if colorText:byte(i+1) == ("c"):byte() then
+					skip = skip + 10
+				elseif colorText:byte(i+1) == ("r"):byte() then
+					skip = skip + 2
+				end
+			end
+		end
+		position = position - skip
+		this:SetText(lastText)
+		
+		local betterPosition = 0
+		for i = 1, position do
+			betterPosition = betterPosition + 1
+			while lastText:byte(betterPosition) == ("|"):byte() do
+				if lastText:byte(betterPosition+1) == ("c"):byte() then
+					betterPosition = betterPosition + 10
+				elseif lastText:byte(betterPosition+1) == ("r"):byte() then
+					betterPosition = betterPosition + 2
+				else
+					break
+				end
+			end
+		end
+		
+		this:SetCursorPosition(betterPosition)
+		
+		fs:SetFontObject(this:GetFontObject())
+		fs:SetWidth(this:GetWidth())
+		fs:SetText(text)
+		local height = fs:GetHeight() + 6
+		if height < 42 then
+			height = 42
+		end
+		editBox:SetPoint("TOPRIGHT", helpFrame, "BOTTOM", -10, 16 + height)
 	end)
 	
 	editBox:SetText("[Name]")
@@ -663,11 +749,14 @@ function DogTag:OpenHelp()
 	searchBox:SetScript("OnEnterPressed", searchBox:GetScript("OnEscapePressed"))
 	
 	local dropdown = CreateFrame("Frame", helpFrame:GetName() .. "_DropDown", helpFrame, "UIDropDownMenuTemplate")
+	local dropdown_label = dropdown:CreateFontString(dropdown:GetName() .. "_Label", "ARTWORK", "GameFontHighlightSmall")
+	dropdown_label:SetPoint("RIGHT", dropdown, "LEFT", 20, 0)
+	dropdown_label:SetText(L["Test on: "])
 	
 	local function dropdown_OnClick()
 		UIDropDownMenu_SetSelectedValue(dropdown, this.value)
 		currentUnit = this.value
-		editBox:GetScript("OnTextChanged")(editBox)
+		updateFontString()
 	end
 	UIDropDownMenu_Initialize(dropdown, function()
 		local info = newList()
@@ -699,8 +788,12 @@ function DogTag:OpenHelp()
 		editBox:SetWidth(this:GetWidth()*1/2 - 20)
 	end)
 	
-	dropdown:SetPoint("BOTTOMLEFT", helpFrame, "BOTTOMLEFT", -5, 6)
-	editBox:SetPoint("LEFT", _G[dropdown:GetName() .. "Button"], "RIGHT", 5, 0)
+	editBox:SetPoint("BOTTOMLEFT", helpFrame, "BOTTOMLEFT", 16, 16)
+	editBox:SetPoint("TOPRIGHT", helpFrame, "BOTTOM", -10, 55)
+	treeView:SetPoint("TOPLEFT", helpFrame, "TOPLEFT", 12, -35)
+	treeView:SetPoint("RIGHT", helpFrame, "LEFT", 162, 0)
+	treeView:SetPoint("BOTTOM", editBox, "TOP", 0, 15)
+	dropdown:SetPoint("BOTTOMRIGHT", fontString, "TOPRIGHT", -110, 0)
 	
 	local searchBox_text = searchBox:CreateFontString(searchBox:GetName() .. "_Text", "ARTWORK", "GameFontHighlightSmall")
 	searchBox_text:SetPoint("TOPLEFT", helpFrame, "TOPLEFT", 14, -16)
