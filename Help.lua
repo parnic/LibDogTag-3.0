@@ -141,6 +141,300 @@ function DogTag:OpenHelp()
 	local x = 0.1 * 8/17
 	line3:SetTexCoord(1/32 - x, 0.5, 1/32, 0.5 + x, 1/32, 0.5 - x, 1/32 + x, 0.5)
 	
+	local treeView = CreateFrame("Frame", helpFrame:GetName() .. "_TreeView", helpFrame)
+	helpFrame.treeView = treeView
+	local bg = newDict(
+		'bgFile', [[Interface\Buttons\WHITE8X8]],
+		'edgeFile', [[Interface\Tooltips\UI-Tooltip-Border]],
+		'tile', true,
+		'tileSize', 16,
+		'edgeSize', 16,
+		'insets', newDict(
+			'left', 3,
+			'right', 3,
+			'top', 3,
+			'bottom', 3
+		)
+	)
+	treeView:SetBackdrop(bg)
+	bg.insets = del(bg.insets)
+	bg = del(bg)
+	treeView:SetBackdropBorderColor(0.6, 0.6, 0.6)
+	treeView:SetBackdropColor(0, 0, 0)
+	treeView:SetPoint("TOPLEFT", helpFrame, "TOPLEFT", 12, -35)
+	treeView:SetPoint("BOTTOMRIGHT", helpFrame, "BOTTOMLEFT", 162, 30)
+	local scrollFrame = CreateFrame("ScrollFrame", treeView:GetName() .. "_ScrollFrame", treeView)
+	local scrollChild = CreateFrame("Frame", scrollFrame:GetName() .. "_Frame", scrollFrame)
+	local scrollBar = CreateFrame("Slider", scrollFrame:GetName() .. "_ScrollBar", scrollFrame, "UIPanelScrollBarTemplate")
+	treeView.scrollFrame = scrollFrame
+	treeView.scrollChild = scrollChild
+	treeView.scrollBar = scrollBar
+	
+	local html
+
+	scrollFrame:SetScrollChild(scrollChild)
+	scrollFrame:SetPoint("TOPLEFT", treeView, "TOPLEFT", 8, -12)
+	scrollFrame:SetPoint("BOTTOMRIGHT", treeView, "BOTTOMRIGHT", -28, 12)
+	scrollFrame:EnableMouseWheel(true)
+	scrollFrame:SetScript("OnMouseWheel", function(this, change)
+		local childHeight = scrollChild:CalculateHeight()
+		local frameHeight = scrollFrame:GetHeight()
+		if childHeight <= frameHeight then
+			return
+		end
+
+		local diff = frameHeight - childHeight
+
+		local delta = 1
+		if change < 0 then
+			delta = -1
+		end
+
+		local value = scrollBar:GetValue() + delta*(24/diff)
+		if value < 0 then
+			value = 0
+		elseif value > 1 then
+			value = 1
+		end
+		scrollBar:SetValue(value) -- will trigger OnValueChanged
+	end)
+
+	scrollChild:SetHeight(1)
+	scrollChild:SetWidth(1)
+
+	function scrollChild:CalculateHeight()
+		local top = self:GetTop()
+		if not top then
+			return 0
+		end
+
+		local current = treeView
+
+		local bottom = top
+
+		local children = current.children
+		while children do
+			local child
+			for i,v in ipairs(children) do
+				if v:IsShown() then
+					local b = v:GetBottom()
+					if b and b < bottom then
+						bottom = b
+						child = v
+					end
+				end
+			end
+			if not child then
+				break
+			end
+			current = child
+			children = current.children
+		end
+
+		return top - bottom
+	end
+
+	scrollBar:SetPoint("TOPLEFT", scrollFrame, "TOPRIGHT", 0, -16)
+	scrollBar:SetPoint("BOTTOMLEFT", scrollFrame, "BOTTOMRIGHT", 0, 16)
+	scrollBar:SetMinMaxValues(0, 1)
+	scrollBar:SetValueStep(1e-5)
+	scrollBar:SetValue(0)
+	scrollBar:SetWidth(16)
+	scrollBar:SetScript("OnValueChanged", function(this)
+		local max = scrollChild:CalculateHeight() - scrollFrame:GetHeight()
+
+		local val = scrollBar:GetValue() * max
+
+		if math.abs(scrollFrame:GetVerticalScroll() - val) < 1 then
+			return
+		end
+
+		scrollFrame:SetVerticalScroll(val)
+	end)
+	scrollBar:EnableMouseWheel(true)
+	scrollBar:SetScript("OnMouseWheel", function(this, ...)
+		scrollFrame:GetScript("OnMouseWheel")(scrollFrame, ...)
+	end)
+	
+	local function reposition(children, last, depth)
+		if not children then
+			return last
+		end
+		for i, v in ipairs(children) do
+			v:Show()
+			v:ClearAllPoints()
+			v:SetPoint("LEFT", scrollFrame, "LEFT", depth*16, 0)
+			v:SetPoint("RIGHT", scrollFrame, "RIGHT")
+			if not last then
+				v:SetPoint("TOP", scrollChild, "TOP")
+			else
+				v:SetPoint("TOP", last, "BOTTOM")
+			end
+			last = v
+			if v.expand and v.expand:GetNormalTexture():GetTexture() ~= [[Interface\Buttons\UI-PlusButton-Up]] then
+				last = reposition(v.children, last, depth+1)
+			elseif v.children then
+				for i, child in ipairs(v.children) do
+					child:Hide()
+				end
+			end
+		end
+		return last
+	end
+	
+	treeView.children = {}
+	function treeView:Reposition()
+		reposition(self.children, nil, 0)
+		
+		local height = scrollChild:CalculateHeight()
+		
+		if height < scrollFrame:GetHeight() then
+			scrollBar:Hide()
+			scrollFrame:SetPoint("BOTTOMRIGHT", treeView, "BOTTOMRIGHT", -8, 12)
+			scrollBar:SetValue(0)
+			scrollFrame:SetVerticalScroll(0)
+		else
+			scrollBar:Show()
+			scrollFrame:SetPoint("BOTTOMRIGHT", treeView, "BOTTOMRIGHT", -28, 12)
+		end
+	end
+	
+	local selectedTreeLine
+	local function TreeLine_OnEnter(this)
+		if this:IsEnabled() == 1 then
+			this.highlight:SetAlpha(1)
+			this.highlight:Show()
+		end
+	end
+	local function TreeLine_OnLeave(this)
+		if this ~= selectedTreeLine then
+			this.highlight:Hide()
+		else
+			this.highlight:SetAlpha(0.7)
+		end
+		GameTooltip:Hide()
+	end
+	
+	local function TreeLine_Unselect(this)
+		this.highlight:Hide()
+		selectedTreeLine = nil
+	end
+	
+	local function TreeLine_OnExpandClick(this, openOnly)
+		local treeLine = this:GetParent()
+		local tex = this:GetNormalTexture():GetTexture()
+		local expand = (tex == [[Interface\Buttons\UI-PlusButton-Up]])
+		if openOnly == true or openOnly == false then
+			if openOnly then
+				if not expand then
+					return
+				end
+			else
+				if expand then
+					return
+				end
+			end
+		end
+		if expand then
+			this:SetNormalTexture([[Interface\Buttons\UI-MinusButton-UP]])
+			this:SetPushedTexture([[Interface\Buttons\UI-MinusButton-Down]])
+			this:SetDisabledTexture([[Interface\Buttons\UI-MinusButton-Disabled]])
+			this:SetHighlightTexture([[Interface\Buttons\UI-MinusButton-Hilight]])
+		else
+			this:SetNormalTexture([[Interface\Buttons\UI-PlusButton-Up]])
+			this:SetPushedTexture([[Interface\Buttons\UI-PlusButton-Down]])
+			this:SetDisabledTexture([[Interface\Buttons\UI-PlusButton-Disabled]])
+			this:SetHighlightTexture([[Interface\Buttons\UI-PlusButton-Hilight]])
+		end
+		treeView:Reposition()
+
+		local scrollValue = treeView.scrollFrame:GetVerticalScroll()
+
+		local max = treeView.scrollChild:CalculateHeight() - treeView.scrollFrame:GetHeight()
+
+		treeView.scrollBar:SetValue(scrollValue/max)
+	end
+	
+	local function TreeLine_OnClick(this)
+		if this:IsEnabled() ~= 1 then
+			return
+		end
+		
+		local last_selectedTreeLine = selectedTreeLine
+		if selectedTreeLine then
+			TreeLine_Unselect(selectedTreeLine)
+		end
+		
+		selectedTreeLine = this
+		if GetMouseFocus() == this then
+			this.highlight:SetAlpha(1)
+		else
+			this.highlight:SetAlpha(0.7)
+		end
+		this.highlight:Show()
+		
+		if this.expand then
+			if this == last_selectedTreeLine then
+				this.expand:Click()
+			else
+				TreeLine_OnExpandClick(this.expand, true)
+			end
+		end
+		
+		local data = this.htmlFunc()
+		html.text = data
+		html:SetText(data)
+	end
+	
+	local treeLineNum = 0
+	local function getTreeLine(hasExpand, parent, name, htmlFunc)
+		treeLineNum = treeLineNum + 1
+		frame = CreateFrame("Button", treeView:GetName() .. "_TreeLine" .. treeLineNum, parent == treeView and treeView.scrollChild or parent)
+		table.insert(parent.children, frame)
+		local text = frame:CreateFontString(frame:GetName() .. "_Text", "OVERLAY", "GameFontHighlight")
+		frame.text = text
+		text:SetJustifyH("LEFT")
+		frame:SetFontString(text)
+		text:SetText(name)
+		frame:SetTextFontObject(GameFontHighlight)
+		frame:SetHeight(16)
+		frame:EnableMouse(true)
+		frame:SetScript("OnEnter", TreeLine_OnEnter)
+		frame:SetScript("OnLeave", TreeLine_OnLeave)
+		frame:SetScript("OnClick", TreeLine_OnClick)
+		
+		local highlight = frame:CreateTexture(frame:GetName() .. "_Highlight", "BACKGROUND")
+		frame.highlight = highlight
+		highlight:SetTexture([[Interface\QuestFrame\UI-QuestTitleHighlight]])
+		highlight:SetBlendMode("ADD")
+		highlight:SetAllPoints(frame)
+		highlight:Hide()
+		
+		local expand
+		if hasExpand then
+			expand = CreateFrame("Button", frame:GetName() .. "_Expand", frame)
+			frame.expand = expand
+			expand:SetNormalTexture([[Interface\Buttons\UI-PlusButton-Up]])
+			expand:SetPushedTexture([[Interface\Buttons\UI-PlusButton-Down]])
+			expand:SetDisabledTexture([[Interface\Buttons\UI-PlusButton-Disabled]])
+			expand:SetHighlightTexture([[Interface\Buttons\UI-PlusButton-Hilight]])
+			expand:SetScript("OnClick", TreeLine_OnExpandClick)
+			expand:SetWidth(16)
+			expand:SetHeight(16)
+		
+			expand:SetPoint("LEFT", frame, "LEFT", 0, 0)
+			text:SetPoint("LEFT", expand, "RIGHT", 1, 0)
+			frame.children = {}
+		else
+			text:SetPoint("LEFT", frame, "LEFT", 17, 0)
+		end
+		text:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
+		
+		frame.htmlFunc = htmlFunc
+		
+		return frame
+	end
+	
 	local mainPane = CreateFrame("Frame", helpFrame:GetName() .. "_MainPane", helpFrame)
 	helpFrame.mainPane = mainPane
 	local bg = newDict(
@@ -161,7 +455,7 @@ function DogTag:OpenHelp()
 	bg = del(bg)
 	mainPane:SetBackdropBorderColor(0.6, 0.6, 0.6)
 	mainPane:SetBackdropColor(0, 0, 0)
-	mainPane:SetPoint("TOPLEFT", helpFrame, "TOPLEFT", 12, -35)
+	mainPane:SetPoint("TOPLEFT", treeView, "TOPRIGHT", -3, 0)
 	mainPane:SetPoint("BOTTOMRIGHT", helpFrame, "BOTTOMRIGHT", -12, 30)
 	
 	local scrollFrame = CreateFrame("ScrollFrame", mainPane:GetName() .. "_ScrollFrame", mainPane)
@@ -245,7 +539,7 @@ function DogTag:OpenHelp()
 		scrollFrame:GetScript("OnMouseWheel")(scrollFrame, ...)
 	end)
 	
-	local html = CreateFrame("SimpleHTML", scrollChild:GetName() .. "_HTML", scrollChild)
+	html = CreateFrame("SimpleHTML", scrollChild:GetName() .. "_HTML", scrollChild)
 	scrollChild.html = html
 	html:SetFontObject('p', GameFontNormal)
 	html:SetSpacing('p', 3)
@@ -260,16 +554,17 @@ function DogTag:OpenHelp()
 	local _, height = GameFontHighlightLarge:GetFont()
 	html:SetSpacing('h2', height/2)
 	
-	html:SetFontObject('h3', GameFontHighlightNormal)
+	html:SetFontObject('h3', GameFontHighlightLarge)
 	local _, height = GameFontHighlightLarge:GetFont()
-	html:SetSpacing('h3', height/2)
+	height = height * 14/16
+	html:SetFont('h3', font, height, flags)
+	html:SetSpacing('h3', 0)
 	
 	html:SetHeight(1)
 	html:SetWidth(400)
 	html:SetPoint("TOPLEFT", 0, 0)
 	html:SetJustifyH("LEFT")
 	html:SetJustifyV("TOP")
-	
 	
 	local searchBox = CreateFrame("EditBox", helpFrame:GetName() .. "_SearchBox", helpFrame)
 	searchBox:SetFontObject(ChatFontNormal)
@@ -406,9 +701,12 @@ function DogTag:OpenHelp()
 	
 	dropdown:SetPoint("BOTTOMLEFT", helpFrame, "BOTTOMLEFT", -5, 6)
 	editBox:SetPoint("LEFT", _G[dropdown:GetName() .. "Button"], "RIGHT", 5, 0)
-	searchBox:SetPoint("RIGHT", closeButton, "LEFT", -5, 0)
-	searchBox:SetPoint("BOTTOM", closeButton, "BOTTOM", 0, 5)
-	searchBox:SetPoint("LEFT", header, "RIGHT", 15, 0)
+	
+	local searchBox_text = searchBox:CreateFontString(searchBox:GetName() .. "_Text", "ARTWORK", "GameFontHighlightSmall")
+	searchBox_text:SetPoint("TOPLEFT", helpFrame, "TOPLEFT", 14, -16)
+	searchBox_text:SetText(L["Search:"])
+	searchBox:SetPoint("LEFT", searchBox_text, "RIGHT", 3, 0)
+	searchBox:SetWidth(120)
 	
 	local function _fix__handler(text)
 		if text:sub(1, 2) == "{{" and text:sub(-2) == "}}" then
@@ -552,109 +850,10 @@ function DogTag:OpenHelp()
 		}
 	})
 	
-	local function wrapWhite(text)
-		return "|cffffffff" .. text .. "|r"
-	end
-	
-	local function highlightWords(text)
-		text = text:gsub("%f[A-Za-z0-9_](unit)%f[^A-Za-z0-9_]", wrapWhite)
-		text = text:gsub("%f[A-Za-z0-9_](argument)%f[^A-Za-z0-9_]", wrapWhite)
-		text = text:gsub("%f[A-Za-z0-9_](value)%f[^A-Za-z0-9_]", wrapWhite)
-		text = text:gsub("%f[A-Za-z0-9_](number_value)%f[^A-Za-z0-9_]", wrapWhite)
-		text = text:gsub("%f[A-Za-z0-9_](number)%f[^A-Za-z0-9_]", wrapWhite)
-		return text
-	end
-	
-	local tags = newList()
-	local tagCategories_tmp = newSet()
-	local Tags, getTagData = DogTag.Tags, DogTag.getTagData
-	for k,v in pairs(Tags["Base"]) do
-		if v.doc then
-			tags[#tags+1] = k
-		end
-	end
-	if Tags["Unit"] then
-		for k,v in pairs(Tags["Unit"]) do
-			if v.doc then
-				tags[#tags+1] = k
-			end
-		end
-	end
-	table.sort(tags)
-	for _,k in ipairs(tags) do
-		local v = getTagData(k, "Base;Unit")
-		if v.category then
-			tagCategories_tmp[v.category] = true
-		end
-	end
-	local tagCategories = newList()
-	for k in pairs(tagCategories_tmp) do
-		tagCategories[#tagCategories+1] = k
-	end
-	tagCategories_tmp = del(tagCategories_tmp)
-	table.sort(tagCategories)
-	
-	local tagCache = {}
-	
-	for _, k in ipairs(tags) do
-		local tagData = getTagData(k, "Base;Unit")
-		local v = tagData.doc
-		local arg = tagData.arg
-		
-		tagCache[k] = {}
-		tagCache[k].category = tagData.category
-		
-		local t = newList()
-		
-		t[#t+1] = "{["
-		t[#t+1] = k
-		if arg then
-			t[#t+1] = "("
-			for i = 1, #arg, 3 do
-				if i > 1 then
-					t[#t+1] = ", "
-				end
-				local argName, argTypes, argDefault = arg[i], arg[i+1], arg[i+2]
-				t[#t+1] = argName
-				if argName ~= "..." and argDefault ~= "@req" then
-					t[#t+1] = "="
-					if argDefault == "@undef" then
-						t[#t+1] = "undef"
-					elseif argDefault == false then
-						if argTypes:match("boolean") then
-							t[#t+1] = "false"
-						else
-							t[#t+1] = "nil"
-						end
-					elseif type(argDefault) == "string" then
-						t[#t+1] = ("%q"):format(argDefault)
-					else
-						t[#t+1] = tostring(argDefault)
-					end
-				end
-			end
-			t[#t+1] = ")"
-		end
-		t[#t+1] = "]}"
-		t[#t+1] = " - "
-		t[#t+1] = v -- highlightWords(v)
-		if tagData.alias then
-			t[#t+1] = " - "
-			t[#t+1] = L["alias for "]
-			t[#t+1] = "{["
-			t[#t+1] = tagData.alias
-			t[#t+1] = "]}"
-		end
-		tagCache[k].topLine = table.concat(t)
-		t = del(t)
-		tagCache[k].examples = {}
-		local examples = newList((";"):split(tagData.example))
-		for i, u in ipairs(examples) do
-			local tag, result = u:trim():match("(.*) => (.*)")
-			tagCache[k].examples[tag] = true
-		end
-		examples = del(examples)
-	end
+	local treeLine = getTreeLine(false, treeView, L["Syntax"], function()
+		return syntaxHTML
+	end)
+	treeLine:Click()
 	
 	local function caseDesensitize__handler(c)
 		return ("[%s%s]"):format(c:lower(), c:upper())
@@ -667,114 +866,225 @@ function DogTag:OpenHelp()
 		return searchText:gsub("([%%%[%]%^%$%.%+%*%?%(%)])", "%%%1")
 	end
 	
-	local tagsHTML
-	local function updateTagsPage(searchText)
-		local title = L["Tags"]
+	local tagCache = {}
+	local categories = {}
+	
+	local searchLine = getTreeLine(false, treeView, L["Search results"], function()
+		local searchText = searchBox:GetText()
 		searchText = (searchText or ''):trim():gsub("%s%s+", " ")
-		local searches
-		if searchText ~= '' then
-			title = L["Tags matching %q"]:format(searchText)
-			searches = newList((" "):split(searchText))
-			for i, v in ipairs(searches) do
-				searches[i] = caseDesensitize(escapeSearch(v))
-			end
+		if searchText == '' then
+			return "<html><body><h3>" .. L["Type your search into the search box in the upper-left corner of DogTag Help"] .. "</h3></body></html>"
 		end
-		local tagsData = newList(newList(title))
-		for _, category in ipairs(tagCategories) do
-			local t = newList()
-			for _, k in ipairs(tags) do
-				local data = tagCache[k]
-			
-				if data.category == category then
-					local good = true
-					if searches then
-						for i, v in ipairs(searches) do
-							if not data.topLine:match(v) and not category:match(v) then
-								good = false
+		local searches = newList((" "):split(searchText))
+		local t = newList()
+		t[#t+1] = "<html>"
+		t[#t+1] = "<body>"
+		t[#t+1] = "<h1>"
+		t[#t+1] = L["Tags matching %q"]:format(searchText)
+		t[#t+1] = "</h1>"
+		for i, v in ipairs(searches) do
+			searches[i] = caseDesensitize(escapeSearch(v))
+		end	
+		for ns, tagCache_ns in pairs(tagCache) do
+			local firstNamespace = true
+			if categories[ns] then
+				for _, category in ipairs(categories[ns]) do
+					local firstCategory = true
+					for tag, data in pairs(tagCache_ns) do
+						if data.category == category then
+							local good = false
+							for i, v in ipairs(searches) do
+								if data.html:match(v) then
+									good = true
+									break
+								end
+							end
+							if good then
+								if firstNamespace then
+									firstNamespace = false
+									t[#t+1] = "<h1>"
+									t[#t+1] = ns
+									t[#t+1] = "</h1>"
+								end
+								if firstCategory then
+									firstCategory = false
+									t[#t+1] = "<h2>"
+									t[#t+1] = category
+									t[#t+1] = "</h2>"
+								end
+								t[#t+1] = data.html
 							end
 						end
-					end
-					if good then
-						t[#t+1] = data.topLine
-						t[#t+1] = "<br/>"
-						t[#t+1] = "e.g. "
-						local first = true
-						for example in pairs(data.examples) do
-							if first then
-								first = false
-							else
-								t[#t+1] = "; "
-							end
-							t[#t+1] = "{"
-							t[#t+1] = example
-							t[#t+1] = "} =&gt; \""
-							t[#t+1] = (tostring(DogTag:Evaluate(example, "Unit") or '')):gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"):gsub("}", "&rbrace;"):gsub("{", "&lbrace;")
-							t[#t+1] = "\""
-						end
-						t[#t+1] = "<br/>"
-						t[#t+1] = "<br/>"
 					end
 				end
 			end
-			while t[#t] == "<br/>" do
-				t[#t] = nil
-			end
-			if #t > 0 then
-				tagsData[1][#tagsData[1]+1] = newList(category, table.concat(t))
-			end
-			t = del(t)
 		end
-		tagsHTML = dataToHTML(tagsData)
-		for i, v in ipairs(tagsData[1]) do
-			if type(v) == "table" then
-				del(v)
-			end
-			tagsData[1][i] = nil
+		searches = del(searches)
+		t[#t+1] = "</body>"
+		t[#t+1] = "</html>"
+		local s = table.concat(t)
+		t = del(t)
+		return s
+	end)
+	
+	local function escapeHTML__handler(c)
+		if c == "&" then
+			return "&amp;"
+		elseif c == "<" then
+			return "&lt;"
+		elseif c == ">" then
+			return "&gt;"
 		end
-		tagsData[1] = del(tagsData[1])
-		tagsData = del(tagsData)
+	end
+	local function escapeHTML(text)
+		return (text:gsub("([&<>])", escapeHTML__handler))
 	end
 	
-	local tabCount = 0
-	local function makeTab(name)
-		tabCount = tabCount + 1
-		local tab = CreateFrame("Button", helpFrame:GetName() .. "Tab" .. tabCount, helpFrame, "TabButtonTemplate")
-		tab:SetText(name)
-		PanelTemplates_TabResize(0, tab)
-		tab:SetID(tabCount)
-		tab:SetScript("OnClick", function(this)
-			PanelTemplates_SetTab(this:GetParent(), this:GetID())
-			if this.Select then
-				this:Select()
-			end
-			scrollBar:SetValue(0)
+	local Tags = DogTag.Tags
+	
+	for i,ns in ipairs { "Base", "Unit" } do
+		local nsLine = getTreeLine(true, treeView, ns, function()
+			return ''
 		end)
-		tab:SetFrameLevel(tab:GetFrameLevel()+10)
-		return tab
+		local tags = {}
+		local categories_ns = {}
+		categories[ns] = categories_ns
+		for tag, tagData in pairs(Tags[ns]) do
+			tags[#tags+1] = tag
+			if tagData.category then
+				categories_ns[tagData.category] = true
+			end
+		end
+		table.sort(tags)
+		
+		local tagCache_ns = {}
+		tagCache[ns] = tagCache_ns
+		for i, tag in ipairs(tags) do
+			local tagData = Tags[ns][tag]
+			local tagCache_ns_tag = {}
+			tagCache_ns[tag] = tagCache_ns_tag
+			tagCache_ns_tag.category = tagData.category
+			local u = newList()
+			u[#u+1] = "<h3>"
+			local t = newList()
+			t[#t+1] = "["
+			if tagData.category ~= L["Operators"] then
+				t[#t+1] = tag
+				local arg = tagData.arg
+				if arg then
+					t[#t+1] = "("
+					for i = 1, #arg, 3 do
+						if i > 1 then
+							t[#t+1] = ", "
+						end
+						local argName, argTypes, argDefault = arg[i], arg[i+1], arg[i+2]
+						t[#t+1] = argName
+						if argName ~= "..." and argDefault ~= "@req" then
+							t[#t+1] = "="
+							if argDefault == "@undef" then
+								t[#t+1] = "undef"
+							elseif argDefault == false then
+								if argTypes:match("boolean") then
+									t[#t+1] = "false"
+								else
+									t[#t+1] = "nil"
+								end
+							elseif type(argDefault) == "string" then
+								t[#t+1] = ("%q"):format(argDefault)
+							else
+								t[#t+1] = tostring(argDefault)
+							end
+						end
+					end
+					t[#t+1] = ")"
+				end
+			else
+				local arg = tagData.arg
+				local operator = tag
+				if operator == "unm" then
+					operator = "-"
+				end
+				if #arg == 3 then
+					t[#t+1] = operator
+				end
+				for i = 1, #arg, 3 do
+					local argName, argTypes, argDefault = arg[i], arg[i+1], arg[i+2]
+					if i > 1 then
+						t[#t+1] = " "
+						t[#t+1] = operator
+						t[#t+1] = " "
+					end
+					t[#t+1] = argName
+				end
+			end
+			t[#t+1] = "]"
+			u[#u+1] = escapeHTML(DogTag:ColorizeCode(table.concat(t)))
+			u[#u+1] = "</h3>"
+			t = del(t)
+			u[#u+1] = "<p>"
+			u[#u+1] = "|r |r |r |r "
+			u[#u+1] = escapeHTML(tagData.doc)
+			if tagData.alias then
+				u[#u+1] = "<br/>"
+				u[#u+1] = "|r |r |r |r "
+				u[#u+1] = L["alias for "]
+				u[#u+1] = escapeHTML(DogTag:ColorizeCode("[" .. tagData.alias .. "]"))
+			end	
+			u[#u+1] = "<br/>"
+			local examples = newList((";"):split(tagData.example))
+			for i, v in ipairs(examples) do
+				local tag, result = v:trim():match("(.*) => \"(.*)\"")
+				u[#u+1] = "|r |r |r |r |TInterface\\TargetingFrame\\UI-RaidTargetingIcon_2:8:8:0:-7|t "
+				u[#u+1] = escapeHTML(DogTag:ColorizeCode(tag))
+				u[#u+1] = " => \"|cffffffff"
+				u[#u+1] = escapeHTML(result)
+				u[#u+1] = "|r\""
+				u[#u+1] = "<br/>"
+			end
+			examples = del(examples)
+			u[#u+1] = "<br/>"
+			u[#u+1] = "</p>"
+			tagCache_ns_tag.html = table.concat(u)
+			u = del(u)
+		end
+		
+		local tmp = {}
+		for cat in pairs(categories_ns) do
+			tmp[#tmp+1] = cat
+		end
+		categories_ns = tmp
+		categories[ns] = categories_ns
+		tmp = nil
+		table.sort(categories_ns)
+		for i, category in ipairs(categories_ns) do
+			local cachedHTML
+			local catLine = getTreeLine(false, nsLine, category, function()
+				if cachedHTML then
+					return cachedHTML
+				end
+				local t = newList()
+				
+				t[#t+1] = "<html>"
+				t[#t+1] = "<body>"
+				t[#t+1] = "<h1>"
+				t[#t+1] = category
+				t[#t+1] = "</h1>"
+				for tag, data in pairs(tagCache_ns) do
+					if data.category == category then
+						t[#t+1] = data.html
+					end
+				end
+				
+				t[#t+1] = "</body>"
+				t[#t+1] = "</html>"
+				local s = table.concat(t)
+				t = del(t)
+				cachedHTML = s
+				return s
+			end)
+		end
 	end
-	local tab1, tab2 = makeTab(L["Syntax"]), makeTab(L["Tags"])
-	
-	tab1:SetPoint("TOPLEFT", 30, -5)
-	tab2:SetPoint("LEFT", tab1, "RIGHT")
---	tab3:SetPoint("LEFT", tab2, "RIGHT")
-	
-	PanelTemplates_SetNumTabs(helpFrame, 2)
-	helpFrame.selectedTab = 1
-	PanelTemplates_SetTab(helpFrame, 1)
-	
-	function tab1:Select()
-		html.text = syntaxHTML
-		html:SetText(syntaxHTML)
-	end
-	
-	function tab2:Select()
-		updateTagsPage(searchBox:GetText())
-		html.text = tagsHTML
-		html:SetText(tagsHTML)
-	end
-	
-	tab1:Select()
-	
+	--[[
 	local nextUpdateTime = 0
 	searchBox:SetScript("OnUpdate", function(this)
 		if GetTime() < nextUpdateTime then
@@ -787,10 +1097,16 @@ function DogTag:OpenHelp()
 			html:SetText(tagsHTML)
 		end
 	end)
+	]]
 	searchBox:SetScript("OnTextChanged", function(this)
-		nextUpdateTime = GetTime() + 0.5
+		if selectedTreeLine == searchLine then
+			searchLine:Click()
+		end
 	end)
 	
+	treeView:Reposition()
+	
+	collectgarbage('collect')
 	function DogTag:OpenHelp()
 		helpFrame:Show()
 	end

@@ -1632,6 +1632,9 @@ do
 end
 
 function DogTag:ColorizeCode(code)
+	if type(code) ~= "string" then
+		error(("Bad argument #2 to `ColorizeCode'. Expected %q, got %q"):format("string", type(code)), 2)
+	end
 	code = code:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
 	local tokens = stringToTokenList(code)
 	local t = newList()
