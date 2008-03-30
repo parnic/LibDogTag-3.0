@@ -14,15 +14,17 @@ local getNamespaceList = DogTag.getNamespaceList
 local memoizeTable = DogTag.memoizeTable
 local select2 = DogTag.select2
 local kwargsToKwargTypes = DogTag.kwargsToKwargTypes
-local codeToFunction, evaluate, fsToKwargs, fsToFrame, fsToNSList, updateFontString
+local codeToFunction, codeEvaluationTime, evaluate, fsToKwargs, fsToFrame, fsToNSList, fsToCode,  updateFontString
 local fsNeedUpdate, fsNeedQuickUpdate
 local _clearCodes
 DogTag_funcs[#DogTag_funcs+1] = function()
 	codeToFunction = DogTag.codeToFunction
+	codeEvaluationTime = DogTag.codeEvaluationTime
 	evaluate = DogTag.evaluate
 	fsToFrame = DogTag.fsToFrame
 	fsToKwargs = DogTag.fsToKwargs
 	fsToNSList = DogTag.fsToNSList
+	fsToCode = DogTag.fsToCode
 	updateFontString = DogTag.updateFontString
 	for fs in pairs(fsToFrame) do
 		fsNeedQuickUpdate[fs] = true
@@ -482,6 +484,7 @@ end
 local nextTime = 0
 local nextUpdateTime = 0
 local nextSlowUpdateTime = 0
+local nextCacheInvalidationTime = 0
 local num = 0
 local function OnUpdate(this, elapsed)
 	_clearCodes()
@@ -499,6 +502,7 @@ local function OnUpdate(this, elapsed)
 		end
 	end
 	if currentTime >= nextTime then
+		local currentTime_1000 = currentTime/1000
 		DogTag:FireEvent("FastUpdate")
 		if currentTime >= nextUpdateTime then
 			nextUpdateTime = currentTime + 150
@@ -508,8 +512,38 @@ local function OnUpdate(this, elapsed)
 			nextSlowUpdateTime = currentTime + 10000
 			DogTag:FireEvent("SlowUpdate")
 		end
+		if currentTime >= nextCacheInvalidationTime then
+			nextCacheInvalidationTime = currentTime + 15000
+			local oldTime = currentTime_1000 - 180
+			for nsList, codeToFunction_nsList in pairs(codeToFunction) do
+				for kwargTypes, codeToFunction_nsList_kwargTypes in pairs(codeToFunction_nsList) do
+					if kwargTypes ~= 1 then
+						for code in pairs(codeToFunction_nsList_kwargTypes) do
+							if code ~= 1 and code ~= 2 then
+								local x = codeEvaluationTime[nsList][kwargTypes][code]
+								local good = false
+								if x and x > oldTime then
+									good = true
+								end
+								if not good then
+									for fs, c in pairs(fsToCode) do
+										if c == code and fsToNSList[fs] == nsList then
+											good = true
+											break
+										end
+									end
+									if not good then
+										codeToFunction_nsList_kwargTypes[code] = nil
+										codeToEventList[nsList][kwargTypes][code] = nil
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+		end
 		nextTime = currentTime + 50
-		local currentTime_1000 = currentTime/1000
 		for i = 1, 9 do
 			for ns, data in pairs(TimerHandlers) do
 				local data_i = data[i]
