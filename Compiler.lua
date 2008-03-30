@@ -2165,13 +2165,26 @@ local function errorhandler(err)
 	return geterrorhandler()(("%s.%d: Error with code %q%s. %s"):format(MAJOR_VERSION, minor, call__code, call__nsList == "Base" and "" or " (" .. call__nsList .. ")", err))
 end
 
+local codeEvaluationTime_mt = {__index = function(self, kwargTypes)
+	local t = newList()
+	self[kwargTypes] = t
+	return t
+end, __mode='k'}
+local codeEvaluationTime = setmetatable({}, {__index = function(self, nsList)
+	local t = setmetatable(newList(), codeEvaluationTime_mt)
+	self[nsList] = t
+	return t
+end})
+DogTag.codeEvaluationTime = codeEvaluationTime
+
 local function evaluate(code, nsList, kwargs)
 	local kwargTypes = kwargsToKwargTypes[kwargs]
 
 	DogTag.__isMouseOver = false
 	
 	local func = codeToFunction[nsList][kwargTypes][code]
-
+	codeEvaluationTime[nsList][kwargTypes][code] = GetTime()
+	
 	local madeKwargs = not kwargs
 	if madeKwargs then
 		kwargs = newList()
