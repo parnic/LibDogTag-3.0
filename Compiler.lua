@@ -1930,11 +1930,11 @@ function DogTag:CreateFunctionFromCode(code, ...)
 			end
 		end
 		nsList = getNamespaceList(select2(1, n, ...))
-	end
+	end	
+	codeToEventList[nsList][kwargTypes][code] = false
 	
 	local ast = parse(code)
 	if not ast then
-		codeToEventList[nsList][kwargTypes][code] = false
 		return ("return function() return %q, nil end"):format("Syntax error")
 	end
 	ast = standardize(ast)
@@ -1942,19 +1942,16 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	local err
 	ast, err = unalias(ast, nsList, kwargTypes)
 	if not ast then
-		codeToEventList[nsList][kwargTypes][code] = false
 		return ("return function() return %q, nil end"):format(tostring(err))
 	end
 	ast, err = readjustKwargs(ast, nsList, kwargTypes)
 	if not ast then
-		codeToEventList[nsList][kwargTypes][code] = false
 		return ("return function() return %q, nil end"):format(tostring(err))
 	end
 	for _, ns in ipairs(unpackNamespaceList[nsList]) do
 		for step in pairs(compilationSteps.pre[ns]) do
 			ast, err = step(ast, kwargTypes)
 			if not ast then
-				codeToEventList[nsList][kwargTypes][code] = false
 				return ("return function() return %q, nil end"):format(tostring(err))
 			end
 		end
@@ -2022,7 +2019,6 @@ function DogTag:CreateFunctionFromCode(code, ...)
 		u = del(u)
 		functions = del(functions)
 		events = del(events)
-		codeToEventList[nsList][kwargTypes][code] = false
 		return ("return function() return %q end"):format(tostring(ret))
 	end
 	local w = newList()
@@ -2084,7 +2080,6 @@ function DogTag:CreateFunctionFromCode(code, ...)
 	
 	if not next(events) then
 		events = del(events)
-		codeToEventList[nsList][kwargTypes][code] = false
 	else
 		events = memoizeTable(events)
 		codeToEventList[nsList][kwargTypes][code] = events
