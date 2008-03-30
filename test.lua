@@ -747,9 +747,6 @@ DogTag:AddTag("Base", "CheckAnyTuple", {
 		'...', 'tuple-string;number;nil', false
 	},
 	ret = "string",
-	doc = "Join ..., showing its type and value",
-	example = '[CheckAnyTuple("Hello")] => "string:Hello"; [CheckAnyTuple(1, nil)] => "number:1;nil:nil"',
-	category = "Testing"
 })
 
 DogTag:AddTag("Base", "Reverse", {

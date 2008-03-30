@@ -1124,7 +1124,7 @@ function DogTag:OpenHelp()
 			u[#u+1] = "<br/>"
 			local examples = newList((";"):split(tagData.example))
 			for i, v in ipairs(examples) do
-				local tag, result = v:trim():match("(.*) => \"(.*)\"")
+				local tag, result = v:trim():match("^(.*) => \"(.*)\"$")
 				u[#u+1] = "|r |r |r |r |TInterface\\TargetingFrame\\UI-RaidTargetingIcon_2:8:8:0:-7|t "
 				u[#u+1] = escapeHTML(DogTag:ColorizeCode(tag))
 				u[#u+1] = " => \"|cffffffff"

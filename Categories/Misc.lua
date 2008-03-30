@@ -240,7 +240,7 @@ DogTag:AddTag("Base", "Contains", {
 	ret = "string;nil",
 	static = true,
 	doc = L["Return left if left contains right"],
-	example = '["Hello":Contains("There")] => ""; ["Hello"]:Contains("ello") => "Hello"',
+	example = '["Hello":Contains("There")] => ""; ["Hello":Contains("ello")] => "Hello"',
 	category = L["Miscellaneous"]
 })
 

@@ -250,6 +250,12 @@ function DogTag:AddTag(namespace, tag, data)
 		if type(data.example) ~= "string" then
 			error(("if doc is supplied, example must be a string, got %s"):format(type(data.example)), 2)
 		end
+		local examples = newList((";"):split(data.example))
+		for i, v in ipairs(examples) do
+			if not v:trim():match("^%[.*%] => \".*\"$") then
+				error(("example must be in the form of [Tag sequence] => \"Result\", %s is not in said form."):format(v:trim()))
+			end
+		end
 	else
 		if data.example then
 			error("if doc is not supplied, example must be nil", 2)
