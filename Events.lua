@@ -5,6 +5,8 @@ if MINOR_VERSION > _G.DogTag_MINOR_VERSION then
 	_G.DogTag_MINOR_VERSION = MINOR_VERSION
 end
 
+-- #AUTODOC_NAMESPACE DogTag
+
 DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 
 local newList, del, deepCopy = DogTag.newList, DogTag.del, DogTag.deepCopy
@@ -135,6 +137,19 @@ function DogTag.hasEvent(event)
 	return not not rawget(eventData, event)
 end
 
+--[[
+Notes:
+	Adds a callback that will be called if the code in question is to be updated.
+Arguments:
+	string - the tag sequence
+	function - the function to be called
+	tuple - extra namespaces to register with, can be in any order
+	[optional] kwargs - a dictionary of default kwargs for all tags in the code to receive
+Example:
+	LibStub("LibDogTag-3.0"):AddCallback("[Name]", function(code, kwargs)
+		-- do something here
+	end, "Unit", { unit = 'player' })
+]]
 function DogTag:AddCallback(code, callback, ...)
 	local n = select('#', ...)
 	local kwargs
@@ -174,6 +189,17 @@ function DogTag:AddCallback(code, callback, ...)
 	end
 end
 
+--[[
+Notes:
+	Remove a callback that has been previously added
+Arguments:
+	string - the tag sequence
+	function - the function to be called
+	tuple - extra namespaces to register with, can be in any order
+	[optional] kwargs - a dictionary of default kwargs for all tags in the code to receive
+Example:
+	LibStub("LibDogTag-3.0"):RemoveCallback("[Name]", func, "Unit", { unit = 'player' })
+]]
 function DogTag:RemoveCallback(code, callback, ...)
 	local n = select('#', ...)
 	local kwargs
@@ -505,6 +531,19 @@ local function OnUpdate(this, elapsed)
 end
 frame:SetScript("OnUpdate", OnUpdate)
 
+--[[
+Notes:
+	Register a function to be called when the event is fired
+	This should only be called by sublibraries
+Arguments:
+	string - the namespace to mark ownership with
+	string - the name of the event
+	function - the function to be called
+Example:
+	LibStub("LibDogTag-3.0"):AddEventHandler("MyNamespace", "PLAYER_LOGIN", function(event, ...)
+		-- do something here.
+	end)
+]]
 function DogTag:AddEventHandler(namespace, event, func)
 	if type(namespace) ~= "string" then
 		error(("Bad argument #2 to `AddEventHandler'. Expected %q, got %q"):format("string", type(namespace)), 2)
@@ -524,6 +563,17 @@ function DogTag:AddEventHandler(namespace, event, func)
 	EventHandlers[namespace][event][func] = true
 end
 
+--[[
+Notes:
+	Remove an event handler that has been previously added
+	This should only be called by sublibraries
+Arguments:
+	string - the namespace to mark ownership with
+	string - the name of the event
+	function - the function to be called
+Example:
+	LibStub("LibDogTag-3.0"):RemoveEventHandler("MyNamespace", "PLAYER_LOGIN", func)
+]]
 function DogTag:RemoveEventHandler(namespace, event, func)
 	if type(namespace) ~= "string" then
 		error(("Bad argument #2 to `RemoveEventHandler'. Expected %q, got %q"):format("string", type(namespace)), 2)
@@ -551,10 +601,32 @@ function DogTag:RemoveEventHandler(namespace, event, func)
 	end
 end
 
+--[[
+Notes:
+	Fire an event that any tags, handlers, or callbacks will see.
+Arguments:
+	string - name of the event
+	tuple - a tuple of arguments
+Example:
+	LibStub("LibDogTag-3.0"):FireEvent("MyEvent", "Data", "goes", "here", 52)
+]]
 function DogTag:FireEvent(event, ...)
 	OnEvent(frame, event, ...)
 end
 
+--[[
+Notes:
+	Register a function to be called roughly every 0.05 seconds
+	This should only be called by sublibraries
+Arguments:
+	string - the namespace to mark ownership with
+	function - the function to be called
+	[optional] number - a number from 1 to 9 specifying the priority it will be called compared to other timers. 1 being called first and 9 being called last. Is 5 by default.
+Example:
+	LibStub("LibDogTag-3.0"):AddTimerHandler("MyNamespace", function(num, currentTime)
+		-- do something here.
+	end)
+]]
 function DogTag:AddTimerHandler(namespace, func, priority)
 	if type(namespace) ~= "string" then
 		error(("Bad argument #2 to `AddTimerHandler'. Expected %q, got %q"):format("string", type(namespace)), 2)
@@ -581,6 +653,16 @@ function DogTag:AddTimerHandler(namespace, func, priority)
 	TimerHandlers[namespace][priority][func] = true
 end
 
+--[[
+Notes:
+	Remove a timer handler that has previously been added
+	This should only be called by sublibraries
+Arguments:
+	string - the namespace to mark ownership with
+	function - the function to be called
+Example:
+	LibStub("LibDogTag-3.0"):RemoveTimerHandler("MyNamespace", func)
+]]
 function DogTag:RemoveTimerHandler(namespace, func)
 	if type(namespace) ~= "string" then
 		error(("Bad argument #2 to `RemoveTimerHandler'. Expected %q, got %q"):format("string", type(namespace)), 2)

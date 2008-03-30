@@ -13,9 +13,9 @@ if MINOR_VERSION > _G.DogTag_MINOR_VERSION then
 	_G.DogTag_MINOR_VERSION = MINOR_VERSION
 end
 
-DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
-
 -- #AUTODOC_NAMESPACE DogTag
+
+DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 
 local L = DogTag.L
 
@@ -96,6 +96,28 @@ for class, data in pairs(_G.RAID_CLASS_COLORS) do
 	DogTag.__colors[class] = { data.r, data.g, data.b, }
 end
 
+--[[
+Notes:
+	Adds a tag to the specified namespace
+Arguments:
+	string - namespace to add to
+	string - name of the tag
+	table - data of the tag
+Example:
+	LibStub("LibDogTag-3.0"):AddTag("MyNamespace", "Square", {
+		code = function(number) -- actual function that will be called
+			return number * number
+		end,
+		arg = {
+			'number', 'number', '@req', -- name, types, default
+		},
+		ret = 'number', -- return value
+		events = "SOME_EVENT#$number", -- will update when SOME_EVENT with the argument `number` is dispatched
+		doc = "Return the square of number", -- the description
+		example = '[4:Square] => "16"; [5:Square] => "25"', -- show one or more examples in this format
+		category = "Category name",
+	})
+]]
 function DogTag:AddTag(namespace, tag, data)
 	if type(namespace) ~= "string" then
 		error(("Bad argument #2 to `AddTag'. Expected %q, got %q"):format("string", type(namespace)), 2)
@@ -281,6 +303,14 @@ local function updateFontString(fs)
 end
 DogTag.updateFontString = updateFontString
 
+--[[
+Notes:
+	Manually updates a FontString previously registered.
+Arguments:
+	frame - the FontString previously registered
+Example:
+	LibStub("LibDogTag-3.0"):UpdateFontString(fs)
+]]
 function DogTag:UpdateFontString(fs)
 	local code = fsToCode[fs]
 	if code then
@@ -288,6 +318,14 @@ function DogTag:UpdateFontString(fs)
 	end
 end
 
+--[[
+Notes:
+	Manually updates all FontStrings on a specified frame.
+Arguments:
+	frame - the frame which to update all FontStrings on
+Example:
+	LibStub("LibDogTag-3.0"):UpdateAllForFrame(frame)
+]]
 function DogTag:UpdateAllForFrame(frame)
 	for fs, f in pairs(fsToFrame) do
 		if frame == f then
@@ -296,6 +334,23 @@ function DogTag:UpdateAllForFrame(frame)
 	end
 end
 
+--[[
+Notes:
+	Adds a FontString to LibDogTag-3.0's registry, which will be updated automatically.
+	You can add twice without removing. It will just overwrite the previous registration.
+	You can specify any number of namespaces. "Base" is always included as a namespace.
+	The kwargs table is optional and always goes on the end after the namespaces. You can recycle the table after registering.
+Arguments:
+	frame - the FontString to register
+	frame - the Frame which holds the FontString
+	string - the tag sequence
+	tuple - extra namespaces to register with, can be in any order
+	[optional] kwargs - a dictionary of default kwargs for all tags in the code to receive
+Example:
+	LibStub("LibDogTag-3.0"):AddFontString(fs, fs:GetParent(), "[Name]", "Unit", { unit = 'mouseover' })
+	LibStub("LibDogTag-3.0"):AddFontString(fs, fs:GetParent(), "[Tag]", "MyNamespace")
+	LibStub("LibDogTag-3.0"):AddFontString(fs, fs:GetParent(), "[Tag] [Name]", "MyNamespace", "Unit", { value = 5, unit = 'player', }) -- two namespaces at once
+]]
 function DogTag:AddFontString(fs, frame, code, ...)
 	if type(fs) ~= "table" then
 		error(("Bad argument #2 to `AddFontString'. Expected %q, got %q."):format("table", type(fs)), 2)
@@ -358,6 +413,15 @@ function DogTag:AddFontString(fs, frame, code, ...)
 	updateFontString(fs)
 end
 
+--[[
+Notes:
+	Removes a registered FontString from LibDogTag-3.0's registry.
+	You can remove twice without issues.
+Arguments:
+	frame - the FontString previously registered
+Example:
+	LibStub("LibDogTag-3.0"):RemoveFontString(fs)
+]]
 function DogTag:RemoveFontString(fs)
 	if type(fs) ~= "table" then
 		error(("Bad argument #2 to `RemoveFontString'. Expected %q, got %q"):format("table", type(fs)), 2)
@@ -387,6 +451,20 @@ function DogTag:RemoveFontString(fs)
 	fs:SetFont(a, b, "")
 end
 
+--[[
+Notes:
+	Adds a handler to be called when an addon or library comes into being
+	This should only really be called by sublibraries or addons that register tags.
+Arguments:
+	string - namespace the addon finder is associated with
+	string - "_G" for a value on the global table or "LibStub", "Rock", "AceLibrary" for a library of the specified type
+	string - name of the addon or library
+	function - function to be called when addon or library is found
+Example:
+	LibStub("DogTag-3.0"):AddAddonFinder("MyNamespace", "LibStub", "LibMonkey-1.0", function(LibMonkey)
+		-- do something with LibMonkey now
+	end)
+]]
 function DogTag:AddAddonFinder(namespace, kind, name, func)
 	if type(namespace) ~= "string" then
 		error(("Bad argument #2 to `AddAddonFinder'. Expected %q, got %q"):format("string", type(namespace)), 2)
@@ -469,6 +547,15 @@ function DogTag:ADDON_LOADED()
 	end
 end
 
+--[[
+Notes:
+	Clears a namespace's tags and any other relevant data.
+	This should be called when a sublibrary is upgrading.
+Arguments:
+	string - namespace that is to be cleared
+Example:
+	LibStub("LibDogTag-3.0"):ClearNamespace("MyNamespace")
+]]
 function DogTag:ClearNamespace(namespace)
 	if type(namespace) ~= "string" then
 		error(("Bad argument #2 to `ClearNamespace'. Expected %q, got %q"):format("string", type(namespace)), 2)

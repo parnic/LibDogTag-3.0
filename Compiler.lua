@@ -5,6 +5,8 @@ if MINOR_VERSION > _G.DogTag_MINOR_VERSION then
 	_G.DogTag_MINOR_VERSION = MINOR_VERSION
 end
 
+-- #AUTODOC_NAMESPACE DogTag
+
 DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 
 local L = DogTag.L
@@ -1893,6 +1895,18 @@ local function errorhandler(err)
 	return err
 end
 
+--[[
+Notes:
+	This is mostly used for debugging purposes
+Arguments:
+	string - a tag sequence
+	tuple - tuple of extra namespaces
+	[optional] kwargs - a dictionary of default kwargs for all tags in the code to receive
+Returns:
+	string - a block of code which could have loadstring called on it.
+Example:
+	local funcCode = LibStub("LibDogTag-3.0"):CreateFunctionFromCode("[Name]", "Unit", { unit = 'player' })
+]]
 function DogTag:CreateFunctionFromCode(code, ...)
 	if type(code) ~= "string" then
 		error(("Bad argument #2 to `CreateFunctionFromCode'. Expected %q, got %q."):format("string", type(code)), 2)
@@ -2174,6 +2188,18 @@ local function evaluate(code, nsList, kwargs)
 end
 DogTag.evaluate = evaluate
 
+--[[
+Arguments:
+	string - the tag sequence to compile and evaluate
+	tuple - tuple of extra namespaces
+	[optional] kwargs - a dictionary of default kwargs for all tags in the code to receive
+Returns:
+	string, number, or nil - the resultant generated text
+	number or nil - the expected opacity of the generated text, specified by the [Alpha(num)] tag. nil if not specified.
+	string - the outline style, can be "", "OUTLINE", or "OUTLINE, THICKOUTLINE"
+Example:
+	local text = LibStub("LibDogTag-3.0"):Evaluate("[Name]", "Unit", { unit = 'player' })
+]]
 function DogTag:Evaluate(code, ...)
 	if type(code) ~= "string" then
 		error(("Bad argument #2 to `Evaluate'. Expected %q, got %q"):format("string", type(code)), 2)
@@ -2197,6 +2223,19 @@ function DogTag:Evaluate(code, ...)
 	return evaluate(code, nsList, kwargs)
 end
 
+--[[
+Note:
+	Add a step to the compilation process
+	This should only be done by sublibraries or addons that add tags
+Arguments:
+	string - namespace to run the compilation step on
+	string - kind of compilation step, can be "pre", "start", "tag", "tagevents", or "finish"
+	function - the function to run
+Example:
+	DogTag:AddCompilationStep("MyNamespace", "start", function(t, ast, kwargTypes, extraKwargs)
+		-- do something here
+	end)
+]]
 function DogTag:AddCompilationStep(namespace, kind, func)
 	if type(namespace) ~= "string" then
 		error(("Bad argument #2 to `AddCompilationStep'. Expected %q, got %q"):format("string", type(namespace)), 2)
@@ -2213,6 +2252,17 @@ function DogTag:AddCompilationStep(namespace, kind, func)
 	clearCodes(namespace)
 end
 
+--[[
+Note:
+	Remove a step from the compilation process
+	This should only be done by sublibraries or addons that add tags
+Arguments:
+	string - namespace to run the compilation step on
+	string - kind of compilation step, can be "pre", "start", "tag", "tagevents", or "finish"
+	function - the function to run
+Example:
+	DogTag:RemoveCompilationStep("MyNamespace", "start", func)
+]]
 function DogTag:RemoveCompilationStep(namespace, kind, func)
 	if type(namespace) ~= "string" then
 		error(("Bad argument #2 to `AddCompilationStep'. Expected %q, got %q"):format("string", type(namespace)), 2)
@@ -2229,6 +2279,17 @@ function DogTag:RemoveCompilationStep(namespace, kind, func)
 	clearCodes(namespace)
 end
 
+--[[
+Note:
+	Remove all steps from the compilation process
+	This should only be done by sublibraries or addons that add tags
+Arguments:
+	string - namespace to run the compilation step on
+	[optional] string - kind of compilation step, can be "pre", "start", "tag", "tagevents", or "finish", if not specified, then all kinds
+Example:
+	DogTag:RemoveAllCompilationSteps("MyNamespace", "start")
+	DogTag:RemoveAllCompilationSteps("MyNamespace")
+]]
 function DogTag:RemoveAllCompilationSteps(namespace, kind)
 	if type(namespace) ~= "string" then
 		error(("Bad argument #3 to `AddCompilationStep'. Expected %q, got %q"):format("string", type(namespace)), 2)

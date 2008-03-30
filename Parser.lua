@@ -5,6 +5,8 @@ if MINOR_VERSION > _G.DogTag_MINOR_VERSION then
 	_G.DogTag_MINOR_VERSION = MINOR_VERSION
 end
 
+-- #AUTODOC_NAMESPACE DogTag
+
 DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 
 --[=[
@@ -1572,6 +1574,17 @@ local function cleanAST(ast)
 	return ast
 end
 
+--[[
+Notes:
+	This takes a tag sequence that a user can enter and updates it for style purposes.
+	e.g. [name] => [Name], [5-12] => [5 - 12]
+Arguments:
+	string - the tag sequence to check
+Returns:
+	string - the same tag sequence, corrected for style.
+Example:
+	local code = LibStub("LibDogTag-3.0"):CleanCode("[name][level]") -- "[Name Level]"
+]]
 function DogTag:CleanCode(code)
 	if type(code) ~= "string" then
 		error(("Bad argument #2 to `CleanCode'. Expected %q, got %q"):format("string", type(code)), 2)
@@ -1636,6 +1649,17 @@ do
 	tmp = del(tmp)
 end
 
+--[[
+Notes:
+	This colorizes a tag sequence by syntax to make it easier to understand.
+	This does not correct casing or change whitespace, merely adds tags.
+Arguments:
+	string - the tag sequence to check
+Returns:
+	string - the same tag sequence, with colors applied.
+Example:
+	local code = LibStub("LibDogTag-3.0"):ColorizeCode("[Name] [5 + 17]")
+]]
 function DogTag:ColorizeCode(code)
 	if type(code) ~= "string" then
 		error(("Bad argument #2 to `ColorizeCode'. Expected %q, got %q"):format("string", type(code)), 2)
