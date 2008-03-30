@@ -1027,7 +1027,13 @@ function DogTag:OpenHelp()
 	
 	local Tags = DogTag.Tags
 	
-	for i,ns in ipairs { "Base", "Unit" } do
+	local namespaces = newList()
+	for namespace in pairs(Tags) do
+		namespaces[#namespaces+1] = namespace
+	end
+	table.sort(namespaces)
+	
+	for i,ns in ipairs(namespaces) do
 		local nsLine = getTreeLine(true, treeView, ns, function()
 			return ''
 		end)
@@ -1169,6 +1175,7 @@ function DogTag:OpenHelp()
 			end)
 		end
 	end
+	namespaces = del(namespaces)
 	
 	local nextUpdateTime = 0
 	local function OnUpdate(this)
