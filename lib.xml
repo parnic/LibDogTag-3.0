@@ -2,6 +2,7 @@
 ..\FrameXML\UI.xsd">
 	<Script file="Localization\enUS.lua" />
 	<Script file="Localization\koKR.lua" />
+	<Script file="Localization\zhCN.lua" />
 	<Script file="Helpers.lua" />
 	<Script file="LibDogTag-3.0.lua" />
 	<Script file="Parser.lua" />

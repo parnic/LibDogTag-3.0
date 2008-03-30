@@ -86,7 +86,7 @@ DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 	L["Wrap value with braces"] = "将值用大括号括起来"
 	L["Wrap value with parentheses"] = "将值用小括号括起来"
 	L["Truncate value to the length specified by number, adding ellipses by default"] = "将值截断到指定的长度，默认添加省略号"
-	-- TODO: Substring doc is missing here
+	L["Return the characters specified by start and finish. If either are negative, it means take from the end instead of the beginning"] = "返回两个参数所指定的位置之间的字符串。如果其中一个参数为负，则表明是从后往前而不是从前往后"
 	L["Repeat value number times"] = "将值重复拼接指定的次数"
 	L["Return the length of value"] = "返回值的长度"
 	L["Turn number_value into a roman numeral."] = "将一个数字值转化为罗马样式"
