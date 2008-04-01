@@ -3156,6 +3156,9 @@ assert_equal(DogTag:Evaluate("[Two (One ? One)]", "Unit"), 21)
 assert_equal(DogTag:Evaluate("[One:Color(\"95e495\")]"), "|cff95e4951|r")
 assert_equal(DogTag:Evaluate("[One:Color(\"999999\")]"), "|cff9999991|r")
 
+assert_equal(parse("[Red][Name] [Realm]"), { "concat", { "tag", "Red" }, { "tag", "Name", }, " ", { "tag", "Realm" } })
+assert_equal(DogTag:CleanCode("[Red][Name] [Realm]"), "[Red Name] [Realm]")
+
 local finalMemory = collectgarbage('count')
 local finalTime = os.clock()
 collectgarbage('collect')

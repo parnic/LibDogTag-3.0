@@ -1349,6 +1349,7 @@ local function unparse(ast, t, inner, negated, parent_type_ast, indent)
 							t[#t+1] = " "
 							unparse(ast[i-1], t, true, false, type_ast, indent)
 							t[#t+1] = "]"
+							bracket_open = false
 						else
 							unparse(ast[i-1], t, false, false, type_ast, indent)
 						end
