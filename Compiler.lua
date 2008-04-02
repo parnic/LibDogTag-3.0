@@ -1382,9 +1382,17 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 				t[#t+1] = "\n"
 			end
 			t[#t+1] = "end;\n"
-			for k in pairs(firstResults) do
-				if k ~= "nil" and k ~= "boolean" then
-					totalResults[k] = true
+			if astType == 'and' then
+				for k in pairs(firstResults) do
+					if k == "nil" or k == "boolean" then
+						totalResults[k] = true
+					end
+				end
+			else
+				for k in pairs(firstResults) do
+					if k ~= "nil" and k ~= "boolean" then
+						totalResults[k] = true
+					end
 				end
 			end
 			for k in pairs(secondResults) do
