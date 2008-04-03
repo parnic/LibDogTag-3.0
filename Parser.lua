@@ -1259,20 +1259,10 @@ local function unparse(ast, t, inner, negated, parent_type_ast, indent)
 		end
 	elseif type_ast == "number" then
 		if t then
-			if not inner then
-				t[#t+1] = "["
-			end
 			t[#t+1] = ast
-			if not inner then
-				t[#t+1] = "]"
-			end
 			return
 		else
-			if not inner then
-				return ("[%s]"):format(ast)
-			else
-				return tostring(ast)
-			end
+			return tostring(ast)
 		end
 	elseif type_ast == "nil" then
 		if t then
