@@ -855,7 +855,9 @@ function DogTag:OpenHelp()
 		return text:gsub("(%b{})", fix__handler)
 	end
 	
-	local syntaxHTML = fix([=[<html><body>
+	local syntaxHTML = L["SyntaxHTML"]
+	if syntaxHTML == "SyntaxHTML" then
+		syntaxHTML = fix([=[<html><body>
 		<h1>Syntax</h1>
 		<p>
 			LibDogTag-3.0 works by allowing normal text with interspersed tags wrapped in brackets, e.g. {Hello [Tag] There}. Syntax is in the standard form alpha {[Tag]} bravo where alpha is a literal word, bravo is a literal word and {[Tag]} will be replaced by the associated dynamic text. All tags and modifiers are case-insensitive, but will be corrected to proper casing if the tags are legal.
@@ -947,6 +949,9 @@ function DogTag:OpenHelp()
 			Concatenation (joining two pieces of text together) is very easy, all you have to do is place them next to each other separated by a space, e.g. {['Hello' " There"]} =&gt; "|cffffffffHello There|r". For a more true-to-life example, {[HP '/' MaxHP]} => "|cffffffff50/100|r".
 		</p>
 	</body></html>]=])
+	else
+		syntaxHTML = fix(syntaxHTML)
+	end
 	
 	local treeLine = getTreeLine(false, treeView, L["Syntax"], function()
 		return syntaxHTML
