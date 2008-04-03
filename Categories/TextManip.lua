@@ -513,4 +513,26 @@ DogTag:AddTag("Base", "Prepend", {
 	category = L["Text manipulation"],
 })
 
+DogTag:AddTag("Base", "Replace", {
+	code = function(value, pattern, replacement)
+		pattern = pattern:gsub("([%%%[%]%^%$%.%+%*%?%(%)])", "%%%1")
+		value = value:gsub(pattern, replacement)
+		if value == '' then
+			return nil
+		else
+			return value
+		end
+	end,
+	arg = {
+		'value', 'string', '@req',
+		'pattern', 'string', '@req',
+		'replacement', 'string', '@req',
+	},
+	ret = "string;nil",
+	static = true,
+	doc = L["Replace all the instances of pattern in value with replacement"],
+	example = '["Hello there, Hello":Replace("Hello", "Stop")] => "Stop there, Stop"',
+	category = L["Text manipulation"],
+})
+
 end

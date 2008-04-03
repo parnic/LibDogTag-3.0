@@ -2544,6 +2544,11 @@ assert_equal(DogTag:Evaluate("[Prepend('There', 'Hello ')]"), "Hello There")
 assert_equal(DogTag:Evaluate("[Append('Hello', nil)]"), "Hello")
 assert_equal(DogTag:Evaluate("[Prepend('There', nil)]"), "There")
 
+assert_equal(DogTag:Evaluate("[Replace('Hello', 'e', 'u')]"), "Hullo")
+assert_equal(DogTag:Evaluate("[Replace('Hello', 'ell', '')]"), "Ho")
+assert_equal(DogTag:Evaluate("[Replace('Hello', 'Hello', '')]"), nil)
+assert_equal(DogTag:Evaluate("[Replace('Hello there, Hello', 'Hello', 'Stop')]"), "Stop there, Stop")
+
 assert_equal(DogTag:Evaluate("[nil:Length]"), nil)
 assert_equal(DogTag:Evaluate("[false:Length]"), nil)
 assert_equal(DogTag:Evaluate("[GlobalCheck:Length]"), nil)
