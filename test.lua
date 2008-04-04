@@ -1938,12 +1938,13 @@ FireEvent("FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, false)
 
 local fired = false
-local func = function(code, kwargs)
+local func; func = function(extra, code, kwargs)
+	assert_equal(extra, "Hello")
 	assert_equal(code, "[OtherBlizzEventTest]")
 	assert_equal(kwargs, nil)
 	fired = true
 end
-DogTag:AddCallback("[OtherBlizzEventTest]", func)
+DogTag:AddCallback("[OtherBlizzEventTest]", func, nil, nil, "Hello")
 FireEvent("OTHER_FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, true)
 fired = false
@@ -1953,7 +1954,7 @@ fired = false
 FireEvent("OTHER_FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, true)
 fired = false
-DogTag:RemoveCallback("[OtherBlizzEventTest]", func)
+DogTag:RemoveCallback("[OtherBlizzEventTest]", func, nil, nil, "Hello")
 FireEvent("OTHER_FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, false)
 

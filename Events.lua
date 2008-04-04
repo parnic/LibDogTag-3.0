@@ -97,11 +97,13 @@ if DogTag.oldLib and DogTag.oldLib.callbackToNSList then
 	end
 	callbackToFunction = oldLib.callbackToFunction
 	callbackToCode = oldLib.callbackToCode
+	callbackToExtraArg = oldLib.callbackToExtraArg
 else
 	callbackToNSList = {}
 	callbackToKwargs = {}
 	callbackToFunction = {}
 	callbackToCode = {}
+	callbackToExtraArg = {}
 	if DogTag.oldLib and DogTag.oldLib.callbacks then
 		for nsList, callbacks_nsList in pairs(DogTag.oldLib.callbacks) do
 			for kwargTypes, callbacks_nsList_kwargTypes in pairs(callbacks_nsList) do
@@ -140,6 +142,7 @@ DogTag.callbackToKwargs = callbackToKwargs
 DogTag.callbackToFunction = callbackToFunction
 DogTag.callbackToCode = callbackToCode
 DogTag.callbackToKwargTypes = callbackToKwargTypes
+DogTag.callbackToExtraArg = callbackToExtraArg
 
 local eventData = setmetatable({}, {__index = function(self, key)
 	local t = newList()
@@ -160,12 +163,13 @@ Arguments:
 	function - the function to be called
 	[optional] string - a semicolon-separated list of namespaces. Base is implied
 	[optional] table - a dictionary of default kwargs for all tags in the code to receive
+	[optional] value - a value that will be passed into the callback
 Example:
 	LibStub("LibDogTag-3.0"):AddCallback("[Name]", function(code, kwargs)
 		-- do something here
 	end, "Unit", { unit = 'player' })
 ]]
-function DogTag:AddCallback(code, callback, nsList, kwargs)
+function DogTag:AddCallback(code, callback, nsList, kwargs, extraArg)
 	if type(code) ~= "string" then
 		error(("Bad argument #2 to `AddCallback'. Expected %q, got %q."):format("string", type(code)), 2)
 	elseif type(callback) ~= "function" then
@@ -196,6 +200,7 @@ function DogTag:AddCallback(code, callback, nsList, kwargs)
 	callbackToCode[uid] = code
 	callbackToFunction[uid] = callback
 	callbackToKwargTypes[uid] = kwargTypes
+	callbackToExtraArg[uid] = extraArg
 end
 
 --[[
@@ -209,7 +214,7 @@ Arguments:
 Example:
 	LibStub("LibDogTag-3.0"):RemoveCallback("[Name]", func, "Unit", { unit = 'player' })
 ]]
-function DogTag:RemoveCallback(code, callback, nsList, kwargs)
+function DogTag:RemoveCallback(code, callback, nsList, kwargs, extraArg)
 	if type(code) ~= "string" then
 		error(("Bad argument #2 to `RemoveCallback'. Expected %q, got %q."):format("string", type(code)), 2)
 	elseif type(callback) ~= "function" then
@@ -223,12 +228,13 @@ function DogTag:RemoveCallback(code, callback, nsList, kwargs)
 	kwargs = memoizeTable(deepCopy(kwargs or false))
 	
 	for uid, n in pairs(callbackToNSList) do
-		if n == nsList and callbackToKwargs[uid] == kwargs and callbackToCode[uid] == code and callbackToFunction[uid] == callback then
+		if n == nsList and callbackToKwargs[uid] == kwargs and callbackToCode[uid] == code and callbackToFunction[uid] == callback and callbackToExtraArg[uid] == extraArg then
 			callbackToNSList[uid] = nil
 			callbackToCode[uid] = nil
 			callbackToKwargs[uid] = nil
 			callbackToKwargTypes[uid] = nil
 			callbackToFunction[uid] = nil
+			callbackToExtraArg[uid] = nil
 			break
 		end
 	end
@@ -341,112 +347,11 @@ local function OnEvent(this, event, ...)
 					end
 					if good then
 						local func = callbackToFunction[uid]
-						func(code, kwargs or nil)
-					end
-				end
-			end
-		end
-	end
-	for nsList, codeToEventList_nsList in pairs(codeToEventList) do
-		for kwargTypes, codeToEventList_nsList_kwargTypes in pairs(codeToEventList_nsList) do
-			for code, eventList in pairs(codeToEventList_nsList_kwargTypes) do
-				if eventList then
-					local eventList_event = eventList[event]
-					if eventList_event then
-						local good = false
-						local checkKwargs = false
-						local mustEvaluate = false
-						local checkTable = false
-						local multiArg = false
-						if eventList_event == true then
-							good = true
-						elseif type(eventList_event) == "table" then
-							good = true
-							checkTable = true
+						local extraArg = callbackToExtraArg[uid]
+						if extraArg ~= nil then
+							func(extraArg, code, kwargs or nil)
 						else
-							local tab = newList(("#"):split(eventList_event))
-							if #tab == 1 then
-								if eventList_event == arg1 then
-									good = true
-								elseif eventList_event:match("^%$") then
-									good = true
-									checkKwargs = eventList_event:sub(2)
-								elseif eventList_event:match("^%[.*%]$") then
-									good = true
-									mustEvaluate = eventList_event
-								end
-								tab = del(tab)
-							else
-								good = true
-								multiArg = tab
-							end
-						end
-						if good then
-							for uid, n in pairs(callbackToNSList) do
-								if n == nsList and callbackToCode[uid] == code and callbackToKwargTypes[uid] == kwargTypes then
-									local kwargs = callbackToKwargs[uid]
-									good = true
-									if multiArg then
-										good = false
-										for i, v in ipairs(multiArg) do
-											local arg = select(i, ...)
-											if not arg then
-												good = false
-											elseif v == arg then
-												good = true
-											elseif v:match("^%$") then
-												good = kwargs[v:sub(2)] == arg
-											elseif v:match("^%[.*%]$") then
-												good = evaluate(v, nsList, kwargs) == arg
-											else
-												good = false
-											end
-											if not good then
-												break
-											end
-										end
-										multiArg = del(multiArg)
-									elseif checkTable then
-										good = false
-										for k in pairs(eventList_event) do
-											if k == arg1 then
-												good = true
-											else
-												local multiArg = newList(("#"):split(k))
-												for i, v in ipairs(multiArg) do
-													local arg = select(i, ...)
-													if not arg then
-														good = false
-													elseif v == arg then
-														good = true
-													elseif v:match("^%$") then
-														good = kwargs[v:sub(2)] == arg
-													elseif v:match("^%[.*%]$") then
-														good = evaluate(v, nsList, kwargs) == arg
-													else
-														good = false
-													end
-													if not good then
-														break
-													end
-												end
-												multiArg = del(multiArg)
-											end
-											if good then
-												break
-											end
-										end
-									elseif mustEvaluate then
-										good = evaluate(mustEvaluate, nsList, kwargs) == arg1
-									elseif checkKwargs then
-										good = kwargs[checkKwargs] == arg1
-									end
-									if good then
-										local func = callbackToFunction[uid]
-										func(code, kwargs or nil)
-									end
-								end
-							end
+							func(code, kwargs or nil)
 						end
 					end
 				end
