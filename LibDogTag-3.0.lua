@@ -21,7 +21,7 @@ local L = DogTag.L
 
 local newList, newSet, del, deepCopy = DogTag.newList, DogTag.newSet, DogTag.del, DogTag.deepCopy
 local select2 = DogTag.select2
-local getNamespaceList = DogTag.getNamespaceList
+local fixNamespaceList = DogTag.fixNamespaceList
 local memoizeTable = DogTag.memoizeTable
 local kwargsToKwargTypes = DogTag.kwargsToKwargTypes
 local fsNeedUpdate, fsNeedQuickUpdate, codeToFunction, codeToEventList, eventData, clearCodes
@@ -282,7 +282,7 @@ end
 
 local function errorhandler(err)
 	local _, minor = LibStub(MAJOR_VERSION)
-	return geterrorhandler()(("%s.%d: Error with code %q%s. %s"):format(MAJOR_VERSION, minor, call__code, call__nsList == "Base" and "" or " (" .. call__nsList .. ")", err))
+	return geterrorhandler()(("%s.%d: Error with code %q (%s). %s"):format(MAJOR_VERSION, minor, call__code, call__nsList, err))
 end
 
 local function updateFontString(fs)
@@ -350,40 +350,26 @@ Arguments:
 	frame - the FontString to register
 	frame - the Frame which holds the FontString
 	string - the tag sequence
-	tuple - extra namespaces to register with, can be in any order
-	[optional] kwargs - a dictionary of default kwargs for all tags in the code to receive
+	[optional] string - a semicolon-separated list of namespaces. Base is implied
+	[optional] table - a dictionary of default kwargs for all tags in the code to receive
 Example:
 	LibStub("LibDogTag-3.0"):AddFontString(fs, fs:GetParent(), "[Name]", "Unit", { unit = 'mouseover' })
 	LibStub("LibDogTag-3.0"):AddFontString(fs, fs:GetParent(), "[Tag]", "MyNamespace")
-	LibStub("LibDogTag-3.0"):AddFontString(fs, fs:GetParent(), "[Tag] [Name]", "MyNamespace", "Unit", { value = 5, unit = 'player', }) -- two namespaces at once
+	LibStub("LibDogTag-3.0"):AddFontString(fs, fs:GetParent(), "[Tag] [Name]", "MyNamespace;Unit", { value = 5, unit = 'player', }) -- two namespaces at once
 ]]
-function DogTag:AddFontString(fs, frame, code, ...)
+function DogTag:AddFontString(fs, frame, code, nsList, kwargs)
 	if type(fs) ~= "table" then
 		error(("Bad argument #2 to `AddFontString'. Expected %q, got %q."):format("table", type(fs)), 2)
-	end
-	if type(frame) ~= "table" then
+	elseif type(frame) ~= "table" then
 		error(("Bad argument #3 to `AddFontString'. Expected %q, got %q."):format("table", type(frame)), 2)
-	end
-	if type(code) ~= "string" then
+	elseif type(code) ~= "string" then
 		error(("Bad argument #4 to `AddFontString'. Expected %q, got %q."):format("string", type(code)), 2)
+	elseif nsList and type(nsList) ~= "string" then
+		error(("Bad argument #5 to `AddFontString'. Expected %q, got %q."):format("string", type(nsList)), 2)
+	elseif kwargs and type(kwargs) ~= "table" then
+		error(("Bad argument #6 to `AddFontString'. Expected %q, got %q."):format("table", type(kwargs)), 2)
 	end
-	local n = select('#', ...)
-	local kwargs
-	if n > 0 then
-		kwargs = select(n, ...)
-		if type(kwargs) == "table" then
-			n = n - 1
-		else
-			kwargs = nil
-		end
-	end
-	for i = 1, n do
-		if type(select(i, ...)) ~= "string" then
-			error(("Bad argument #%d to `AddFontString'. Expected %q, got %q"):format(i+4, "string", type(select(i, ...))), 2)
-		end
-	end
-	
-	local nsList = getNamespaceList(select2(1, n, ...))
+	nsList = fixNamespaceList[nsList]
 	
 	kwargs = memoizeTable(deepCopy(kwargs))
 	
@@ -407,7 +393,7 @@ function DogTag:AddFontString(fs, frame, code, ...)
 		codeToEventList_nsList_kwargTypes_code = codeToEventList[nsList][kwargTypes][code]
 		if codeToEventList_nsList_kwargTypes_code == nil then
 			local _, minor = LibStub(MAJOR_VERSION)
-			error(("%s.%d: Error with code %q%s. Event list not created. Please inform ckknight."):format(MAJOR_VERSION, minor, code, nsList == "Base" and "" or " (" .. nsList .. ")"))
+			error(("%s.%d: Error with code %q (%s). Event list not created. Please inform ckknight."):format(MAJOR_VERSION, minor, code, nsList))
 		end
 	end
 	if codeToEventList_nsList_kwargTypes_code then

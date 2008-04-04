@@ -149,29 +149,6 @@ local function sortStringList(s)
 end
 DogTag.sortStringList = sortStringList
 
-local function getNamespaceList(...)
-	local n = select('#', ...)
-	if n == 0 then
-		return "Base"
-	end
-	local t = newList()
-	t["Base"] = true
-	for i = 1, n do
-		local v = select(i, ...)
-		t[v] = true
-	end
-	local u = newList()
-	for k in pairs(t) do
-		u[#u+1] = k
-	end
-	t = del(t)
-	table.sort(u)
-	local value = table.concat(u, ';')
-	u = del(u)
-	return value
-end
-DogTag.getNamespaceList = getNamespaceList
-
 local function select2(min, max, ...)
 	if min <= max then
 		return select(min, ...), select2(min+1, max, ...)
@@ -190,6 +167,20 @@ local function joinSet(set, connector)
 	return s
 end
 DogTag.joinSet = joinSet
+
+local fixNamespaceList = setmetatable({}, {__index = function(self, nsList)
+	if not nsList then
+		return self[""]
+	end
+	local t = newSet((";"):split(nsList))
+	t[""] = nil
+	t["Base"] = true
+	local s = joinSet(t, ';')
+	t = del(t)
+	self[nsList] = s
+	return s
+end})
+DogTag.fixNamespaceList = fixNamespaceList
 
 local unpackNamespaceList = setmetatable({}, {__index = function(self, key)
 	local t = {(";"):split(key)}

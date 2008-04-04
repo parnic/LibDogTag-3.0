@@ -1725,16 +1725,16 @@ assert_equal(DogTag:Evaluate("[Reverse('Hello'):Reverse]"), "Hello")
 assert_equal(DogTag:Evaluate("[OtherReverse('Hello')]"), "olleH")
 assert_equal(DogTag:Evaluate("[OtherReverse('Hello'):OtherReverse]"), "Hello")
 
-old_DogTag_Evaluate(DogTag, "", { left = 0, right = 0 })
+old_DogTag_Evaluate(DogTag, "", nil, { left = 0, right = 0 })
 
-assert_equal(DogTag:Evaluate("[Subtract]", { left = 2, right = 1 }), 1)
-assert_equal(DogTag:Evaluate("[Subtract]", { left = 1, right = 2 }), -1)
+assert_equal(DogTag:Evaluate("[Subtract]", nil, { left = 2, right = 1 }), 1)
+assert_equal(DogTag:Evaluate("[Subtract]", nil, { left = 1, right = 2 }), -1)
 
-old_DogTag_Evaluate(DogTag, "", { number = 5 })
+old_DogTag_Evaluate(DogTag, "", nil, { number = 5 })
 
-assert_equal(DogTag:Evaluate("[PlusOne]", { number = 5 }), 6)
-assert_equal(DogTag:Evaluate("[PlusOne]", { number = 6 }), 7)
-assert_equal(DogTag:Evaluate("[PlusOne]", { number = 7 }), 8)
+assert_equal(DogTag:Evaluate("[PlusOne]", nil, { number = 5 }), 6)
+assert_equal(DogTag:Evaluate("[PlusOne]", nil, { number = 6 }), 7)
+assert_equal(DogTag:Evaluate("[PlusOne]", nil, { number = 7 }), 8)
 
 assert_equal(DogTag:Evaluate("[KwargAndTuple]"), [=[Arg #1 (value) req'd for KwargAndTuple]=])
 assert_equal(DogTag:Evaluate("[KwargAndTuple(5, 1, 2, 3)]"), 30)
@@ -1876,11 +1876,12 @@ assert_equal(DogTag:Evaluate("[DynamicCodeTest(GlobalCheck)]"), "dynamic, Global
 assert_equal(DogTag:Evaluate("[DynamicCodeTest(1 + One)]"), "dynamic, +")
 
 local fired = false
-DogTag:AddCallback("[BlizzEventTest('player')]", function(code, kwargs)
+local function func(code, kwargs)
 	assert_equal(code, "[BlizzEventTest('player')]")
 	assert_equal(kwargs, nil)
 	fired = true
-end)
+end
+DogTag:AddCallback("[BlizzEventTest('player')]", func)
 FireEvent("FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, true)
 fired = false
@@ -1901,7 +1902,7 @@ assert_equal(fired, false)
 FireEvent("FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, true)
 fired = false
-DogTag:RemoveCallback("[BlizzEventTest('player')]")
+DogTag:RemoveCallback("[BlizzEventTest('player')]", func)
 FireEvent("FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, false)
 
@@ -1911,7 +1912,7 @@ local function func(code, kwargs)
 	assert_equal(kwargs, { value = "player" })
 	fired = true
 end
-DogTag:AddCallback("[BlizzEventTest]", func, { value = "player" })
+DogTag:AddCallback("[BlizzEventTest]", func, nil, { value = "player" })
 FireEvent("FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, true)
 fired = false
@@ -1932,7 +1933,7 @@ assert_equal(fired, false)
 FireEvent("FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, true)
 fired = false
-DogTag:RemoveCallback("[BlizzEventTest]", func, { value = "player" })
+DogTag:RemoveCallback("[BlizzEventTest]", func, nil, { value = "player" })
 FireEvent("FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, false)
 
@@ -2054,7 +2055,7 @@ FireOnUpdate(0.05)
 assert_equal(fs:GetText(), 6)
 
 BlizzEventTest_num = 1
-DogTag:AddFontString(fs, f, "[BlizzEventTest]", { value = 'player' })
+DogTag:AddFontString(fs, f, "[BlizzEventTest]", nil, { value = 'player' })
 assert_equal(fs:GetText(), 2)
 FireOnUpdate(1000)
 assert_equal(fs:GetText(), 2)
@@ -2083,7 +2084,7 @@ local function func(code, kwargs)
 	assert_equal(kwargs, { alpha = "player", bravo = "pet" })
 	fired = true
 end
-DogTag:AddCallback("[DoubleBlizzEventTest]", func, { alpha = "player", bravo = "pet" })
+DogTag:AddCallback("[DoubleBlizzEventTest]", func, nil, { alpha = "player", bravo = "pet" })
 FireEvent("DOUBLE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, true)
 fired = false
@@ -2113,7 +2114,7 @@ fired = false
 FireEvent("DOUBLE_BLIZZARD_EVENT", 'pet')
 assert_equal(fired, true)
 fired = false
-DogTag:RemoveCallback("[DoubleBlizzEventTest]", func, { alpha = "player", bravo = "pet" })
+DogTag:RemoveCallback("[DoubleBlizzEventTest]", func, nil, { alpha = "player", bravo = "pet" })
 FireEvent("DOUBLE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, false)
 FireEvent("DOUBLE_BLIZZARD_EVENT", 'pet')
@@ -2122,7 +2123,7 @@ assert_equal(fired, false)
 FireOnUpdate(1000)
 
 DoubleBlizzEventTest_num = 0
-DogTag:AddFontString(fs, f, "[DoubleBlizzEventTest]", { alpha = "pet", bravo = "player" })
+DogTag:AddFontString(fs, f, "[DoubleBlizzEventTest]", nil, { alpha = "pet", bravo = "player" })
 assert_equal(fs:GetText(), 1)
 FireEvent("DOUBLE_BLIZZARD_EVENT", "player")
 FireOnUpdate(0)
@@ -2151,7 +2152,7 @@ local function func(code, kwargs)
 	assert_equal(kwargs, { alpha = "player", bravo = "pet" })
 	fired = true
 end
-DogTag:AddCallback("[OtherDoubleBlizzEventTest]", func, { alpha = "player", bravo = "pet" })
+DogTag:AddCallback("[OtherDoubleBlizzEventTest]", func, nil, { alpha = "player", bravo = "pet" })
 FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, false)
 FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'pet')
@@ -2174,7 +2175,7 @@ FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player', 'something', 'pet')
 assert_equal(fired, false)
 FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'something', 'player', 'pet')
 assert_equal(fired, false)
-DogTag:RemoveCallback("[OtherDoubleBlizzEventTest]", func, { alpha = "player", bravo = "pet" })
+DogTag:RemoveCallback("[OtherDoubleBlizzEventTest]", func, nil, { alpha = "player", bravo = "pet" })
 FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", 'player', 'pet')
 assert_equal(fired, false)
 
@@ -2273,7 +2274,7 @@ assert_equal(fired, false)
 
 
 OtherDoubleBlizzEventTest_num = 0
-DogTag:AddFontString(fs, f, "[OtherDoubleBlizzEventTest]", { alpha = "pet", bravo = "player" })
+DogTag:AddFontString(fs, f, "[OtherDoubleBlizzEventTest]", nil, { alpha = "pet", bravo = "player" })
 assert_equal(fs:GetText(), 1)
 FireEvent("OTHER_DOUBLE_BLIZZARD_EVENT", "player")
 FireOnUpdate(1000)
@@ -2747,12 +2748,12 @@ assert_equal(DogTag:Evaluate("[SubtractFive(12)]"), 7)
 assert_equal(DogTag:Evaluate("[SubtractFive(One)]"), -4)
 assert_equal(DogTag:Evaluate("[SubtractFive]"), "Arg #1 (number) req'd for SubtractFive")
 assert_equal(DogTag:Evaluate("[SubtractFive(number=10)]"), 5)
-assert_equal(DogTag:Evaluate("[SubtractFive]", { number = 10 }), 5)
+assert_equal(DogTag:Evaluate("[SubtractFive]", nil, { number = 10 }), 5)
 
 assert_equal(DogTag:Evaluate("[SubtractFromFive(10)]"), -5)
 assert_equal(DogTag:Evaluate("[SubtractFromFive(12)]"), -7)
 assert_equal(DogTag:Evaluate("[SubtractFromFive(One)]"), 4)
-assert_equal(DogTag:Evaluate("[SubtractFromFive]", { number = 10 }), -5)
+assert_equal(DogTag:Evaluate("[SubtractFromFive]", nil, { number = 10 }), -5)
 
 assert_equal(DogTag:Evaluate("[ReverseSubtract(4, 2)]"), -2)
 assert_equal(DogTag:Evaluate("[ReverseSubtract(2, 4)]"), 2)
@@ -3074,11 +3075,11 @@ DogTag:FireEvent("MY_EVENT", 'alpha', 'bravo')
 assert_equal(fired, false)
 
 assert_equal(DogTag:Evaluate("[Thingy('hey')]"), "hey")
-assert_equal(DogTag:Evaluate("[Thingy]", { value = 'hey' }), "hey")
+assert_equal(DogTag:Evaluate("[Thingy]", nil, { value = 'hey' }), "hey")
 assert_equal(DogTag:Evaluate("[AliasOfThingy('hey')]"), "hey")
-assert_equal(DogTag:Evaluate("[AliasOfThingy]", { myvalue = 'hey' }), "hey")
+assert_equal(DogTag:Evaluate("[AliasOfThingy]", nil, { myvalue = 'hey' }), "hey")
 assert_equal(DogTag:Evaluate("[OtherAliasOfThingy('hey')]"), "heyhey")
-assert_equal(DogTag:Evaluate("[OtherAliasOfThingy]", { myvalue = 'hey' }), "heyhey")
+assert_equal(DogTag:Evaluate("[OtherAliasOfThingy]", nil, { myvalue = 'hey' }), "heyhey")
 
 GlobalCheck_data = 1
 DogTag:AddFontString(fs, f, "[Thingy('hey')] [GlobalCheck]")
@@ -3120,7 +3121,7 @@ FireOnUpdate(0.05)
 assert_equal(fs:GetText(), 'heyhey 2')
 
 GlobalCheck_data = 1
-DogTag:AddFontString(fs, f, "[Thingy] [GlobalCheck]", { value = 'hey' })
+DogTag:AddFontString(fs, f, "[Thingy] [GlobalCheck]", nil, { value = 'hey' })
 assert_equal(fs:GetText(), 'hey 1')
 GlobalCheck_data = 2
 FireEvent("THINGY_EVENT", "Something")
@@ -3133,7 +3134,7 @@ FireOnUpdate(0.05)
 assert_equal(fs:GetText(), 'hey 2')
 
 GlobalCheck_data = 1
-DogTag:AddFontString(fs, f, "[AliasOfThingy] [GlobalCheck]", { myvalue = 'hey' })
+DogTag:AddFontString(fs, f, "[AliasOfThingy] [GlobalCheck]", nil, { myvalue = 'hey' })
 assert_equal(fs:GetText(), 'hey 1')
 GlobalCheck_data = 2
 FireEvent("THINGY_EVENT", "Something")
@@ -3146,7 +3147,7 @@ FireOnUpdate(0.05)
 assert_equal(fs:GetText(), 'hey 2')
 
 GlobalCheck_data = 1
-DogTag:AddFontString(fs, f, "[OtherAliasOfThingy] [GlobalCheck]", { myvalue = 'hey' })
+DogTag:AddFontString(fs, f, "[OtherAliasOfThingy] [GlobalCheck]", nil, { myvalue = 'hey' })
 assert_equal(fs:GetText(), 'heyhey 1')
 GlobalCheck_data = 2
 FireEvent("THINGY_EVENT", "Something")
@@ -3158,8 +3159,8 @@ assert_equal(fs:GetText(), 'heyhey 1')
 FireOnUpdate(0.05)
 assert_equal(fs:GetText(), 'heyhey 2')
 
-assert_equal(DogTag:Evaluate("[(Two One) ? One]", "Unit"), 1)
-assert_equal(DogTag:Evaluate("[Two (One ? One)]", "Unit"), 21)
+assert_equal(DogTag:Evaluate("[(Two One) ? One]"), 1)
+assert_equal(DogTag:Evaluate("[Two (One ? One)]"), 21)
 
 assert_equal(DogTag:Evaluate("[One:Color(\"95e495\")]"), "|cff95e4951|r")
 assert_equal(DogTag:Evaluate("[One:Color(\"999999\")]"), "|cff9999991|r")

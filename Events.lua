@@ -10,7 +10,7 @@ end
 DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 
 local newList, del, deepCopy = DogTag.newList, DogTag.del, DogTag.deepCopy
-local getNamespaceList = DogTag.getNamespaceList
+local fixNamespaceList = DogTag.fixNamespaceList
 local memoizeTable = DogTag.memoizeTable
 local select2 = DogTag.select2
 local kwargsToKwargTypes = DogTag.kwargsToKwargTypes
@@ -145,25 +145,24 @@ Notes:
 Arguments:
 	string - the tag sequence
 	function - the function to be called
-	tuple - extra namespaces to register with, can be in any order
-	[optional] kwargs - a dictionary of default kwargs for all tags in the code to receive
+	[optional] string - a semicolon-separated list of namespaces. Base is implied
+	[optional] table - a dictionary of default kwargs for all tags in the code to receive
 Example:
 	LibStub("LibDogTag-3.0"):AddCallback("[Name]", function(code, kwargs)
 		-- do something here
 	end, "Unit", { unit = 'player' })
 ]]
-function DogTag:AddCallback(code, callback, ...)
-	local n = select('#', ...)
-	local kwargs
-	if n > 0 then
-		kwargs = select(n, ...)
-		if type(kwargs) == "table" then
-			n = n - 1
-		else
-			kwargs = nil
-		end
+function DogTag:AddCallback(code, callback, nsList, kwargs)
+	if type(code) ~= "string" then
+		error(("Bad argument #2 to `AddCallback'. Expected %q, got %q."):format("string", type(code)), 2)
+	elseif type(callback) ~= "function" then
+		error(("Bad argument #3 to `AddCallback'. Expected %q, got %q."):format("function", type(callback)), 2)
+	elseif nsList and type(nsList) ~= "string" then
+		error(("Bad argument #4 to `AddCallback'. Expected %q, got %q."):format("string", type(nsList)), 2)
+	elseif kwargs and type(kwargs) ~= "table" then
+		error(("Bad argument #5 to `AddCallback'. Expected %q, got %q."):format("table", type(kwargs)), 2)
 	end
-	local nsList = getNamespaceList(select2(1, n, ...))
+	nsList = fixNamespaceList[nsList]
 	local kwargTypes = kwargsToKwargTypes[kwargs]
 	local codeToEventList_nsList_kwargTypes = codeToEventList[nsList][kwargTypes]
 	local eventList = codeToEventList_nsList_kwargTypes[code]
@@ -197,23 +196,22 @@ Notes:
 Arguments:
 	string - the tag sequence
 	function - the function to be called
-	tuple - extra namespaces to register with, can be in any order
-	[optional] kwargs - a dictionary of default kwargs for all tags in the code to receive
+	[optional] string - a semicolon-separated list of namespaces. Base is implied
+	[optional] table - a dictionary of default kwargs for all tags in the code to receive
 Example:
 	LibStub("LibDogTag-3.0"):RemoveCallback("[Name]", func, "Unit", { unit = 'player' })
 ]]
-function DogTag:RemoveCallback(code, callback, ...)
-	local n = select('#', ...)
-	local kwargs
-	if n > 0 then
-		kwargs = select(n, ...)
-		if type(kwargs) == "table" then
-			n = n - 1
-		else
-			kwargs = nil
-		end
+function DogTag:RemoveCallback(code, callback, nsList, kwargs)
+	if type(code) ~= "string" then
+		error(("Bad argument #2 to `RemoveCallback'. Expected %q, got %q."):format("string", type(code)), 2)
+	elseif type(callback) ~= "function" then
+		error(("Bad argument #3 to `RemoveCallback'. Expected %q, got %q."):format("function", type(callback)), 2)
+	elseif nsList and type(nsList) ~= "string" then
+		error(("Bad argument #4 to `RemoveCallback'. Expected %q, got %q."):format("string", type(nsList)), 2)
+	elseif kwargs and type(kwargs) ~= "table" then
+		error(("Bad argument #5 to `RemoveCallback'. Expected %q, got %q."):format("table", type(kwargs)), 2)
 	end
-	local nsList = getNamespaceList(select2(1, n, ...))
+	nsList = fixNamespaceList[nsList]
 	
 	local kwargTypes = kwargsToKwargTypes[kwargs]
 	

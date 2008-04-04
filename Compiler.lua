@@ -14,7 +14,7 @@ local L = DogTag.L
 local Tags = DogTag.Tags
 local newList, newDict, newSet, del, deepCopy, deepDel = DogTag.newList, DogTag.newDict, DogTag.newSet, DogTag.del, DogTag.deepCopy, DogTag.deepDel
 
-local getNamespaceList = DogTag.getNamespaceList
+local fixNamespaceList = DogTag.fixNamespaceList
 local select2 = DogTag.select2
 local joinSet = DogTag.joinSet
 local unpackNamespaceList = DogTag.unpackNamespaceList
@@ -108,7 +108,7 @@ do
 		local nsList = self[1]
 		local kwargTypes = self[2]
 		
-		local s, functions = DogTag:CreateFunctionFromCode(code, true, kwargTypes, unpackNamespaceList(nsList))
+		local s, functions = DogTag:CreateFunctionFromCode(code, nsList, kwargTypes, true)
 		local func, err = loadstring(s)
 		local val
 		if not func then
@@ -1899,7 +1899,7 @@ end
 
 local function errorhandler(err)
 	local _, minor = LibStub(MAJOR_VERSION)
-	geterrorhandler()(("%s.%d: Error with code %q%s. %s"):format(MAJOR_VERSION, minor, safeCompile__code, safeCompile__nsList == "Base" and "" or " (" .. safeCompile__nsList .. ")", err))
+	geterrorhandler()(("%s.%d: Error with code %q (%s). %s"):format(MAJOR_VERSION, minor, safeCompile__code, safeCompile__nsList, err))
 	return err
 end
 
@@ -1908,37 +1908,29 @@ Notes:
 	This is mostly used for debugging purposes
 Arguments:
 	string - a tag sequence
-	tuple - tuple of extra namespaces
-	[optional] kwargs - a dictionary of default kwargs for all tags in the code to receive
+	[optional] string - a semicolon-separated list of namespaces. Base is implied
+	[optional] table - a dictionary of default kwargs for all tags in the code to receive
 Returns:
 	string - a block of code which could have loadstring called on it.
 Example:
 	local funcCode = LibStub("LibDogTag-3.0"):CreateFunctionFromCode("[Name]", "Unit", { unit = 'player' })
 ]]
-function DogTag:CreateFunctionFromCode(code, ...)
+function DogTag:CreateFunctionFromCode(code, nsList, kwargs, notDebug)
 	if type(code) ~= "string" then
 		error(("Bad argument #2 to `CreateFunctionFromCode'. Expected %q, got %q."):format("string", type(code)), 2)
+	elseif nsList and type(nsList) ~= "string" then
+		error(("Bad argument #3 to `CreateFunctionFromCode'. Expected %q, got %q."):format("string", type(nsList)), 2)
+	elseif kwargs and type(kwargs) ~= "table" then
+		error(("Bad argument #4 to `CreateFunctionFromCode'. Expected %q, got %q."):format("table", type(kwargs)), 2)
 	end
-	local notDebug = (...) == true
-	local kwargTypes = kwargsToKwargTypes[""]
-	local nsList
+	local kwargTypes
 	if notDebug then
-		kwargTypes = select(2, ...)
-		nsList = getNamespaceList(select(3, ...))
+		kwargTypes = kwargs
 	else
-		local n = select('#', ...)
-		local kwargs = n > 0 and select(n, ...)
-		if type(kwargs) == "table" then
-			kwargTypes = kwargsToKwargTypes[kwargs]
-			n = n - 1
-		end
-		for i = 1, n do
-			if type(select(i, ...)) ~= "string" then
-				error(("Bad argument #%d to `CreateFunctionFromCode'. Expected %q, got %q"):format(i+2, "string", type(select(i, ...))), 2)
-			end
-		end
-		nsList = getNamespaceList(select2(1, n, ...))
-	end	
+		kwargTypes = kwargsToKwargTypes[kwargs]
+		kwargs = nil
+		nsList = fixNamespaceList[nsList]
+	end
 	codeToEventList[nsList][kwargTypes][code] = false
 	
 	local ast = parse(code)
@@ -2165,7 +2157,7 @@ end
 
 local function errorhandler(err)
 	local _, minor = LibStub(MAJOR_VERSION)
-	return geterrorhandler()(("%s.%d: Error with code %q%s. %s"):format(MAJOR_VERSION, minor, call__code, call__nsList == "Base" and "" or " (" .. call__nsList .. ")", err))
+	return geterrorhandler()(("%s.%d: Error with code %q (%s). %s"):format(MAJOR_VERSION, minor, call__code, call__nsList, err))
 end
 
 local codeEvaluationTime_mt = {__index = function(self, kwargTypes)
@@ -2207,8 +2199,8 @@ DogTag.evaluate = evaluate
 --[[
 Arguments:
 	string - the tag sequence to compile and evaluate
-	tuple - tuple of extra namespaces
-	[optional] kwargs - a dictionary of default kwargs for all tags in the code to receive
+	[optional] string - a semicolon-separated list of namespaces. Base is implied
+	[optional] table - a dictionary of default kwargs for all tags in the code to receive
 Returns:
 	string, number, or nil - the resultant generated text
 	number or nil - the expected opacity of the generated text, specified by the [Alpha(num)] tag. nil if not specified.
@@ -2216,26 +2208,15 @@ Returns:
 Example:
 	local text = LibStub("LibDogTag-3.0"):Evaluate("[Name]", "Unit", { unit = 'player' })
 ]]
-function DogTag:Evaluate(code, ...)
+function DogTag:Evaluate(code, nsList, kwargs)
 	if type(code) ~= "string" then
 		error(("Bad argument #2 to `Evaluate'. Expected %q, got %q"):format("string", type(code)), 2)
+	elseif nsList and type(nsList) ~= "string" then
+		error(("Bad argument #3 to `Evaluate'. Expected %q, got %q"):format("string", type(nsList)), 2)
+	elseif kwargs and type(kwargs) ~= "table" then
+		error(("Bad argument #4 to `Evaluate'. Expected %q, got %q"):format("table", type(kwargs)), 2)
 	end
-	local n = select('#', ...)
-	local kwargs
-	if n > 0 then
-		kwargs = select(n, ...)
-		if type(kwargs) == "table" then
-			n = n - 1
-		else
-			kwargs = nil
-		end
-	end
-	for i = 1, n do
-		if type(select(i, ...)) ~= "string" then
-			error(("Bad argument #%d to `Evaluate'. Expected %q, got %q"):format(i+2, "string", type(select(i, ...))), 2)
-		end
-	end
-	local nsList = getNamespaceList(select2(1, n, ...))
+	nsList = fixNamespaceList[nsList]
 	return evaluate(code, nsList, kwargs)
 end
 
