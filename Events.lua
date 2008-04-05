@@ -349,9 +349,9 @@ local function OnEvent(this, event, ...)
 						local func = callbackToFunction[uid]
 						local extraArg = callbackToExtraArg[uid]
 						if extraArg ~= nil then
-							func(extraArg, code, kwargs or nil)
+							func(extraArg, code, nsList, kwargs or nil)
 						else
-							func(code, kwargs or nil)
+							func(code, nsList, kwargs or nil)
 						end
 					end
 				end
@@ -499,22 +499,31 @@ local function OnUpdate(this, elapsed)
 		end
 		if currentTime >= nextCacheInvalidationTime then
 			nextCacheInvalidationTime = currentTime + 15000
-			local oldTime = currentTime_1000 - 180
-			for nsList, codeToFunction_nsList in pairs(codeToFunction) do
-				for kwargTypes, codeToFunction_nsList_kwargTypes in pairs(codeToFunction_nsList) do
-					if kwargTypes ~= 1 then
-						for code in pairs(codeToFunction_nsList_kwargTypes) do
-							if code ~= 1 and code ~= 2 then
-								local x = codeEvaluationTime[nsList][kwargTypes][code]
-								local good = false
-								if x and x > oldTime then
-									good = true
-								end
-								if not good then
-									for fs, c in pairs(fsToCode) do
-										if c == code and fsToNSList[fs] == nsList then
-											good = true
-											break
+			if not InCombatLockdown() then
+				local oldTime = currentTime_1000 - 180
+				for nsList, codeToFunction_nsList in pairs(codeToFunction) do
+					for kwargTypes, codeToFunction_nsList_kwargTypes in pairs(codeToFunction_nsList) do
+						if kwargTypes ~= 1 then
+							for code in pairs(codeToFunction_nsList_kwargTypes) do
+								if code ~= 1 and code ~= 2 then
+									local x = codeEvaluationTime[nsList][kwargTypes][code]
+									local good = false
+									if x and x > oldTime then
+										good = true
+									else
+										for fs, c in pairs(fsToCode) do
+											if c == code and fsToNSList[fs] == nsList then
+												good = true
+												break
+											end
+										end
+										if not good then
+											for uid, c in pairs(callbackToCode) do
+												if c == code and callbackToNSList[uid] == nsList then
+													good = true
+													break
+												end
+											end
 										end
 									end
 									if not good then
