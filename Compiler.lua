@@ -718,7 +718,7 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 				t[#t+1] = ([=[%q]=]):format(ast)
 				t[#t+1] = [=[;]=]
 				t[#t+1] = "\n"
-				return forceTypes(storeKey, "string", nil, forceToTypes, t)
+				return forceTypes(storeKey, "string", ast, forceToTypes, t)
 			else
 				return forceTypes(([=[%q]=]):format(ast), "string", ast, forceToTypes, t)
 			end

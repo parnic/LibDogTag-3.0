@@ -410,6 +410,7 @@ DogTag:AddTag("Base", "FormatDuration", {
 	},
 	globals = "pcall;string.format",
 	ret = "string",
+	static = true,
 	doc = L["Return a string formatted by format. Use 'e' for extended, 'f' for full, 's' for short, 'c' for compressed."],
 	example = '[1000:FormatDuration] => "16:40"; [1000:FormatDuration("s")] => "16.7 Mins"; [1000:FormatDuration("f")] => "16m 40s"; [1000:FormatDuration("e")] => "16 Mins 40 Secs"',
 	category = L["Miscellaneous"]
@@ -424,6 +425,7 @@ DogTag:AddTag("Base", "Icon", {
 		'size', 'number', 0,
 	},
 	ret = 'string',
+	static = true,
 	doc = L["Return an icon using the given path"],
 	example = '["Interface\\Buttons\\WHITE8X8":Icon] => "|TInterface\\Buttons\\WHITE8X8:0|t"',
 	category = L["Miscellaneous"]
