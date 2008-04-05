@@ -152,7 +152,23 @@ end})
 DogTag.eventData = eventData
 
 function DogTag.hasEvent(event)
-	return not not rawget(eventData, event)
+	local hasEvent = not not rawget(eventData, event)
+	if hasEvent then
+		return true
+	end
+	
+	for uid, nsList in pairs(callbackToNSList) do
+		local kwargTypes = callbackToKwargTypes[uid]
+		local code = callbackToCode[uid]
+		local eventList = codeToEventList[nsList][kwargTypes][code]
+		if eventList then
+			local eventList_event = eventList[event]
+			if eventList_event then
+				return true
+			end
+		end
+	end
+	return false
 end
 
 --[[
