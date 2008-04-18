@@ -998,7 +998,6 @@ function DogTag:OpenHelp()
 							local good = false
 							for i, v in ipairs(searches) do
 								if data.html:match(v) then
-									Rock("LibRockConsole-1.0"):PrintLiteral(v, data.html)
 									good = true
 									break
 								end
