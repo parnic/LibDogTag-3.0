@@ -987,7 +987,7 @@ function DogTag:OpenHelp()
 		t[#t+1] = "</h1>"
 		for i, v in ipairs(searches) do
 			searches[i] = caseDesensitize(escapeSearch(v))
-		end	
+		end
 		for ns, tagCache_ns in pairs(tagCache) do
 			local firstNamespace = true
 			if categories[ns] then
@@ -998,6 +998,7 @@ function DogTag:OpenHelp()
 							local good = false
 							for i, v in ipairs(searches) do
 								if data.html:match(v) then
+									Rock("LibRockConsole-1.0"):PrintLiteral(v, data.html)
 									good = true
 									break
 								end
@@ -1130,7 +1131,7 @@ function DogTag:OpenHelp()
 			local examples = newList((";"):split(tagData.example))
 			for i, v in ipairs(examples) do
 				local tag, result = v:trim():match("^(.*) => \"(.*)\"$")
-				u[#u+1] = "|r |r |r |r |TInterface\\TargetingFrame\\UI-RaidTargetingIcon_2:8:8:0:-7|t "
+				u[#u+1] = "|r |r |r |r • "
 				u[#u+1] = escapeHTML(DogTag:ColorizeCode(tag))
 				u[#u+1] = " => \"|cffffffff"
 				u[#u+1] = escapeHTML(result)
