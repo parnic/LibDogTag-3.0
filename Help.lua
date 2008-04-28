@@ -1039,7 +1039,7 @@ function DogTag:OpenHelp()
 	table.sort(namespaces)
 	
 	for i,ns in ipairs(namespaces) do
-		local nsLine = getTreeLine(true, treeView, ns, function()
+		local nsLine = getTreeLine(true, treeView, L[ns], function()
 			return ''
 		end)
 		local tags = {}

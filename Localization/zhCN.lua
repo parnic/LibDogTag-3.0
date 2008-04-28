@@ -12,6 +12,10 @@ DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 	
 	L["True"] = "True"
 	
+	-- Namespaces
+	L["Base"] = "基本"
+	L["Unit"] = "单位"
+	
 	-- Categories
 	L["Mathematics"] = "数学"
 	L["Operators"] = "运算符"
