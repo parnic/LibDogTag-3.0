@@ -295,22 +295,23 @@ local function updateFontStrings()
 		end
 		toUpdate[fs] = nil
 		local code = fsToCode[fs]
-		assert(code)
-		local nsList = fsToNSList[fs]
-		local kwargs = fsToKwargs[fs]
-		local kwargTypes = kwargsToKwargTypes[kwargs]
-		local func = codeToFunction[nsList][kwargTypes][code]
-		DogTag.__isMouseOver = DogTag.__lastMouseover == fsToFrame[fs]
-		call__func, call__kwargs, call__code, call__nsList = func, kwargs, code, nsList
-		local success, ret, alpha, outline = xpcall(call, errorhandler)
-		call__func, call__kwargs, call__code, call__nsList = nil, nil, nil, nil
-		if success then
-			fs:SetText(ret)
-			if alpha then
-				fs:SetAlpha(alpha)
+		if code then
+			local nsList = fsToNSList[fs]
+			local kwargs = fsToKwargs[fs]
+			local kwargTypes = kwargsToKwargTypes[kwargs]
+			local func = codeToFunction[nsList][kwargTypes][code]
+			DogTag.__isMouseOver = DogTag.__lastMouseover == fsToFrame[fs]
+			call__func, call__kwargs, call__code, call__nsList = func, kwargs, code, nsList
+			local success, ret, alpha, outline = xpcall(call, errorhandler)
+			call__func, call__kwargs, call__code, call__nsList = nil, nil, nil, nil
+			if success then
+				fs:SetText(ret)
+				if alpha then
+					fs:SetAlpha(alpha)
+				end
+				local a, b = fs:GetFont()
+				fs:SetFont(a, b, outline or '')
 			end
-			local a, b = fs:GetFont()
-			fs:SetFont(a, b, outline or '')
 		end
 	end
 end
