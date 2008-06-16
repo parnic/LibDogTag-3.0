@@ -14,7 +14,7 @@ local fixNamespaceList = DogTag.fixNamespaceList
 local memoizeTable = DogTag.memoizeTable
 local select2 = DogTag.select2
 local kwargsToKwargTypes = DogTag.kwargsToKwargTypes
-local codeToFunction, codeEvaluationTime, evaluate, fsToKwargs, fsToFrame, fsToNSList, fsToCode,  updateFontString
+local codeToFunction, codeEvaluationTime, evaluate, fsToKwargs, fsToFrame, fsToNSList, fsToCode,  updateFontString, updateFontStrings
 local fsNeedUpdate, fsNeedQuickUpdate
 local _clearCodes
 DogTag_funcs[#DogTag_funcs+1] = function()
@@ -26,6 +26,7 @@ DogTag_funcs[#DogTag_funcs+1] = function()
 	fsToNSList = DogTag.fsToNSList
 	fsToCode = DogTag.fsToCode
 	updateFontString = DogTag.updateFontString
+	updateFontStrings = DogTag.updateFontStrings
 	for fs in pairs(fsToFrame) do
 		fsNeedQuickUpdate[fs] = true
 	end
@@ -572,6 +573,7 @@ local function OnUpdate(this, elapsed)
 	for fs in pairs(fsNeedQuickUpdate) do
 		updateFontString(fs)
 	end
+	updateFontStrings()
 end
 frame:SetScript("OnUpdate", OnUpdate)
 
