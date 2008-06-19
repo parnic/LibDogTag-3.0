@@ -285,42 +285,29 @@ local function errorhandler(err)
 	return geterrorhandler()(("%s.%d: Error with code %q (%s). %s"):format(MAJOR_VERSION, minor, call__code, call__nsList, err))
 end
 
-local toUpdate = {}
-local GetTime = _G.GetTime
-local function updateFontStrings()
-	local finish = GetTime() + 1/300
-	for fs in pairs(toUpdate) do
-		if GetTime() >= finish then
-			return
-		end
-		toUpdate[fs] = nil
-		local code = fsToCode[fs]
-		if code then
-			local nsList = fsToNSList[fs]
-			local kwargs = fsToKwargs[fs]
-			local kwargTypes = kwargsToKwargTypes[kwargs]
-			local func = codeToFunction[nsList][kwargTypes][code]
-			DogTag.__isMouseOver = DogTag.__lastMouseover == fsToFrame[fs]
-			call__func, call__kwargs, call__code, call__nsList = func, kwargs, code, nsList
-			local success, ret, alpha, outline = xpcall(call, errorhandler)
-			call__func, call__kwargs, call__code, call__nsList = nil, nil, nil, nil
-			if success then
-				fs:SetText(ret)
-				if alpha then
-					fs:SetAlpha(alpha)
-				end
-				local a, b = fs:GetFont()
-				fs:SetFont(a, b, outline or '')
-			end
-		end
-	end
-end
-DogTag.updateFontStrings = updateFontStrings
-
 local function updateFontString(fs)
 	fsNeedUpdate[fs] = nil
 	fsNeedQuickUpdate[fs] = nil
-	toUpdate[fs] = true
+	
+	local code = fsToCode[fs]
+	if code then
+		local nsList = fsToNSList[fs]
+		local kwargs = fsToKwargs[fs]
+		local kwargTypes = kwargsToKwargTypes[kwargs]
+		local func = codeToFunction[nsList][kwargTypes][code]
+		DogTag.__isMouseOver = DogTag.__lastMouseover == fsToFrame[fs]
+		call__func, call__kwargs, call__code, call__nsList = func, kwargs, code, nsList
+		local success, ret, alpha, outline = xpcall(call, errorhandler)
+		call__func, call__kwargs, call__code, call__nsList = nil, nil, nil, nil
+		if success then
+			fs:SetText(ret)
+			if alpha then
+				fs:SetAlpha(alpha)
+			end
+			local a, b = fs:GetFont()
+			fs:SetFont(a, b, outline or '')
+		end
+	end
 end
 DogTag.updateFontString = updateFontString
 
