@@ -552,7 +552,7 @@ local t = {}
 DogTag:AddTag("Base", "SeparateDigits", {
 	code = function(number, thousands, decimal)
 		local int = math.floor(number)
-		local rest = value % 1
+		local rest = number % 1
 		if int == 0 then
 			t[#t+1] = 0
 		else
