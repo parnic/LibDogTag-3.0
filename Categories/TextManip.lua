@@ -535,4 +535,59 @@ DogTag:AddTag("Base", "Replace", {
 	category = L["Text manipulation"],
 })
 
+local default_thousands_separator
+local default_decimal_separator
+do
+	local tmp = tostring(1.1)
+	if tmp == "1,1" then
+		default_thousands_separator = " "
+		default_decimal_separator = ","
+	else
+		default_thousands_separator = ","
+		default_decimal_separator = "."
+	end
+end
+
+local t = {}
+DogTag:AddTag("Base", "SeparateDigits", {
+	code = function(number, thousands, decimal)
+		local int = math.floor(number)
+		local rest = value % 1
+		if int == 0 then
+			t[#t+1] = 0
+		else
+			local digits = math.log10(int)
+			local segments = math.floor(digits / 3)
+			t[#t+1] = math.floor(int / 1000^segments)
+			for i = segments-1, 0, -1 do
+				t[#t+1] = thousands
+				t[#t+1] = ("%03d"):format(math.floor(int / 1000^i) % 1000)
+			end
+		end
+		if rest ~= 0 then
+			t[#t+1] = decimal
+			rest = math.floor(rest * 10^6)
+			while rest % 10 == 0 do
+				rest = rest / 10
+			end
+			t[#t+1] = rest
+		end
+		local s = table.concat(t)
+		for i = 1, #t do
+			t[i] = nil
+		end
+		return s
+	end,
+	arg = {
+		'number', 'number', '@req',
+		'thousands', 'string', default_thousands_separator,
+		'decimal', 'string', default_decimal_separator,
+	},
+	ret = "string",
+	static = true,
+	doc = L["Separate the digits of number into a more human-readable manner"],
+	example = ('[1234567.89:SeparateDigits] => "1%s234%s567%s89"'):format(default_thousands_separator, default_thousands_separator, default_decimal_separator),
+	category = L["Text manipulation"],
+})
+
 end
