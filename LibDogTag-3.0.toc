@@ -6,6 +6,7 @@
 ## eMail: ckknight@gmail.com
 ## Version: 1.0
 ## X-Category: Library
+## X-Credit: Shefki
 ## OptionalDeps:
 
 LibStub\LibStub.lua

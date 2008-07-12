@@ -304,11 +304,7 @@ DogTag:AddTag("Base", "FormatDuration", {
 				number = number % (60*60*24)
 				t[#t+1] = ("%.0f"):format(days)
 				t[#t+1] = " "
-				if days >= 2 then
-					t[#t+1] = DAYS_ABBR_P1
-				else
-					t[#t+1] = DAYS_ABBR
-				end
+				t[#t+1] = DAYS_ABBR
 				first = false
 			end
 			
@@ -322,11 +318,7 @@ DogTag:AddTag("Base", "FormatDuration", {
 				end
 				t[#t+1] = hours
 				t[#t+1] = " "
-				if hours >= 2 then
-					t[#t+1] = HOURS_ABBR_P1
-				else
-					t[#t+1] = HOURS_ABBR
-				end
+				t[#t+1] = HOURS_ABBR
 			end
 			
 			if number >= 60 then
@@ -339,11 +331,7 @@ DogTag:AddTag("Base", "FormatDuration", {
 				end
 				t[#t+1] = minutes
 				t[#t+1] = " "
-				if minutes >= 2 then
-					t[#t+1] = MINUTES_ABBR_P1
-				else
-					t[#t+1] = MINUTES_ABBR
-				end
+				t[#t+1] = MINUTES_ABBR
 			end
 			
 			if number >= 1 or first then
@@ -355,11 +343,7 @@ DogTag:AddTag("Base", "FormatDuration", {
 				end
 				t[#t+1] = seconds
 				t[#t+1] = " "
-				if seconds >= 2 or seconds == 0 then
-					t[#t+1] = SECONDS_ABBR_P1
-				else
-					t[#t+1] = SECONDS_ABBR
-				end
+				t[#t+1] = SECONDS_ABBR
 			end
 			local s = table.concat(t)
 			for k in pairs(t) do
@@ -382,15 +366,15 @@ DogTag:AddTag("Base", "FormatDuration", {
 			if number == 1/0 then
 				return negative .. "***"
 			elseif number >= 2*60*60*24 then
-				return ("%s%.1f %s"):format(negative, number/86400, DAYS_ABBR_P1)
+				return ("%s%.1f %s"):format(negative, number/86400, DAYS_ABBR)
 			elseif number >= 2*60*60 then
-				return ("%s%.1f %s"):format(negative, number/3600, HOURS_ABBR_P1)
+				return ("%s%.1f %s"):format(negative, number/3600, HOURS_ABBR)
 			elseif number >= 2*60 then
-				return ("%s%.1f %s"):format(negative, number/60, MINUTES_ABBR_P1)
+				return ("%s%.1f %s"):format(negative, number/60, MINUTES_ABBR)
 			elseif number >= 3 then
-				return ("%s%.0f %s"):format(negative, number, SECONDS_ABBR_P1)
+				return ("%s%.0f %s"):format(negative, number, SECONDS_ABBR)
 			else
-				return ("%s%.1f %s"):format(negative, number, SECONDS_ABBR_P1)
+				return ("%s%.1f %s"):format(negative, number, SECONDS_ABBR)
 			end
 		else
 			if number == 1/0 then
