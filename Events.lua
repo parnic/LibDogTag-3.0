@@ -572,7 +572,7 @@ local function OnUpdate(this, elapsed)
 			fsNeedUpdate[fs] = nil
 		end
 	end
-	local finish_time = GetTime() + 1/300
+	local finish_time = GetTime() + 1/1000
 	local num = 0
 	for fs in pairs(fsNeedQuickUpdate) do
 		num = num + 1
