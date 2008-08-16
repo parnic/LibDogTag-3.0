@@ -91,6 +91,7 @@ DogTag.__colors = {
 	energy = { 1, 220/255, 25/255 },
 	focus = { 1, 210/255, 0 },
 	mana = { 48/255, 113/255, 191/255 },
+	runicPower = { 0, 209/255, 1 },
 }
 for class, data in pairs(_G.RAID_CLASS_COLORS) do
 	DogTag.__colors[class] = { data.r, data.g, data.b, }
