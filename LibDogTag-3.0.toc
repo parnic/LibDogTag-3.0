@@ -1,4 +1,4 @@
-## Interface: 20400
+## Interface: 30000
 ## Title: Lib: DogTag-3.0
 ## Notes: A library to provide a markup syntax
 ## Author: ckknight
