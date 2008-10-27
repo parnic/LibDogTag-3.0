@@ -395,12 +395,14 @@ local function OnEvent(this, event, ...)
 			if #tab == 1 then
 				if param == arg1 then
 					good = true
-				elseif param:match("^%$") then
-					good = true
-					checkKwargs = param:sub(2)
-				elseif param:match("^%[.*%]$") then
-					good = true
-					mustEvaluate = param
+				elseif type(param) == "string" then
+					if param:match("^%$") then
+						good = true
+						checkKwargs = param:sub(2)
+					elseif param:match("^%[.*%]$") then
+						good = true
+						mustEvaluate = param
+					end
 				end
 				tab = del(tab)
 			else
