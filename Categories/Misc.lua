@@ -174,6 +174,7 @@ for name, color in pairs({
 	Fuchsia = "ff00ff",
 	Yellow = "ffff00",
 	Gray = "afafaf",
+	Black = "000000",
 }) do
 	DogTag:AddTag("Base", name, {
 		alias = ([=[Color(value, %q)]=]):format(color),
