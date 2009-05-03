@@ -431,6 +431,7 @@ local function OnEvent(this, event, ...)
 						break
 					end
 				end
+				multiArg = del(multiArg)
 			elseif checkTable then
 				good = false
 				for k in pairs(param) do
