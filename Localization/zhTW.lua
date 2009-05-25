@@ -12,6 +12,10 @@ DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 	
 	L["True"] = "True"
 	
+	-- Namespaces
+	L["Base"] = "基本"
+	L["Unit"] = "單位"
+	
 	-- Categories
 	L["Mathematics"] = "數學"
 	L["Operators"] = "運算符"
@@ -36,7 +40,7 @@ DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 	L["Player"] = "玩家"
 	L["Target"] = "目標"
 	L["Pet"] = "寵物"
-	L["Search:"] = "搜索；"
+	L["Search:"] = "搜尋；"
 	L["Syntax"] = "語法"
 	L["Search results"] = "搜索結果"
 	L["Type your search into the search box in the upper-left corner of DogTag Help"] = "在DogTag幫助視窗左上的搜索框裏輸入你的搜索資訊"
