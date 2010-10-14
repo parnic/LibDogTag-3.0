@@ -777,7 +777,7 @@ function DogTag:OpenHelp()
 	dropdown_label:SetPoint("RIGHT", dropdown, "LEFT", 20, 0)
 	dropdown_label:SetText(L["Test on: "])
 	
-	local function dropdown_OnClick()
+	local function dropdown_OnClick(this)
 		UIDropDownMenu_SetSelectedValue(dropdown, this.value)
 		currentUnit = this.value
 		updateFontString()
