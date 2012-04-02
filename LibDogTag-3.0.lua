@@ -300,8 +300,10 @@ local function updateFontString(fs)
 			if opacity then
 				fs:SetAlpha(opacity)
 			end
-			local a, b = fs:GetFont()
-			fs:SetFont(a, b, outline or '')
+			local a, b, c = fs:GetFont()
+			if c ~= (outline or '') then
+				fs:SetFont(a, b, outline or '')
+			end
 		end
 	end
 end

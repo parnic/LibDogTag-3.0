@@ -67,6 +67,16 @@ DogTag:AddTag("Base", "Alpha", {
 	category = L["Miscellaneous"]
 })
 
+DogTag:AddTag("Base", "Monochrome", {
+	code = function(number)
+		DogTag.outline = "MONOCHROME"
+	end,
+	ret = "nil",
+	doc = L["Set the FontString to be monochrome"],
+	example = '[Monochrome "Hello"] => "Monochrome"',
+	category = L["Miscellaneous"]
+})
+
 DogTag:AddTag("Base", "Outline", {
 	code = function(number)
 		DogTag.outline = "OUTLINE"
