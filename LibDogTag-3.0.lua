@@ -276,16 +276,6 @@ function DogTag:AddTag(namespace, tag, data)
 	clearCodes(namespace)
 end
 
-local call__func, call__kwargs, call__code, call__nsList
-local function call()
-	return call__func(call__kwargs)
-end
-
-local function errorhandler(err)
-	local _, minor = LibStub(MAJOR_VERSION)
-	return geterrorhandler()(("%s.%d: Error with code %q (%s). %s"):format(MAJOR_VERSION, minor, call__code, call__nsList, err))
-end
-
 local function updateFontString(fs)
 	fsNeedUpdate[fs] = nil
 	fsNeedQuickUpdate[fs] = nil
