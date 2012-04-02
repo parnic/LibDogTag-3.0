@@ -363,7 +363,8 @@ local kwargsToKwargTypes = setmetatable({}, { __index = function(self, kwargs)
 	local self_s = rawget(self, s)
 	if self_s then
 		kwargTypes = del(kwargTypes)
-		self[kwargs] = self_s
+		-- Cybeloras: caching with the table as the key causes bad errors if the kwargs table is reused in the addon that is implementing DogTag
+	--	self[kwargs] = self_s 
 		return self_s
 	end
 	local t = {}
@@ -373,7 +374,8 @@ local kwargsToKwargTypes = setmetatable({}, { __index = function(self, kwargs)
 	kwargTypes = del(kwargTypes)
 	kwargTypes = t
 	self[s] = kwargTypes
-	self[kwargs] = kwargTypes
+	-- Cybeloras: caching with the table as the key causes bad errors if the kwargs table is reused in the addon that is implementing DogTag
+	--self[kwargs] = kwargTypes
 	return kwargTypes
 end, __mode='kv' })
 DogTag.kwargsToKwargTypes = kwargsToKwargTypes
