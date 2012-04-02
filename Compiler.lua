@@ -1885,24 +1885,6 @@ local function readjustKwargs(ast, nsList, kwargTypes)
 	return ast
 end
 
-local safeCompile__code
-local safeCompile__ast
-local safeCompile__nsList
-local safeCompile__u
-local safeCompile__cachedTags
-local safeCompile__events
-local safeCompile__functions
-local safeCompile__extraKwargs
-local function safeCompile()
-	return compile(safeCompile__ast, safeCompile__nsList, safeCompile__u, safeCompile__cachedTags, safeCompile__events, safeCompile__functions, safeCompile__extraKwargs, 'nil;number;string', 'result')
-end
-
-local function errorhandler(err)
-	local _, minor = LibStub(MAJOR_VERSION)
-	geterrorhandler()(("%s.%d: Error with code %q (%s). %s"):format(MAJOR_VERSION, minor, safeCompile__code, safeCompile__nsList, err))
-	return err
-end
-
 --[[
 Notes:
 	This is mostly used for debugging purposes
@@ -2008,9 +1990,14 @@ function DogTag:CreateFunctionFromCode(code, nsList, kwargs, notDebug)
 	local w = newList()
 	local events = newList()
 	local functions = newList()
-	safeCompile__code, safeCompile__ast, safeCompile__nsList, safeCompile__u, safeCompile__cachedTags, safeCompile__events, safeCompile__functions, safeCompile__extraKwargs = code, ast, nsList, w, cachedTags, events, functions, extraKwargs
-	local good, ret, types, static = xpcall(safeCompile, errorhandler)
-	safeCompile__code, safeCompile__ast, safeCompile__nsList, safeCompile__u, safeCompile__cachedTags, safeCompile__events, safeCompile__functions, safeCompile__extraKwargs = nil
+	
+	local good, ret, types, static = pcall(compile, ast, nsList, w, cachedTags, events, functions, extraKwargs, 'nil;number;string', 'result')
+	if not good then
+		local err = ret
+		local _, minor = LibStub(MAJOR_VERSION)
+		geterrorhandler()(("%s.%d: Error with code %q (%s). %s"):format(MAJOR_VERSION, minor, code, nsList, err))
+	end	
+	
 	for i, v in ipairs(w) do
 		u[#u+1] = v
 	end
@@ -2150,16 +2137,6 @@ function DogTag:CreateFunctionFromCode(code, nsList, kwargs, notDebug)
 	end
 end
 
-local call__func, call__kwargs, call__code, call__nsList
-local function call()
-	return call__func(call__kwargs)
-end
-
-local function errorhandler(err)
-	local _, minor = LibStub(MAJOR_VERSION)
-	return geterrorhandler()(("%s.%d: Error with code %q (%s). %s"):format(MAJOR_VERSION, minor, call__code, call__nsList, err))
-end
-
 local codeEvaluationTime_mt = {__index = function(self, kwargTypes)
 	local t = newList()
 	self[kwargTypes] = t
@@ -2184,9 +2161,14 @@ local function evaluate(code, nsList, kwargs)
 	if madeKwargs then
 		kwargs = newList()
 	end
-	call__func, call__kwargs, call__code, call__nsList = func, kwargs, code, nsList
-	local success, text, opacity, outline = xpcall(call, errorhandler)
-	call__func, call__kwargs, call__code, call__nsList = nil, nil, nil, nil
+	
+	local success, text, opacity, outline = pcall(func, kwargs)
+	if not success then
+		local err = text
+		local _, minor = LibStub(MAJOR_VERSION)
+		return geterrorhandler()(("%s.%d: Error with code %q (%s). %s"):format(MAJOR_VERSION, minor, code, nsList, err))
+	end
+	
 	if madeKwargs then
 		kwargs = del(kwargs)
 	end

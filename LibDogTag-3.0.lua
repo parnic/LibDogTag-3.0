@@ -297,13 +297,18 @@ local function updateFontString(fs)
 		local kwargTypes = kwargsToKwargTypes[kwargs]
 		local func = codeToFunction[nsList][kwargTypes][code]
 		DogTag.__isMouseOver = DogTag.__lastMouseover == fsToFrame[fs]
-		call__func, call__kwargs, call__code, call__nsList = func, kwargs, code, nsList
-		local success, ret, alpha, outline = xpcall(call, errorhandler)
-		call__func, call__kwargs, call__code, call__nsList = nil, nil, nil, nil
+		
+		local success, text, opacity, outline = pcall(func, kwargs)
+		if not success then
+			local err = text
+			local _, minor = LibStub(MAJOR_VERSION)
+			return geterrorhandler()(("%s.%d: Error with code %q (%s). %s"):format(MAJOR_VERSION, minor, code, nsList, err))
+		end
+	
 		if success then
-			fs:SetText(ret)
-			if alpha then
-				fs:SetAlpha(alpha)
+			fs:SetText(text)
+			if opacity then
+				fs:SetAlpha(opacity)
 			end
 			local a, b = fs:GetFont()
 			fs:SetFont(a, b, outline or '')
