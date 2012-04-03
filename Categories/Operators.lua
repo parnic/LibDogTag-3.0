@@ -5,6 +5,8 @@ if MINOR_VERSION > _G.DogTag_MINOR_VERSION then
 	_G.DogTag_MINOR_VERSION = MINOR_VERSION
 end
 
+local _G, type, tostring = _G, type, tostring
+
 DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 
 local L = DogTag.L

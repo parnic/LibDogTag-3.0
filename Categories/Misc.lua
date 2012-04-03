@@ -5,6 +5,9 @@ if MINOR_VERSION > _G.DogTag_MINOR_VERSION then
 	_G.DogTag_MINOR_VERSION = MINOR_VERSION
 end
 
+local math, type, tostring, select, pcall, string, table, pairs, GetTime = math, type, tostring, select, pcall, string, table, pairs, GetTime
+local IsAltKeyDown, IsControlKeyDown, IsShiftKeyDown = IsAltKeyDown, IsControlKeyDown, IsShiftKeyDown
+
 DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 
 local L = DogTag.L

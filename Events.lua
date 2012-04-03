@@ -5,6 +5,9 @@ if MINOR_VERSION > _G.DogTag_MINOR_VERSION then
 	_G.DogTag_MINOR_VERSION = MINOR_VERSION
 end
 
+local type, error, math, next, pairs, ipairs, select, rawget, setmetatable, _G, assert =
+	  type, error, math, next, pairs, ipairs, select, rawget, setmetatable, _G, assert
+
 -- #AUTODOC_NAMESPACE DogTag
 
 DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
@@ -33,7 +36,7 @@ DogTag_funcs[#DogTag_funcs+1] = function()
 	_clearCodes = DogTag._clearCodes
 end
 
-local EventHandlers
+local EventHandlers, TimerHandlers
 
 if DogTag.oldLib then
 	fsNeedUpdate = DogTag.oldLib.fsNeedUpdate
@@ -87,7 +90,7 @@ end
 DogTag.codeToEventList = codeToEventList
 
 DogTag.callback_num = 0
-local callbackToNSList, callbackToKwargs, callbackToFunction, callbackToCode
+local callbackToNSList, callbackToKwargs, callbackToFunction, callbackToCode, callbackToExtraArg
 if DogTag.oldLib and DogTag.oldLib.callbackToNSList then
 	local oldLib = DogTag.oldLib
 	DogTag.callback_num = oldLib.callback_num
