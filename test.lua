@@ -7,6 +7,9 @@ More comments
 More documentation
 ]=]
 
+--local path = (... and ... .. "/") or "" -- Needed for Cybeloras to run this properly
+local path = ""
+
 local function escape_char(c)
 	return ("\\%03d"):format(c:byte())
 end
@@ -306,44 +309,48 @@ function IsControlKeyDown()
 	return IsControlKeyDown_data
 end
 
+function InCombatLockdown()
+	return false
+end
+
 function LoadAddOn()
 end
 
 DogTag_DEBUG = true
 
-DAYS = "Day";
-DAYS_P1 = "Days";
-DAYS_ABBR = "Day";
-DAYS_ABBR_P1 = "Days";
+DAYS = "Days";
+--DAYS_P1 = "Days";
+DAYS_ABBR = "%d Days";
+--DAYS_ABBR_P1 = "Days";
 DAY_ONELETTER_ABBR = "%d d";
-HOURS = "Hour";
-HOURS_P1 = "Hours";
-HOURS_ABBR = "Hr";
-HOURS_ABBR_P1 = "Hrs";
+HOURS = "Hours";
+--HOURS_P1 = "Hours";
+HOURS_ABBR = "%d Hr";
+--HOURS_ABBR_P1 = "Hrs";
 HOUR_ONELETTER_ABBR = "%d h";
-MINUTES = "Minute"; -- Minutes of time
-MINUTES_P1 = "Minutes";
-MINUTES_ABBR = "Min";
-MINUTES_ABBR_P1 = "Mins";
+MINUTES = "Minutes"; -- Minutes of time
+--MINUTES_P1 = "Minutes";
+MINUTES_ABBR = "%d Min";
+--MINUTES_ABBR_P1 = "Mins";
 MINUTE_ONELETTER_ABBR = "%d m";
-SECONDS = "Second"; -- Seconds of time
-SECONDS_P1 = "Seconds";
-SECONDS_ABBR = "Sec";
-SECONDS_ABBR_P1 = "Secs";
+SECONDS = "Seconds"; -- Seconds of time
+--SECONDS_P1 = "Seconds";
+SECONDS_ABBR = "%d Sec";
+--SECONDS_ABBR_P1 = "Secs";
 SECOND_ONELETTER_ABBR = "%d s";
 
-dofile("LibStub/LibStub.lua")
-dofile("Localization/enUS.lua")
-dofile("Helpers.lua")
-dofile("LibDogTag-3.0.lua")
-dofile("Parser.lua")
-dofile("Compiler.lua")
-dofile("Events.lua")
-dofile("Categories/Math.lua")
-dofile("Categories/Misc.lua")
-dofile("Categories/Operators.lua")
-dofile("Categories/TextManip.lua")
-dofile("Cleanup.lua")
+dofile(path:gsub("\\", "/") .. "LibStub/LibStub.lua")
+dofile(path:gsub("\\", "/") .. "Localization/enUS.lua")
+dofile(path:gsub("\\", "/") .. "Helpers.lua")
+dofile(path:gsub("\\", "/") .. "LibDogTag-3.0.lua")
+dofile(path:gsub("\\", "/") .. "Parser.lua")
+dofile(path:gsub("\\", "/") .. "Compiler.lua")
+dofile(path:gsub("\\", "/") .. "Events.lua")
+dofile(path:gsub("\\", "/") .. "Categories/Math.lua")
+dofile(path:gsub("\\", "/") .. "Categories/Misc.lua")
+dofile(path:gsub("\\", "/") .. "Categories/Operators.lua")
+dofile(path:gsub("\\", "/") .. "Categories/TextManip.lua")
+dofile(path:gsub("\\", "/") .. "Cleanup.lua")
 
 local DogTag = LibStub("LibDogTag-3.0")
 local getPoolNum, setPoolNum = DogTag.getPoolNum, DogTag.setPoolNum
@@ -1876,7 +1883,7 @@ assert_equal(DogTag:Evaluate("[DynamicCodeTest(GlobalCheck)]"), "dynamic, Global
 assert_equal(DogTag:Evaluate("[DynamicCodeTest(1 + One)]"), "dynamic, +")
 
 local fired = false
-local function func(code, kwargs)
+local function func(code, nsList, kwargs)
 	assert_equal(code, "[BlizzEventTest('player')]")
 	assert_equal(kwargs, nil)
 	fired = true
@@ -1907,7 +1914,7 @@ FireEvent("FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, false)
 
 local fired = false
-local function func(code, kwargs)
+local function func(code, nsList, kwargs)
 	assert_equal(code, "[BlizzEventTest]")
 	assert_equal(kwargs, { value = "player" })
 	fired = true
@@ -1938,7 +1945,7 @@ FireEvent("FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, false)
 
 local fired = false
-local func; func = function(extra, code, kwargs)
+local func; func = function(extra, code, nsList, kwargs)
 	assert_equal(extra, "Hello")
 	assert_equal(code, "[OtherBlizzEventTest]")
 	assert_equal(kwargs, nil)
@@ -1959,7 +1966,7 @@ FireEvent("OTHER_FAKE_BLIZZARD_EVENT", 'player')
 assert_equal(fired, false)
 
 local fired = false
-local function func(code, kwargs)
+local function func(code, nsList, kwargs)
 	assert_equal(code, "[BlizzEventTest(GlobalCheck)]")
 	assert_equal(kwargs, nil)
 	fired = true
@@ -2080,7 +2087,7 @@ assert_equal(fs:GetText(), 4)
 
 
 local fired = false
-local function func(code, kwargs)
+local function func(code, nsList, kwargs)
 	assert_equal(code, "[DoubleBlizzEventTest]")
 	assert_equal(kwargs, { alpha = "player", bravo = "pet" })
 	fired = true
@@ -2148,7 +2155,7 @@ assert_equal(fs:GetText(), 3)
 
 
 local fired = false
-local function func(code, kwargs)
+local function func(code, nsList, kwargs)
 	assert_equal(code, "[OtherDoubleBlizzEventTest]")
 	assert_equal(kwargs, { alpha = "player", bravo = "pet" })
 	fired = true
@@ -2183,7 +2190,7 @@ assert_equal(fired, false)
 
 
 local fired = false
-local function func(code, kwargs)
+local function func(code, nsList, kwargs)
 	assert_equal(code, "[OtherDoubleBlizzEventTest(alpha='player', bravo='pet')]")
 	assert_equal(kwargs, nil)
 	fired = true
@@ -2218,7 +2225,7 @@ assert_equal(fired, false)
 
 
 local fired = false
-local function func(code, kwargs)
+local function func(code, nsList, kwargs)
 	assert_equal(code, "[OtherDoubleBlizzEventTest(alpha='player', bravo='pet')] [OtherDoubleBlizzEventTest(alpha='focus', bravo='target')]")
 	assert_equal(kwargs, nil)
 	fired = true
@@ -2480,55 +2487,55 @@ assert_equal(DogTag:Evaluate("['%q %q':Format('Hello', 'World')]"), '"Hello" "Wo
 assert_equal(DogTag:Evaluate("['%q %q %q':Format('Hello', 'World')]"), "bad argument #4 to '?' (string expected, got no value)")
 assert_equal(DogTag:Evaluate("['%.1f':Format(CheckNilDefault(5))]"), "5.0")
 
-assert_equal(DogTag:Evaluate("[0:FormatDuration('e')]"), "0 Secs")
+assert_equal(DogTag:Evaluate("[0:FormatDuration('e')]"), "0 Sec")
 assert_equal(DogTag:Evaluate("[0:FormatDuration('f')]"), "0s")
-assert_equal(DogTag:Evaluate("[0:FormatDuration('s')]"), "0.0 Secs")
+assert_equal(DogTag:Evaluate("[0:FormatDuration('s')]"), "0.0 Sec")
 assert_equal(DogTag:Evaluate("[0:FormatDuration('c')]"), "0:00")
 assert_equal(DogTag:Evaluate("[1:FormatDuration('e')]"), "1 Sec")
 assert_equal(DogTag:Evaluate("[1:FormatDuration('f')]"), "1s")
-assert_equal(DogTag:Evaluate("[1:FormatDuration('s')]"), "1.0 Secs")
+assert_equal(DogTag:Evaluate("[1:FormatDuration('s')]"), "1.0 Sec")
 assert_equal(DogTag:Evaluate("[1:FormatDuration('c')]"), '0:01')
-assert_equal(DogTag:Evaluate("[10:FormatDuration('e')]"), "10 Secs")
+assert_equal(DogTag:Evaluate("[10:FormatDuration('e')]"), "10 Sec")
 assert_equal(DogTag:Evaluate("[10:FormatDuration('f')]"), "10s")
-assert_equal(DogTag:Evaluate("[10:FormatDuration('s')]"), "10 Secs")
+assert_equal(DogTag:Evaluate("[10:FormatDuration('s')]"), "10 Sec")
 assert_equal(DogTag:Evaluate("[10:FormatDuration('c')]"), "0:10")
 assert_equal(DogTag:Evaluate("[60:FormatDuration('e')]"), "1 Min")
 assert_equal(DogTag:Evaluate("[60:FormatDuration('f')]"), "1m 00s")
-assert_equal(DogTag:Evaluate("[60:FormatDuration('s')]"), "60 Secs")
+assert_equal(DogTag:Evaluate("[60:FormatDuration('s')]"), "60 Sec")
 assert_equal(DogTag:Evaluate("[60:FormatDuration('c')]"), "1:00")
-assert_equal(DogTag:Evaluate("[100:FormatDuration('e')]"), "1 Min 40 Secs")
+assert_equal(DogTag:Evaluate("[100:FormatDuration('e')]"), "1 Min 40 Sec")
 assert_equal(DogTag:Evaluate("[100:FormatDuration('f')]"), "1m 40s")
-assert_equal(DogTag:Evaluate("[100:FormatDuration('s')]"), "100 Secs")
+assert_equal(DogTag:Evaluate("[100:FormatDuration('s')]"), "100 Sec")
 assert_equal(DogTag:Evaluate("[100:FormatDuration('c')]"), "1:40")
-assert_equal(DogTag:Evaluate("[1000:FormatDuration('e')]"), "16 Mins 40 Secs")
+assert_equal(DogTag:Evaluate("[1000:FormatDuration('e')]"), "16 Min 40 Sec")
 assert_equal(DogTag:Evaluate("[1000:FormatDuration('f')]"), "16m 40s")
-assert_equal(DogTag:Evaluate("[1000:FormatDuration('s')]"), "16.7 Mins")
+assert_equal(DogTag:Evaluate("[1000:FormatDuration('s')]"), "16.7 Min")
 assert_equal(DogTag:Evaluate("[1000:FormatDuration('c')]"), "16:40")
 assert_equal(DogTag:Evaluate("[3600:FormatDuration('e')]"), "1 Hr")
 assert_equal(DogTag:Evaluate("[3600:FormatDuration('f')]"), "1h 00m 00s")
-assert_equal(DogTag:Evaluate("[3600:FormatDuration('s')]"), "60.0 Mins")
+assert_equal(DogTag:Evaluate("[3600:FormatDuration('s')]"), "60.0 Min")
 assert_equal(DogTag:Evaluate("[3600:FormatDuration('c')]"), "1:00:00")
-assert_equal(DogTag:Evaluate("[10000:FormatDuration('e')]"), "2 Hrs 46 Mins 40 Secs")
+assert_equal(DogTag:Evaluate("[10000:FormatDuration('e')]"), "2 Hr 46 Min 40 Sec")
 assert_equal(DogTag:Evaluate("[10000:FormatDuration('f')]"), "2h 46m 40s")
-assert_equal(DogTag:Evaluate("[10000:FormatDuration('s')]"), "2.8 Hrs")
+assert_equal(DogTag:Evaluate("[10000:FormatDuration('s')]"), "2.8 Hr")
 assert_equal(DogTag:Evaluate("[10000:FormatDuration('c')]"), "2:46:40")
-assert_equal(DogTag:Evaluate("[86400:FormatDuration('e')]"), "1 Day")
+assert_equal(DogTag:Evaluate("[86400:FormatDuration('e')]"), "1 Days")
 assert_equal(DogTag:Evaluate("[86400:FormatDuration('f')]"), "1d 00h 00m 00s")
-assert_equal(DogTag:Evaluate("[86400:FormatDuration('s')]"), "24.0 Hrs")
+assert_equal(DogTag:Evaluate("[86400:FormatDuration('s')]"), "24.0 Hr")
 assert_equal(DogTag:Evaluate("[86400:FormatDuration('c')]"), "1d 0:00:00")
-assert_equal(DogTag:Evaluate("[100000:FormatDuration('e')]"), "1 Day 3 Hrs 46 Mins 40 Secs")
+assert_equal(DogTag:Evaluate("[100000:FormatDuration('e')]"), "1 Days 3 Hr 46 Min 40 Sec")
 assert_equal(DogTag:Evaluate("[100000:FormatDuration('f')]"), "1d 03h 46m 40s")
-assert_equal(DogTag:Evaluate("[100000:FormatDuration('s')]"), "27.8 Hrs")
+assert_equal(DogTag:Evaluate("[100000:FormatDuration('s')]"), "27.8 Hr")
 assert_equal(DogTag:Evaluate("[100000:FormatDuration('c')]"), "1d 3:46:40")
-assert_equal(DogTag:Evaluate("[1000000:FormatDuration('e')]"), "11 Days 13 Hrs 46 Mins 40 Secs")
+assert_equal(DogTag:Evaluate("[1000000:FormatDuration('e')]"), "11 Days 13 Hr 46 Min 40 Sec")
 assert_equal(DogTag:Evaluate("[1000000:FormatDuration('f')]"), "11d 13h 46m 40s")
 assert_equal(DogTag:Evaluate("[1000000:FormatDuration('s')]"), "11.6 Days")
 assert_equal(DogTag:Evaluate("[1000000:FormatDuration('c')]"), "11d 13:46:40")
-assert_equal(DogTag:Evaluate("[100000000:FormatDuration('e')]"), "1157 Days 9 Hrs 46 Mins 40 Secs")
+assert_equal(DogTag:Evaluate("[100000000:FormatDuration('e')]"), "1157 Days 9 Hr 46 Min 40 Sec")
 assert_equal(DogTag:Evaluate("[100000000:FormatDuration('f')]"), "1157d 09h 46m 40s")
 assert_equal(DogTag:Evaluate("[100000000:FormatDuration('s')]"), "1157.4 Days")
 assert_equal(DogTag:Evaluate("[100000000:FormatDuration('c')]"), "1157d 9:46:40")
-assert_equal(DogTag:Evaluate("[100000000000:FormatDuration('e')]"), "1157407 Days 9 Hrs 46 Mins 40 Secs")
+assert_equal(DogTag:Evaluate("[100000000000:FormatDuration('e')]"), "1157407 Days 9 Hr 46 Min 40 Sec")
 assert_equal(DogTag:Evaluate("[100000000000:FormatDuration('f')]"), "1157407d 09h 46m 40s")
 assert_equal(DogTag:Evaluate("[100000000000:FormatDuration('s')]"), "1157407.4 Days")
 assert_equal(DogTag:Evaluate("[100000000000:FormatDuration('c')]"), "1157407d 9:46:40")
