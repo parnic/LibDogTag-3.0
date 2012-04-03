@@ -7,7 +7,7 @@ More comments
 More documentation
 ]=]
 
---local path = (... and ... .. "/") or "" -- Needed for Cybeloras to run this properly
+--local path = (... .. "/"):gsub("\\", "/") -- Needed for Cybeloras to run this properly
 local path = ""
 
 local function escape_char(c)
@@ -339,18 +339,18 @@ SECONDS_ABBR = "%d Sec";
 --SECONDS_ABBR_P1 = "Secs";
 SECOND_ONELETTER_ABBR = "%d s";
 
-dofile(path:gsub("\\", "/") .. "LibStub/LibStub.lua")
-dofile(path:gsub("\\", "/") .. "Localization/enUS.lua")
-dofile(path:gsub("\\", "/") .. "Helpers.lua")
-dofile(path:gsub("\\", "/") .. "LibDogTag-3.0.lua")
-dofile(path:gsub("\\", "/") .. "Parser.lua")
-dofile(path:gsub("\\", "/") .. "Compiler.lua")
-dofile(path:gsub("\\", "/") .. "Events.lua")
-dofile(path:gsub("\\", "/") .. "Categories/Math.lua")
-dofile(path:gsub("\\", "/") .. "Categories/Misc.lua")
-dofile(path:gsub("\\", "/") .. "Categories/Operators.lua")
-dofile(path:gsub("\\", "/") .. "Categories/TextManip.lua")
-dofile(path:gsub("\\", "/") .. "Cleanup.lua")
+dofile(path .. "LibStub/LibStub.lua")
+dofile(path .. "Localization/enUS.lua")
+dofile(path .. "Helpers.lua")
+dofile(path .. "LibDogTag-3.0.lua")
+dofile(path .. "Parser.lua")
+dofile(path .. "Compiler.lua")
+dofile(path .. "Events.lua")
+dofile(path .. "Categories/Math.lua")
+dofile(path .. "Categories/Misc.lua")
+dofile(path .. "Categories/Operators.lua")
+dofile(path .. "Categories/TextManip.lua")
+dofile(path .. "Cleanup.lua")
 
 local DogTag = LibStub("LibDogTag-3.0")
 local getPoolNum, setPoolNum = DogTag.getPoolNum, DogTag.setPoolNum
