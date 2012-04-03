@@ -5,6 +5,8 @@ if MINOR_VERSION > _G.DogTag_MINOR_VERSION then
 	_G.DogTag_MINOR_VERSION = MINOR_VERSION
 end
 
+local _G, string, table, math, error = _G, string, table, math, error 
+
 -- #AUTODOC_NAMESPACE DogTag
 
 DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
