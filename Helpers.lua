@@ -5,6 +5,9 @@ if MINOR_VERSION > _G.DogTag_MINOR_VERSION then
 	_G.DogTag_MINOR_VERSION = MINOR_VERSION
 end
 
+local _G, pairs, ipairs, type, table, tostring, rawget, assert, next, select, error, setmetatable, unpack, next =
+	  _G, pairs, ipairs, type, table, tostring, rawget, assert, next, select, error, setmetatable, unpack, next
+
 -- #AUTODOC_NAMESPACE DogTag
 
 DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
@@ -308,7 +311,7 @@ do
 		keys = del(keys)
 	end
 	
-	pool = setmetatable({}, {__mode='v'})
+	local pool = setmetatable({}, {__mode='v'})
 	function memoizeTable(tab)
 		if type(tab) ~= "table" then
 			return tab

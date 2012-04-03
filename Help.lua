@@ -5,6 +5,8 @@ if MINOR_VERSION > _G.DogTag_MINOR_VERSION then
 	_G.DogTag_MINOR_VERSION = MINOR_VERSION
 end
 
+local _G, pairs, table, ipairs, type, tostring, math, GetTime = _G, pairs, table, ipairs, type, tostring, math, GetTime
+
 -- #AUTODOC_NAMESPACE DogTag
 
 DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
@@ -84,6 +86,7 @@ function DogTag:OpenHelp()
 	end)
 	closeButton:SetPoint("TOPRIGHT", helpFrame, "TOPRIGHT", -5, -5)
 	
+	local isDragging
 	header:EnableMouse(true)
 	header:RegisterForDrag("LeftButton")
 	header:SetScript("OnDragStart", function(this)
@@ -393,7 +396,7 @@ function DogTag:OpenHelp()
 	local treeLineNum = 0
 	local function getTreeLine(hasExpand, parent, name, htmlFunc)
 		treeLineNum = treeLineNum + 1
-		frame = CreateFrame("Button", treeView:GetName() .. "_TreeLine" .. treeLineNum, parent == treeView and treeView.scrollChild or parent)
+		local frame = CreateFrame("Button", treeView:GetName() .. "_TreeLine" .. treeLineNum, parent == treeView and treeView.scrollChild or parent)
 		table.insert(parent.children, frame)
 		local text = frame:CreateFontString(frame:GetName() .. "_Text", "OVERLAY", "GameFontHighlight")
 		frame.text = text
@@ -481,7 +484,7 @@ function DogTag:OpenHelp()
 			return
 		end
 
-		nextFreeScroll = GetTime() + 1
+		-- nextFreeScroll = GetTime() + 1 -- unused
 
 		local diff = childHeight - frameHeight
 

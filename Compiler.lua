@@ -5,6 +5,8 @@ if MINOR_VERSION > _G.DogTag_MINOR_VERSION then
 	_G.DogTag_MINOR_VERSION = MINOR_VERSION
 end
 
+local type, error, rawget, next, pairs, ipairs, setmetatable, loadstring, pcall, table, tonumber, tostring, math, assert, unpack =
+	  type, error, rawget, next, pairs, ipairs, setmetatable, loadstring, pcall, table, tonumber, tostring, math, assert, unpack
 -- #AUTODOC_NAMESPACE DogTag
 
 DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
@@ -833,12 +835,12 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 					local returns = newSet((";"):split(types))
 					if v == "@undef" then
 						firstAndNonNil = nil
-						firstAndNonNil_t_num = nil
+					--	firstAndNonNil_t_num = nil	-- unused
 					elseif not returns["nil"] then
 						firstAndNonNil = nil
-						firstAndNonNil_t_num = nil
+					--	firstAndNonNil_t_num = nil	-- unused
 					elseif returns["string"] or returns["number"] then
-						firstAndNonNil_t_num = nil
+					--	firstAndNonNil_t_num = nil	-- unused
 					end
 					returns = del(returns)
 				end
