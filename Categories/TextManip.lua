@@ -202,7 +202,6 @@ DogTag:AddTag("Base", "Paren", {
 })
 
 DogTag:AddTag("Base", "Truncate", {
-	-- TODO: implement this using utf8sub so we dont have to manually calculate the length
 	code = function(value, number, ellipses)
 		local len = 0
 		for i = 1, number do
