@@ -5,6 +5,8 @@ if MINOR_VERSION > _G.DogTag_MINOR_VERSION then
 	_G.DogTag_MINOR_VERSION = MINOR_VERSION
 end
 
+local _G, math, type, tostring, tonumber, ipairs, table, select = _G, math, type, tostring, tonumber, ipairs, table, select
+
 DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 
 local L = DogTag.L
@@ -200,12 +202,12 @@ DogTag:AddTag("Base", "Paren", {
 })
 
 DogTag:AddTag("Base", "Truncate", {
+	-- TODO: implement this using utf8sub so we dont have to manually calculate the length
 	code = function(value, number, ellipses)
 		local len = 0
 		for i = 1, number do
 			local b = value:byte(len+1)
 			if not b then
-				shortened = false
 				break
 			elseif b <= 127 then
 				len = len + 1
@@ -273,7 +275,6 @@ DogTag:AddTag("Base", "Substring", {
 				end
 				local b = value:byte(finishByte+1)
 				if not b then
-					shortened = false
 					break
 				elseif b <= 127 then
 					finishByte = finishByte + 1
