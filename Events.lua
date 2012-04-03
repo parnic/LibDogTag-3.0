@@ -414,7 +414,6 @@ local function OnEvent(this, event, ...)
 			end
 		end
 		if good then
-			good = true
 			if multiArg then
 				good = false
 				for i, v in ipairs(multiArg) do
@@ -423,6 +422,8 @@ local function OnEvent(this, event, ...)
 						good = false
 					elseif v == arg then
 						good = true
+					elseif tonumber(v) and type(arg) == "number" then
+						good = tonumber(v) == arg
 					elseif v:match("^%$") then
 						good = kwargs[v:sub(2)] == arg
 					elseif v:match("^%[.*%]$") then
@@ -578,11 +579,17 @@ local function OnUpdate(this, elapsed)
 			fsNeedUpdate[fs] = nil
 		end
 	end
-	local finish_time = GetTime() + 1/1000
+	
+	-- debugprofilestop is used now instead of GetTime because
+	-- GetTime isn't updated until each frame is drawn. (recent change, WoW 4.3.0 i think?)
+	-- Since this whole process takes place within one frame,
+	-- GetTime will have the same value throughout.
+	-- debugprofilestop is always updated (unless some jerkface resets it with debugprofilestart), so we have to use it instead
+	local finish_time = debugprofilestop() + 10 -- 10 as in 10 milisecondS
 	local num = 0
 	for fs in pairs(fsNeedQuickUpdate) do
 		num = num + 1
-		if num%10 == 0 and GetTime() >= finish_time then
+		if num%10 == 0 and debugprofilestop() >= finish_time then
 			break
 		end
 		updateFontString(fs)
