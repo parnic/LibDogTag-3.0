@@ -292,9 +292,8 @@ local function updateFontString(fs)
 		
 		local success, text, opacity, outline = pcall(func, kwargs)
 		if not success then
-			local err = text
-			local _, minor = LibStub(MAJOR_VERSION)
-			return geterrorhandler()(("%s.%d: Error with code %q (%s). %s"):format(MAJOR_VERSION, minor, code, nsList, err))
+			DogTag.tagError(code, nsList, text)
+			return
 		end
 	
 		if success then

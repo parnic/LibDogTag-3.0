@@ -478,4 +478,10 @@ local function clearCodes(namespace)
 end
 DogTag.clearCodes = clearCodes
 
+function DogTag.tagError(code, nsList, err)
+	local _, minor = LibStub(MAJOR_VERSION)
+	local message = ("%s.%d: Error with code %q (%s). %s"):format(MAJOR_VERSION, minor, code, nsList, err)
+	geterrorhandler()(message)
+	return message, code, nsList, err
+end
 end
