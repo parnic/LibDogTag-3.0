@@ -274,6 +274,10 @@ function DogTag:AddTag(namespace, tag, data)
 			error("if doc is not supplied, category must be nil", 2)
 		end
 	end
+	if data.noDoc and type(data.doc) ~= "nil" then
+		error(("doc must be nil if noDoc is true, got %s"):format(type(data.doc)), 2)
+	end
+	tagData.noDoc = data.noDoc
 	del(data)
 	clearCodes(namespace)
 end
