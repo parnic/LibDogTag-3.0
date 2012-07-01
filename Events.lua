@@ -479,8 +479,10 @@ local function OnEvent(this, event, ...)
 end
 frame:SetScript("OnEvent", OnEvent)
 
-local GetMilliseconds
 local GetTime = _G.GetTime
+--[[
+-- I'm sorry, but this shit is just stupidly wasteful of CPU time.
+local GetMilliseconds
 if DogTag_DEBUG then
 	function GetMilliseconds()
 		return math.floor(GetTime() * 1000 + 0.5)
@@ -489,7 +491,7 @@ else
 	function GetMilliseconds()
 		return GetTime() * 1000
 	end
-end
+end]]
 
 local nextTime = 0
 local nextUpdateTime = 0
@@ -499,7 +501,7 @@ local num = 0
 local function OnUpdate(this, elapsed)
 	_clearCodes()
 	num = num + 1
-	local currentTime = GetMilliseconds()
+	local currentTime = GetTime()
 	local oldMouseover = DogTag.__lastMouseover
 	local newMouseover = GetMouseFocus()
 	DogTag.__lastMouseover = newMouseover
@@ -512,20 +514,19 @@ local function OnUpdate(this, elapsed)
 		end
 	end
 	if currentTime >= nextTime then
-		local currentTime_1000 = currentTime/1000
 		DogTag:FireEvent("FastUpdate")
 		if currentTime >= nextUpdateTime then
-			nextUpdateTime = currentTime + 150
+			nextUpdateTime = currentTime + 0.15
 			DogTag:FireEvent("Update")
 		end
 		if currentTime >= nextSlowUpdateTime then
-			nextSlowUpdateTime = currentTime + 10000
+			nextSlowUpdateTime = currentTime + 10
 			DogTag:FireEvent("SlowUpdate")
 		end
 		if currentTime >= nextCacheInvalidationTime then
-			nextCacheInvalidationTime = currentTime + 15000
+			nextCacheInvalidationTime = currentTime + 15
 			if not InCombatLockdown() then
-				local oldTime = currentTime_1000 - 180
+				local oldTime = currentTime - 180
 				for nsList, codeToFunction_nsList in pairs(codeToFunction) do
 					for kwargTypes, codeToFunction_nsList_kwargTypes in pairs(codeToFunction_nsList) do
 						if kwargTypes ~= 1 then
@@ -562,13 +563,13 @@ local function OnUpdate(this, elapsed)
 				end
 			end
 		end
-		nextTime = currentTime + 50
+		nextTime = currentTime + 0.05
 		for i = 1, 9 do
 			for ns, data in pairs(TimerHandlers) do
 				local data_i = data[i]
 				if data_i then
 					for func in pairs(data_i) do
-						func(num, currentTime_1000)
+						func(num, currentTime)
 					end
 				end
 			end
@@ -585,11 +586,17 @@ local function OnUpdate(this, elapsed)
 	-- Since this whole process takes place within one frame,
 	-- GetTime will have the same value throughout.
 	-- debugprofilestop is always updated (unless some jerkface resets it with debugprofilestart), so we have to use it instead
-	local finish_time = debugprofilestop() + 10 -- 10 as in 10 milisecondS
+	
+	-- Don't define this until we loop through at least one frame
+	-- so that we don't call debugprofilestop unless we need to:
+	local finish_time --= debugprofilestop() + 10
 	local num = 0
+	
 	for fs in pairs(fsNeedQuickUpdate) do
 		num = num + 1
-		if num%10 == 0 and debugprofilestop() >= finish_time then
+		if not finish_time then
+			finish_time = debugprofilestop() + 10 -- 10 as in 10 miliseconds
+		elseif num%20 == 0 and debugprofilestop() >= finish_time then
 			break
 		end
 		updateFontString(fs)
