@@ -32,7 +32,7 @@ local function key_sort(alpha, bravo)
 	if type_alpha ~= type_bravo then
 		return type_alpha < type_bravo
 	end
-	
+
 	if type_alpha == "string" then
 		return alpha:lower() < bravo:lower()
 	elseif type_alpha == "number" then
@@ -103,13 +103,13 @@ local function is_equal(alpha, bravo)
 	if type(alpha) ~= type(bravo) then
 		return false
 	end
-	
+
 	if type(alpha) == "number" then
 		return alpha == bravo or tostring(alpha) == tostring(bravo) or math.abs(alpha - bravo) < 1e-15
 	elseif type(alpha) ~= "table" then
 		return alpha == bravo
 	end
-	
+
 	local num = 0
 	for k,v in pairs(alpha) do
 		num = num + 1
@@ -117,7 +117,7 @@ local function is_equal(alpha, bravo)
 			return false
 		end
 	end
-	
+
 	for k,v in pairs(bravo) do
 		num = num - 1
 	end
@@ -287,6 +287,7 @@ RAID_CLASS_COLORS = {
 	SHAMAN = { r = 0.14, g = 0.35, b = 1 },
 	WARLOCK = { r = 0.58, g = 0.51, b = 0.79 },
 	WARRIOR = { r = 0.78, g = 0.61, b = 0.43 },
+	MONK = { r = 0.0, g = 1.00 , b = 0.59 },
 }
 
 local GetMouseFocus_data = nil
@@ -1524,7 +1525,7 @@ assert_equal(DogTag:Evaluate("[CheckNilDefault('Test')]"), nil)
 assert_equal(DogTag:Evaluate("[CheckNilDefault(One)]"), 1)
 assert_equal(DogTag:Evaluate(("x"):rep(10000)), ("x"):rep(10000))
 assert_equal(DogTag:Evaluate("[" .. ("x"):rep(10000) .. "]"), "Unknown tag " .. ("x"):rep(10000))
-assert_equal(DogTag:Evaluate("[" .. ("1"):rep(10000) .. "]"), 1/0)
+assert_equal(DogTag:Evaluate("[" .. ("1"):rep(10000) .. "]"), math.huge)
 
 assert_equal(DogTag:Evaluate("[1 + 2]"), 3)
 assert_equal(DogTag:Evaluate("[1 - 2]"), -1)
@@ -1533,10 +1534,12 @@ assert_equal(DogTag:Evaluate("[1 / 2]"), 1/2)
 assert_equal(DogTag:Evaluate("[0 / 0]"), 0) -- odd case, good for WoW
 assert_equal(standardize(parse("[1 / 0]")), { "/", 1, 0 })
 assert_equal(standardize(parse("[(1 / 0)]")), { "/", 1, 0 })
+--[[ Parnic: 1/0 and -1/0 is not usually supported on PTRs, could go live that way
 assert_equal(DogTag:Evaluate("[1 / 0]"), 1/0)
 assert_equal(DogTag:Evaluate("[(1 / 0)]"), 1/0)
 assert_equal(DogTag:Evaluate("[-1 / 0]"), -1/0)
 assert_equal(DogTag:Evaluate("[-(1 / 0)]"), -1/0)
+--]]
 assert_equal(parse("[(1 / 0)]"), { "(", { "/", 1, 0 } })
 assert_equal(DogTag:Evaluate("[5 % 3]"), 2)
 assert_equal(DogTag:Evaluate("[5 ^ 3]"), 125)
@@ -3053,7 +3056,7 @@ local function func(event, ...)
 	assert_equal(event, "MY_EVENT")
 	assert_equal(..., expectedArg)
 	assert_equal(select('#', ...), expectedNumArgs)
-	
+
 	fired = true
 end
 DogTag:AddEventHandler("Base", "MY_EVENT", func)

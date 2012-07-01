@@ -322,10 +322,10 @@ end
 local function numberToString(num)
 	if type(num) ~= "number" then
 		return tostring(num)
-	elseif num == 1/0 then
-		return "1/0"
-	elseif num == -1/0 then
-		return "-1/0"
+	elseif num == math.huge then
+		return "NaN"
+	elseif num == -math.huge then
+		return "-NaN"
 	elseif math.floor(num) == num then
 		return tostring(num)
 	else
