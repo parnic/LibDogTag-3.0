@@ -25,6 +25,7 @@ local newList, newSet, del, deepCopy = DogTag.newList, DogTag.newSet, DogTag.del
 local select2 = DogTag.select2
 local fixNamespaceList = DogTag.fixNamespaceList
 local memoizeTable = DogTag.memoizeTable
+local deepCompare = DogTag.deepCompare
 local kwargsToKwargTypes = DogTag.kwargsToKwargTypes
 local fsNeedUpdate, fsNeedQuickUpdate, codeToFunction, codeToEventList, eventData, clearCodes
 local clearCodes = DogTag.clearCodes
@@ -376,15 +377,39 @@ function DogTag:AddFontString(fs, frame, code, nsList, kwargs)
 	end
 	nsList = fixNamespaceList[nsList]
 	
-	kwargs = memoizeTable(deepCopy(kwargs))
+	--[[ Cybeloras 7-4-2012:
+		Noticed a massive performance bottleneck in this function, and this is what I discovered:
+		
+		Using a kwargs table of {color=true,group=3,icons=108} (a pretty normal table, just 3 values),
+		the following were the results of two different methods to test if the tables are the same:
+		
+		Over 500,000 iterations:
+			memoizeTable(deepCopy(kwargs))		averaged an execution time of 0.0270833 seconds
+			deepCompare(fsToKwargs[fs], kwargs)	averaged an execution time of 0.0038213 seconds
+		
+		Giving a 608.74% speed advantage to deepCompare
+		
+		If we deepCompare first to see if we can return early (which should happen almost all the time,
+		because kwargs change very infrequently), the performance boost is massive. If deepCompare reveals that the kwargs have changed,
+		then we can go on to memoizeTable for the rest of the function.
+		
+		Code changes:
+			Moved ( kwargs = memoizeTable(deepCopy(kwargs)) ) down below the if block
+			Changed ( fsToKwargs[fs] == kwargs ) to ( deepCompare(fsToKwargs[fs], kwargs) )
+			Added function DogTag.deepCompare to Helpers.lua
+			Added deepCompare = DogTag.deepCompare upvalue to this file's header
+	]]
 	
 	if fsToCode[fs] then
-		if fsToFrame[fs] == frame and fsToCode[fs] == code and fsToNSList[fs] == nsList and fsToKwargs[fs] == kwargs then
+		if fsToFrame[fs] == frame and fsToCode[fs] == code and fsToNSList[fs] == nsList and deepCompare(fsToKwargs[fs], kwargs) then
 			fsNeedUpdate[fs] = true
 			return
 		end
 		self:RemoveFontString(fs)
 	end
+	
+	kwargs = memoizeTable(deepCopy(kwargs))
+	
 	fsToFrame[fs] = frame
 	fsToCode[fs] = code
 	fsToNSList[fs] = nsList
