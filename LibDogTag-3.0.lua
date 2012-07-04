@@ -291,7 +291,7 @@ local function updateFontString(fs)
 	if code then
 		local nsList = fsToNSList[fs]
 		local kwargs = fsToKwargs[fs]
-		local kwargTypes = kwargsToKwargTypes[kwargs]
+		local kwargTypes = kwargsToKwargTypesWithTableCache[kwargs]
 		local func = codeToFunction[nsList][kwargTypes][code]
 		DogTag.__isMouseOver = DogTag.__lastMouseover == fsToFrame[fs]
 		
@@ -415,7 +415,7 @@ function DogTag:AddFontString(fs, frame, code, nsList, kwargs)
 	fsToNSList[fs] = nsList
 	fsToKwargs[fs] = kwargs
 	
-	local kwargTypes = kwargsToKwargTypes[kwargs]
+	local kwargTypes = kwargsToKwargTypesWithTableCache[kwargs]
 	
 	local codeToEventList_nsList_kwargTypes_code = codeToEventList[nsList][kwargTypes][code]
 	if codeToEventList_nsList_kwargTypes_code == nil then
@@ -459,7 +459,7 @@ function DogTag:RemoveFontString(fs)
 	fsToCode[fs], fsToFrame[fs], fsToNSList[fs], fsToKwargs[fs] = nil, nil, nil, nil
 	fsNeedUpdate[fs], fsNeedQuickUpdate[fs] = nil, nil
 	
-	local kwargTypes = kwargsToKwargTypes[kwargs]
+	local kwargTypes = kwargsToKwargTypesWithTableCache[kwargs]
 	
 	local codeToEventList_nsList_kwargTypes_code = codeToEventList[nsList][kwargTypes][code]
 	if codeToEventList_nsList_kwargTypes_code then

@@ -1911,7 +1911,7 @@ function DogTag:CreateFunctionFromCode(code, nsList, kwargs, notDebug)
 	if notDebug then
 		kwargTypes = kwargs
 	else
-		kwargTypes = kwargsToKwargTypes[kwargs]
+		kwargTypes = kwargsToKwargTypes[kwargs] -- NOT safe for kwargsToKwargTypesWithTableCache
 		kwargs = nil
 		nsList = fixNamespaceList[nsList]
 	end
@@ -2149,8 +2149,13 @@ local codeEvaluationTime = setmetatable({}, {__index = function(self, nsList)
 end})
 DogTag.codeEvaluationTime = codeEvaluationTime
 
-local function evaluate(code, nsList, kwargs)
-	local kwargTypes = kwargsToKwargTypes[kwargs]
+local function evaluate(code, nsList, kwargs, kwargTypes)
+
+	-- kwargTypes is passed in if calling from DogTag:Evaluate() because it cannot be cached,
+	-- but otherwise we should be able to safely get from the table cached version of kwargsToKwargTypes.
+	-- Just make sure that where ever evaluate() is called, a 'safe' kwargs table is passed in
+	-- (one that DogTag generated from memoizeTable, not one that was passed in externally from another addon)
+	kwargTypes = kwargTypes or kwargsToKwargTypesWithTableCache[kwargs]
 
 	DogTag.__isMouseOver = false
 	
@@ -2198,7 +2203,16 @@ function DogTag:Evaluate(code, nsList, kwargs)
 		error(("Bad argument #4 to `Evaluate'. Expected %q, got %q"):format("table", type(kwargs)), 2)
 	end
 	nsList = fixNamespaceList[nsList]
-	return evaluate(code, nsList, kwargs)
+	
+	
+	-- kwargTypes is passed into evaluate() instead of determined inside of evaluate() because
+	-- evaluate will obtain kwargTypes from kwargsToKwargTypesWithTableCache if it is not passed in.
+	-- This function's kwargs are not 'secure' and so there is no guarentee that the table isn't being
+	-- reused with different values and types. (see definition of kwargsToKwargTypesWithTableCache in Helpers.lua for an explanation)
+	
+	local kwargTypes = kwargsToKwargTypes[kwargs]
+	
+	return evaluate(code, nsList, kwargs, kwargTypes)
 end
 
 --[[

@@ -350,56 +350,74 @@ local function deepCompare(t1,t2)
 end
 DogTag.deepCompare = deepCompare
 
-local kwargsToKwargTypes = setmetatable({}, { __index = function(self, kwargs)
-	if not kwargs then
-		return self[""]
-	elseif kwargs == "" then
-		local t = {}
-		self[false] = t
-		self[""] = t
-		return t
-	end
+local kwargsToKwargTypes
+do
 	
-	local kwargTypes = newList()
-	local keys = newList()
-	for k in pairs(kwargs) do
-		keys[#keys+1] = k
-	end
-	table.sort(keys)
-	local t = newList()
-	for i,k in ipairs(keys) do
-		if i > 1 then
-			t[#t+1] = ";"
+	kwargsToKwargTypes = setmetatable({}, { __index = function(self, kwargs)
+		if not kwargs then
+			return self[""]
+		elseif kwargs == "" then
+			local t = {}
+			self[false] = t
+			self[""] = t
+			return t
 		end
-		local v = kwargs[k]
-		t[#t+1] = k
-		t[#t+1] = "="
-		local type_v = type(v)
-		t[#t+1] = type_v
-		kwargTypes[k] = type_v
-	end
-	keys = del(keys)
-	local s = table.concat(t)
-	t = del(t)
-	local self_s = rawget(self, s)
-	if self_s then
+		
+		local kwargTypes = newList()
+		local keys = newList()
+		for k in pairs(kwargs) do
+			keys[#keys+1] = k
+		end
+		table.sort(keys)
+		local t = newList()
+		for i,k in ipairs(keys) do
+			if i > 1 then
+				t[#t+1] = ";"
+			end
+			local v = kwargs[k]
+			t[#t+1] = k
+			t[#t+1] = "="
+			local type_v = type(v)
+			t[#t+1] = type_v
+			kwargTypes[k] = type_v
+		end
+		keys = del(keys)
+		local s = table.concat(t)
+		t = del(t)
+		local self_s = rawget(self, s)
+		if self_s then
+			kwargTypes = del(kwargTypes)
+			
+			return self_s
+		end
+		local t = {}
+		for k, v in pairs(kwargTypes) do
+			t[k] = v
+		end
 		kwargTypes = del(kwargTypes)
-		-- Cybeloras: caching with the table as the key causes bad errors if the kwargs table is reused in the addon that is implementing DogTag
-	--	self[kwargs] = self_s 
-		return self_s
-	end
-	local t = {}
-	for k, v in pairs(kwargTypes) do
-		t[k] = v
-	end
-	kwargTypes = del(kwargTypes)
-	kwargTypes = t
-	self[s] = kwargTypes
-	-- Cybeloras: caching with the table as the key causes bad errors if the kwargs table is reused in the addon that is implementing DogTag
-	--self[kwargs] = kwargTypes
-	return kwargTypes
-end, __mode='kv' })
+		kwargTypes = t
+		self[s] = kwargTypes
+		
+		return kwargTypes
+	end, __mode='kv' })
+	
+	-- This is separate from kwargsToKwargTypes because in some cases,
+	-- a reused kwargs (reused by the addon providing it to DogTag)
+	-- will cause a possibly incorrect kwargTypes table to be returned.
+	-- This cache should only be used in places where we are certain that the kwargs
+	-- table is not being reused - this is usually true if:
+	-- 		We memoizeTable(deepCopy(kwargs))
+	-- 		Or if kwargs is obtained from fsToKwargs[fs] or callbackToKwargs[uid]
+	--			(because all kwargs in these tables have had memoizeTable(deepCopy(kwargs)) performed)
+	
+	kwargsToKwargTypesWithTableCache = setmetatable({}, { __index = function(self, kwargs)
+		local kwargTypes = kwargsToKwargTypes[kwargs]
+		self[kwargs] = kwargTypes
+		return kwargTypes
+	end, __mode='kv' })
+end
 DogTag.kwargsToKwargTypes = kwargsToKwargTypes
+DogTag.kwargsToKwargTypesWithTableCache = kwargsToKwargTypesWithTableCache
 
 local codeToFunction, codeToEventList, callbackToNSList, callbackToCode, callbackToKwargTypes, eventData
 local fsToNSList, fsToKwargs, fsToCode, fsNeedQuickUpdate
@@ -471,7 +489,7 @@ local function _clearCodes()
 		local kwargs = fsToKwargs[fs]
 		local code = fsToCode[fs]
 		
-		local kwargTypes = kwargsToKwargTypes[kwargs]
+		local kwargTypes = kwargsToKwargTypesWithTableCache[kwargs]
 		
 		local codeToEventList_nsList_kwargTypes_code = codeToEventList[nsList][kwargTypes][code]
 		if codeToEventList_nsList_kwargTypes_code == nil then

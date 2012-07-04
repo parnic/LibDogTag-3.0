@@ -138,7 +138,7 @@ else
 end
 local callbackToKwargTypes = {}
 for uid, kwargs in pairs(callbackToKwargs) do
-	callbackToKwargTypes[uid] = kwargsToKwargTypes[kwargs]
+	callbackToKwargTypes[uid] = kwargsToKwargTypesWithTableCache[kwargs]
 end
 
 DogTag.callbackToNSList = callbackToNSList
@@ -200,8 +200,10 @@ function DogTag:AddCallback(code, callback, nsList, kwargs, extraArg)
 		error(("Bad argument #5 to `AddCallback'. Expected %q, got %q."):format("table", type(kwargs)), 2)
 	end
 	
+	kwargs = memoizeTable(deepCopy(kwargs or false))
+	
 	nsList = fixNamespaceList[nsList]
-	local kwargTypes = kwargsToKwargTypes[kwargs]
+	local kwargTypes = kwargsToKwargTypesWithTableCache[kwargs]
 	local codeToEventList_nsList_kwargTypes = codeToEventList[nsList][kwargTypes]
 	local eventList = codeToEventList_nsList_kwargTypes[code]
 	if eventList == nil then
@@ -212,8 +214,6 @@ function DogTag:AddCallback(code, callback, nsList, kwargs, extraArg)
 	
 	local uid = DogTag.callback_num + 1
 	DogTag.callback_num = uid
-	
-	kwargs = memoizeTable(deepCopy(kwargs or false))
 	
 	callbackToNSList[uid] = nsList
 	callbackToKwargs[uid] = kwargs
