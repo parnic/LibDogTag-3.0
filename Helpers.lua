@@ -319,7 +319,6 @@ do
 		local t = newList()
 		tableToString(tab, t)
 		local key = table.concat(t)
-		print(key)
 		t = del(t)
 		local pool_key = pool[key]
 		if pool_key then
