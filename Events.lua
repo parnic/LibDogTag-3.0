@@ -17,6 +17,7 @@ local fixNamespaceList = DogTag.fixNamespaceList
 local memoizeTable = DogTag.memoizeTable
 local select2 = DogTag.select2
 local kwargsToKwargTypes = DogTag.kwargsToKwargTypes
+local kwargsToKwargTypesWithTableCache = DogTag.kwargsToKwargTypesWithTableCache
 local codeToFunction, codeEvaluationTime, evaluate, fsToKwargs, fsToFrame, fsToNSList, fsToCode,  updateFontString, updateFontStrings
 local fsNeedUpdate, fsNeedQuickUpdate
 local _clearCodes

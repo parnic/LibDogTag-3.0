@@ -22,6 +22,7 @@ local joinSet = DogTag.joinSet
 local unpackNamespaceList = DogTag.unpackNamespaceList
 local getASTType = DogTag.getASTType
 local kwargsToKwargTypes = DogTag.kwargsToKwargTypes
+local kwargsToKwargTypesWithTableCache = DogTag.kwargsToKwargTypesWithTableCache
 local memoizeTable = DogTag.memoizeTable
 local unparse, parse, standardize, codeToEventList, clearCodes
 DogTag_funcs[#DogTag_funcs+1] = function()

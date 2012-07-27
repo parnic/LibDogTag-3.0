@@ -27,6 +27,7 @@ local fixNamespaceList = DogTag.fixNamespaceList
 local memoizeTable = DogTag.memoizeTable
 local deepCompare = DogTag.deepCompare
 local kwargsToKwargTypes = DogTag.kwargsToKwargTypes
+local kwargsToKwargTypesWithTableCache = DogTag.kwargsToKwargTypesWithTableCache
 local fsNeedUpdate, fsNeedQuickUpdate, codeToFunction, codeToEventList, eventData, clearCodes
 local clearCodes = DogTag.clearCodes
 DogTag_funcs[#DogTag_funcs+1] = function()
@@ -419,7 +420,7 @@ function DogTag:AddFontString(fs, frame, code, nsList, kwargs)
 	
 	local codeToEventList_nsList_kwargTypes_code = codeToEventList[nsList][kwargTypes][code]
 	if codeToEventList_nsList_kwargTypes_code == nil then
-		local _ = codeToFunction[nsList][kwargTypes][code]
+		local _ = codeToFunction[nsList][kwargTypes][code] -- i guess this is just to invoke a metamethod. everybody loves commented code!
 		codeToEventList_nsList_kwargTypes_code = codeToEventList[nsList][kwargTypes][code]
 		if codeToEventList_nsList_kwargTypes_code == nil then
 			local _, minor = LibStub(MAJOR_VERSION)

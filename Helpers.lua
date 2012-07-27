@@ -350,7 +350,7 @@ local function deepCompare(t1,t2)
 end
 DogTag.deepCompare = deepCompare
 
-local kwargsToKwargTypes
+local kwargsToKwargTypes, kwargsToKwargTypesWithTableCache
 do
 	
 	kwargsToKwargTypes = setmetatable({}, { __index = function(self, kwargs)
@@ -412,6 +412,9 @@ do
 	
 	kwargsToKwargTypesWithTableCache = setmetatable({}, { __index = function(self, kwargs)
 		local kwargTypes = kwargsToKwargTypes[kwargs]
+		if not kwargs then
+			return kwargTypes
+		end
 		self[kwargs] = kwargTypes
 		return kwargTypes
 	end, __mode='kv' })
