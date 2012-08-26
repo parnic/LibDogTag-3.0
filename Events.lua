@@ -450,6 +450,8 @@ local function OnEvent(this, event, ...)
 								good = false
 							elseif v == arg then
 								good = true
+							elseif tonumber(v) and type(arg) == "number" then
+								good = tonumber(v) == arg
 							elseif v:match("^%$") then
 								good = kwargs[v:sub(2)] == arg
 							elseif v:match("^%[.*%]$") then
