@@ -1,4 +1,4 @@
-## Interface: 50300
+## Interface: 50400
 ## LoadOnDemand: 1
 ## Title: Lib: DogTag-3.0
 ## Notes: A library to provide a markup syntax
