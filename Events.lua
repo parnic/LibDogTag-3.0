@@ -678,7 +678,7 @@ do	-- OnUpdate
 			Coroutine = coroutine.create(OnUpdate_Coroutine)
 		end
 
-		coroutine.resume(Coroutine)
+		assert(coroutine.resume(Coroutine))
 	end
 
 	frame:SetScript("OnUpdate", OnUpdate)
