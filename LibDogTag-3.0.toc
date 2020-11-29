@@ -8,6 +8,7 @@
 ## X-Category: Library
 ## X-Credit: Shefki, Parnic, Andrew Scott
 ## X-Compatible-With: 11305
+## X-Curse-Project-ID: 14280
 ## OptionalDeps:
 
 LibStub\LibStub.lua
