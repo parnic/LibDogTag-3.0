@@ -430,6 +430,7 @@ function DogTag:AddFontString(fs, frame, code, nsList, kwargs)
 	if codeToEventList_nsList_kwargTypes_code then
 		for event, arg in pairs(codeToEventList_nsList_kwargTypes_code) do
 			eventData[event][fs] = arg
+			DogTag.eventUsed(event)
 		end
 	end
 	
