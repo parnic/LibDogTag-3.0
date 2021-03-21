@@ -72,7 +72,29 @@ else
 	frame = CreateFrame("Frame")
 end
 DogTag.frame = frame
-frame:RegisterAllEvents()
+frame:RegisterEvent("ADDON_LOADED")
+
+-- Keep track of which events we've attempted to register
+-- so we aren't constantly trying to re-register them.
+local usedEvents = {}
+DogTag.usedEvents = usedEvents
+
+-- Declare that a particular event is being listened to through DogTag
+-- and should therefore be registered with the main event handler frame
+-- (if it is a WoW event).
+-- Also notifies sublibraries of the event listner request via the
+-- EventRequested event. Events all the way down.
+function DogTag.eventUsed(event)
+	-- Always notify of the event request
+	-- because sublibraries may have since upgraded,
+	-- or new sublibraries loaded:
+	DogTag:FireEvent("EventRequested", event)
+	
+	if not usedEvents[event] then
+		usedEvents[event] = true
+		pcall(frame.RegisterEvent, frame, event)
+	end
+end
 
 local codeToEventList
 do
@@ -211,6 +233,10 @@ function DogTag:AddCallback(code, callback, nsList, kwargs, extraArg)
 		local _ = codeToFunction[nsList][kwargTypes][code]
 		eventList = codeToEventList_nsList_kwargTypes[code]
 		assert(eventList ~= nil)
+	end
+	
+	for event in pairs(eventList) do 
+		DogTag.eventUsed(event)
 	end
 	
 	local uid = DogTag.callback_num + 1
@@ -714,6 +740,7 @@ function DogTag:AddEventHandler(namespace, event, func)
 		EventHandlers[namespace][event] = newList()
 	end
 	EventHandlers[namespace][event][func] = true
+	DogTag.eventUsed(event)
 end
 
 --[[
