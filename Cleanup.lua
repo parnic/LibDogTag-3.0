@@ -4,6 +4,8 @@ local MINOR_VERSION = 90000 + (tonumber(("@file-date-integer@"):match("%d+")) or
 if MINOR_VERSION > _G.DogTag_MINOR_VERSION then
 	_G.DogTag_MINOR_VERSION = MINOR_VERSION
 end
+MINOR_VERSION = _G.DogTag_MINOR_VERSION
+_G.DogTag_MINOR_VERSION = nil
 
 local DogTag, oldMinor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 _G.DogTag_MINOR_VERSION = nil
