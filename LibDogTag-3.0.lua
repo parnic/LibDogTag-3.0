@@ -1,8 +1,7 @@
 --[[
 Name: LibDogTag-3.0
-Revision: $Rev$
-Author: Cameron Kenneth Knight (ckknight@gmail.com)
-Website: http://www.wowace.com/
+Revision: @project-revision@
+Website: https://www.wowace.com/projects/libdogtag-3-0
 Description: A library to provide a markup syntax
 ]]
 
