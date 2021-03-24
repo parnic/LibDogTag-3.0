@@ -96,9 +96,13 @@ DogTag.__colors = {
 	mana = { 48/255, 113/255, 191/255 },
 	runicPower = { 0, 209/255, 1 },
 }
-for class, data in pairs(_G.RAID_CLASS_COLORS) do
-	DogTag.__colors[class] = { data.r, data.g, data.b, }
+local function updateClassColors()
+	local classColors = _G.CUSTOM_CLASS_COLORS or _G.RAID_CLASS_COLORS
+	for class, data in pairs(classColors) do
+		DogTag.__colors[class] = { data.r, data.g, data.b, }
+	end
 end
+updateClassColors()
 
 --[[
 Notes:
@@ -589,6 +593,31 @@ function DogTag:ClearNamespace(namespace)
 	self.TimerHandlers[namespace] = nil
 	clearCodes(namespace)
 	collectgarbage('collect')
+end
+
+local function updateAllFontStrings()
+	for fs in pairs(fsToFrame) do
+		updateFontString(fs)
+	end
+end
+
+local function updateAllClassColors()
+	updateClassColors()
+	updateAllFontStrings()
+end
+
+function DogTag:PLAYER_LOGIN()
+	updateClassColors()
+
+	if _G.CUSTOM_CLASS_COLORS then
+		_G.CUSTOM_CLASS_COLORS:RegisterCallback(updateAllClassColors)
+	end
+end
+
+function DogTag:UnregisterCustomClassColors()
+	if _G.CUSTOM_CLASS_COLORS then
+		_G.CUSTOM_CLASS_COLORS:UnregisterCallback(updateAllClassColors)
+	end
 end
 
 end
