@@ -68,11 +68,13 @@ if DogTag.oldLib then
 	frame:SetScript("OnUpdate", nil)
 	frame:Show()
 	frame:UnregisterAllEvents()
+	DogTag.oldLib:UnregisterCustomClassColors()
 else
 	frame = CreateFrame("Frame")
 end
 DogTag.frame = frame
 frame:RegisterEvent("ADDON_LOADED")
+frame:RegisterEvent("PLAYER_LOGIN")
 
 -- Keep track of which events we've attempted to register
 -- so we aren't constantly trying to re-register them.
