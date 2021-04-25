@@ -68,7 +68,9 @@ if DogTag.oldLib then
 	frame:SetScript("OnUpdate", nil)
 	frame:Show()
 	frame:UnregisterAllEvents()
-	DogTag.oldLib:UnregisterCustomClassColors()
+	if DogTag.oldLib.UnregisterCustomClassColors then
+		DogTag.oldLib:UnregisterCustomClassColors()
+	end
 else
 	frame = CreateFrame("Frame")
 end
