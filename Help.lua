@@ -848,11 +848,11 @@ function DogTag:OpenHelp()
 			x = DogTag:ColorizeCode(x)
 			-- Find the first opening bracket in the colored string,
 			-- which is the one we just prepended to `x`.
-			local first = string.find(x, "|cff%x%x%x%x%x%x%[")
+			local first = string.find(x, "|cff%x%x%x%x%x%x%[") + 11
 			-- Find the last closing bracket in the colored string,
 			-- which is the one we just appended to `x`.
-			local last = string.find(x, "%]|r[^%]]*$")
-			local y = x:sub(first, last + 2) -- +2 for length of `|r`
+			local last = string.find(x, "|cff%x%x%x%x%x%x%]|r[^%]]*$") - 1
+			local y = x:sub(first, last)
 			return y
 		end
 		return DogTag:ColorizeCode(text:sub(2, -2))
