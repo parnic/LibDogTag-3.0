@@ -846,7 +846,13 @@ function DogTag:OpenHelp()
 			local x = text:sub(3, -3)
 			x = "[" .. x .. "]"
 			x = DogTag:ColorizeCode(x)
-			local y = x:match("^|cff%x%x%x%x%x%x%[|r(|cff%x%x%x%x%x%x.*)|cff%x%x%x%x%x%x%]|r$") .. "|r"
+			-- Find the first opening bracket in the colored string,
+			-- which is the one we just prepended to `x`.
+			local first = string.find(x, "|cff%x%x%x%x%x%x%[")
+			-- Find the last closing bracket in the colored string,
+			-- which is the one we just appended to `x`.
+			local last = string.find(x, "%]|r[^%]]*$")
+			local y = x:sub(first, last + 2) -- +2 for length of `|r`
 			return y
 		end
 		return DogTag:ColorizeCode(text:sub(2, -2))
