@@ -1795,8 +1795,6 @@ function DogTag:ColorizeCode(code)
 	end
 	tokens = del(tokens)
 	local s = table.concat(t)
-	-- s = s:gsub("|c%x%x%x%x%x%x%x%x(|[cr])", "%1")
-	-- s = s:gsub("|r|r$", "|r")
 	if s == "|r" then
 		s = ""
 	end
