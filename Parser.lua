@@ -1188,9 +1188,23 @@ local function getLiteralString(str, doubleQuote)
 	local t = newList()
 	t[#t+1] = quote_byte
 	local i = 1
+	local multibytes = 0
 	while i <= #data do
 		local v = data[i]
-		if v == quote_byte then
+
+		-- https://stackoverflow.com/a/44776334/2465631
+		if v >= 240 then     -- 0b11110000
+			multibytes = 4
+		elseif v >= 225 then -- 0b11100000
+			multibytes = 3
+		elseif v >= 192 then -- 0b11000000
+			multibytes = 2
+		end
+
+		if multibytes > 0 then
+			t[#t+1] = v
+			multibytes = multibytes - 1
+		elseif v == quote_byte then
 			t[#t+1] = backslash_byte
 			t[#t+1] = quote_byte
 		elseif v == newline_byte then
