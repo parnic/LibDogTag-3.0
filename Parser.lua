@@ -1675,6 +1675,7 @@ function DogTag:ColorizeCode(code)
 			if v == inString and not lastStringBackslash then
 				inString = false
 				t[#t+1] = string_char(v)
+				t[#t+1] = "|r"
 			else
 				t[#t+1] = string_char(v)
 			end
@@ -1682,11 +1683,13 @@ function DogTag:ColorizeCode(code)
 			t[#t+1] = "|cff"
 			t[#t+1] = colors.grouping
 			t[#t+1] = "["
+			t[#t+1] = "|r"
 			inCode = inCode + 1
 		elseif v == close_bracket_byte then
 			t[#t+1] = "|cff"
 			t[#t+1] = colors.grouping
 			t[#t+1] = "]"
+			t[#t+1] = "|r"
 			inCode = inCode - 1
 			if inCode == 0 then
 				t[#t+1] = "|cff"
@@ -1698,14 +1701,17 @@ function DogTag:ColorizeCode(code)
 			t[#t+1] = "|cff"
 			t[#t+1] = colors.grouping
 			t[#t+1] = "("
+			t[#t+1] = "|r"
 		elseif v == close_parenthesis_byte then
 			t[#t+1] = "|cff"
 			t[#t+1] = colors.grouping
 			t[#t+1] = ")"
+			t[#t+1] = "|r"
 		elseif v == comma_byte then
 			t[#t+1] = "|cff"
 			t[#t+1] = colors.grouping
 			t[#t+1] = ","
+			t[#t+1] = "|r"
 		elseif quotes[v] then
 			t[#t+1] = "|cff"
 			t[#t+1] = colors.literal
@@ -1725,6 +1731,7 @@ function DogTag:ColorizeCode(code)
 				t[#t+1] = "|cff"
 				t[#t+1] = colors.operator
 				t[#t+1] = isReserved
+				t[#t+1] = "|r"
 				i = i + #isReserved - 1
 			else
 				local j = i
@@ -1746,6 +1753,7 @@ function DogTag:ColorizeCode(code)
 					for q = i, j do
 						t[#t+1] = string_char(tokens[q])
 					end
+					t[#t+1] = "|r"
 					i = j
 				else
 					j = i
@@ -1767,6 +1775,7 @@ function DogTag:ColorizeCode(code)
 						for q = i, j do
 							t[#t+1] = string_char(tokens[q])
 						end
+						t[#t+1] = "|r"
 						i = j
 					else
 						t[#t+1] = string_char(v)
@@ -1782,6 +1791,7 @@ function DogTag:ColorizeCode(code)
 	tokens = del(tokens)
 	local s = table.concat(t)
 	s = s:gsub("|c%x%x%x%x%x%x%x%x(|[cr])", "%1")
+	s = s:gsub("|r|r$", "|r")
 	if s == "|r" then
 		s = ""
 	end
