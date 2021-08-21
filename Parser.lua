@@ -1680,6 +1680,9 @@ function DogTag:ColorizeCode(code)
 				t[#t+1] = string_char(v)
 			end
 		elseif v == open_bracket_byte then
+			if inCode == 0 then
+				t[#t+1] = "|r"
+			end
 			t[#t+1] = "|cff"
 			t[#t+1] = colors.grouping
 			t[#t+1] = "["
@@ -1691,6 +1694,10 @@ function DogTag:ColorizeCode(code)
 			t[#t+1] = "]"
 			t[#t+1] = "|r"
 			inCode = inCode - 1
+			if inCode == 0 then
+				t[#t+1] = "|cff"
+				t[#t+1] = colors.literal
+			end
 		elseif inCode <= 0 then
 			t[#t+1] = string_char(v)
 		elseif v == open_parenthesis_byte then
@@ -1783,9 +1790,13 @@ function DogTag:ColorizeCode(code)
 			lastChar = tokens[i]
 		end
 	end
-	t[#t+1] = "|r"
+	if inCode == 0 then
+		t[#t+1] = "|r"
+	end
 	tokens = del(tokens)
 	local s = table.concat(t)
+	-- s = s:gsub("|c%x%x%x%x%x%x%x%x(|[cr])", "%1")
+	-- s = s:gsub("|r|r$", "|r")
 	if s == "|r" then
 		s = ""
 	end
