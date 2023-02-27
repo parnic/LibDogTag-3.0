@@ -578,13 +578,6 @@ function DogTag:OpenHelp()
 	html:SetHeight(1)
 	html:SetWidth(400)
 	html:SetPoint("TOPLEFT", 0, 0)
-	-- Parnic: left/top seems to be the default, but these functions want a text type in 10.0
-	-- so SetJustifyH("P", "LEFT"), for example. instead of trying to set all font types to
-	-- what appears to be the default, just skip it entirely
-	if not wow_1000 then
-		html:SetJustifyH("LEFT")
-		html:SetJustifyV("TOP")
-	end
 	
 	local searchBox = CreateFrame("EditBox", helpFrame:GetName() .. "_SearchBox", helpFrame)
 	searchBox:SetFontObject(ChatFontNormal)
