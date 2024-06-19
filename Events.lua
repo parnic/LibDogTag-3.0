@@ -552,6 +552,14 @@ do	-- OnUpdate
 	end
 	DogTag.checkYield = checkYield
 
+	local GetMouseFocus = GetMouseFocus
+	if not GetMouseFocus and GetMouseFoci then
+		local GetMouseFoci = GetMouseFoci
+		GetMouseFocus = function()
+			return GetMouseFoci()[1]
+		end
+	end
+	
 	local function OnUpdate_Coroutine()
 		while true do
 			running = true

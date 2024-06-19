@@ -378,7 +378,7 @@ function DogTag:OpenHelp()
 		end
 		
 		selectedTreeLine = this
-		if GetMouseFocus() == this then
+		if this:IsMouseMotionFocus() then
 			this.highlight:SetAlpha(1)
 		else
 			this.highlight:SetAlpha(0.7)
