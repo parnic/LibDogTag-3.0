@@ -555,7 +555,7 @@ function DogTag:ADDON_LOADED()
 				if AceLibrary then
 					AceLibrary:HasInstance(name) -- try to load
 				end
-				LoadAddOn(name)
+				(C_AddOns and C_AddOns.LoadAddOn or _G.LoadAddOn)(name)
 				if LibStub:GetLibrary(name, true) then
 					data[k] = nil
 					del(k)
