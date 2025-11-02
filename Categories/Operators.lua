@@ -10,11 +10,18 @@ local _G, type, tostring = _G, type, tostring
 DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 
 local L = DogTag.L
+local issecretvalue = DogTag.issecretvalue
 
 DogTag:AddTag("Base", "+", {
-	code = function(left, right)
-		return left + right
-	end,
+	code = issecretvalue
+		and function(left, right)
+			if issecretvalue(left) or issecretvalue(right) then
+				return 0
+			end
+		end
+		or function(left, right)
+			return left + right
+		end,
 	arg = {
 		'left', 'number', "@req",
 		'right', 'number', "@req",
@@ -27,9 +34,16 @@ DogTag:AddTag("Base", "+", {
 })
 
 DogTag:AddTag("Base", "-", {
-	code = function(left, right)
-		return left - right
-	end,
+	code = issecretvalue
+		and function(left, right)
+			if issecretvalue(left) or issecretvalue(right) then
+				return 0
+			end
+			return left - right
+		end
+		or function(left, right)
+			return left - right
+		end,
 	arg = {
 		'left', 'number', "@req",
 		'right', 'number', "@req",
@@ -42,9 +56,16 @@ DogTag:AddTag("Base", "-", {
 })
 
 DogTag:AddTag("Base", "*", {
-	code = function(left, right)
-		return left * right
-	end,
+	code = issecretvalue
+		and function(left, right)
+			if issecretvalue(left) or issecretvalue(right) then
+				return 0
+			end
+			return left * right
+		end
+		or function(left, right)
+			return left * right
+		end,
 	arg = {
 		'left', 'number', "@req",
 		'right', 'number', "@req",
@@ -57,13 +78,24 @@ DogTag:AddTag("Base", "*", {
 })
 
 DogTag:AddTag("Base", "/", {
-	code = function(left, right)
-		if left == 0 then
-			return 0
-		else
-			return left / right
+	code = issecretvalue
+		and function(left, right)
+			if issecretvalue(left) or issecretvalue(right) then
+				return 0
+			end
+			if left == 0 then
+				return 0
+			else
+				return left / right
+			end
 		end
-	end,
+		or function(left, right)
+			if left == 0 then
+				return 0
+			else
+				return left / right
+			end
+		end,
 	arg = {
 		'left', 'number', "@req",
 		'right', 'number', "@req",
@@ -76,9 +108,16 @@ DogTag:AddTag("Base", "/", {
 })
 
 DogTag:AddTag("Base", "%", {
-	code = function(left, right)
-		return left % right
-	end,
+	code = issecretvalue
+		and function(left, right)
+			if issecretvalue(left) or issecretvalue(right) then
+				return 0
+			end
+			return left % right
+		end
+		or function(left, right)
+			return left % right
+		end,
 	arg = {
 		'left', 'number', "@req",
 		'right', 'number', "@req",
@@ -91,9 +130,16 @@ DogTag:AddTag("Base", "%", {
 })
 
 DogTag:AddTag("Base", "^", {
-	code = function(left, right)
-		return left ^ right
-	end,
+	code = issecretvalue
+		and function(left, right)
+			if issecretvalue(left) or issecretvalue(right) then
+				return 0
+			end
+			return left ^ right
+		end
+		or function(left, right)
+			return left ^ right
+		end,
 	arg = {
 		'left', 'number', "@req",
 		'right', 'number', "@req",
@@ -105,21 +151,40 @@ DogTag:AddTag("Base", "^", {
 })
 
 DogTag:AddTag("Base", "<", {
-	code = function(left, right)
-		if type(left) == type(right) then
-			if left < right then
-				return left
-			else
+	code = issecretvalue
+		and function(left, right)
+			if issecretvalue(left) or issecretvalue(right) then
 				return nil
 			end
-		else
-			if tostring(left) < tostring(right) then
-				return left
+			if type(left) == type(right) then
+				if left < right then
+					return left
+				else
+					return nil
+				end
 			else
-				return nil
+				if tostring(left) < tostring(right) then
+					return left
+				else
+					return nil
+				end
 			end
 		end
-	end,
+		or function(left, right)
+			if type(left) == type(right) then
+				if left < right then
+					return left
+				else
+					return nil
+				end
+			else
+				if tostring(left) < tostring(right) then
+					return left
+				else
+					return nil
+				end
+			end
+		end,
 	arg = {
 		'left', 'number;string', "@req",
 		'right', 'number;string', "@req",
@@ -134,21 +199,40 @@ DogTag:AddTag("Base", "<", {
 })
 
 DogTag:AddTag("Base", ">", {
-	code = function(left, right)
-		if type(left) == type(right) then
-			if left > right then
-				return left
-			else
+	code = issecretvalue
+		and function(left, right)
+			if issecretvalue(left) or issecretvalue(right) then
 				return nil
 			end
-		else
-			if tostring(left) > tostring(right) then
-				return left
+			if type(left) == type(right) then
+				if left > right then
+					return left
+				else
+					return nil
+				end
 			else
-				return nil
+				if tostring(left) > tostring(right) then
+					return left
+				else
+					return nil
+				end
 			end
 		end
-	end,
+		or function(left, right)
+			if type(left) == type(right) then
+				if left > right then
+					return left
+				else
+					return nil
+				end
+			else
+				if tostring(left) > tostring(right) then
+					return left
+				else
+					return nil
+				end
+			end
+		end,
 	arg = {
 		'left', 'number;string', "@req",
 		'right', 'number;string', "@req",
@@ -185,13 +269,24 @@ DogTag:AddTag("Base", ">=", {
 })
 
 DogTag:AddTag("Base", "=", {
-	code = function(left, right)
-		if left == right or tostring(left) == tostring(right) then
-			return left or L["True"]
-		else
-			return nil
+	code = issecretvalue
+		and function(left, right)
+			if issecretvalue(left) or issecretvalue(right) then
+				return nil
+			end
+			if left == right or tostring(left) == tostring(right) then
+				return left or L["True"]
+			else
+				return nil
+			end
 		end
-	end,
+		or function(left, right)
+			if left == right or tostring(left) == tostring(right) then
+				return left or L["True"]
+			else
+				return nil
+			end
+		end,
 	arg = {
 		'left', 'nil;number;string', "@req",
 		'right', 'nil;number;string', "@req",
@@ -217,9 +312,16 @@ DogTag:AddTag("Base", "~=", {
 })
 
 DogTag:AddTag("Base", "unm", {
-	code = function(number)
-		return -number
-	end,
+	code = issecretvalue
+		and function(number)
+			if issecretvalue(number) then
+				return 0
+			end
+			return -number
+		end
+		or function(number)
+			return -number
+		end,
 	arg = {
 		'number', 'number', "@req",
 	},

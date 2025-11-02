@@ -11,6 +11,7 @@ local IsAltKeyDown, IsControlKeyDown, IsShiftKeyDown = IsAltKeyDown, IsControlKe
 DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 
 local L = DogTag.L
+local issecretvalue = DogTag.issecretvalue
 
 DogTag:AddTag("Base", "Alt", {
 	code = IsAltKeyDown,
@@ -203,6 +204,9 @@ end
 DogTag:AddTag("Base", "IsIn", {
 	code = function(value, ...)
 		local good = false
+		if issecretvalue(value) then
+			return value
+		end
 		for i = 1, select('#', ...) do
 			if value == select(i, ...) then
 				good = true
@@ -229,11 +233,31 @@ DogTag:AddTag("Base", "IsIn", {
 })
 
 DogTag:AddTag("Base", "Hide", {
-	alias = [=[not IsIn(value, ...)]=],
+	alias = not issecretvalue and [=[not IsIn(value, ...)]=] or nil,
+	code = issecretvalue and function(value, ...)
+		local good = true
+		if issecretvalue(value) then
+			return value
+		end
+		for i = 1, select('#', ...) do
+			if value == select(i, ...) then
+				good = false
+				break
+			end
+		end
+		if good then
+			return value
+		else
+			return nil
+		end
+	end or nil,
 	arg = {
 		'value', 'number;string', "@req",
 		'...', 'tuple-number;string;nil', "@req",
 	},
+	ret = function(args)
+		return "nil;" .. args.value.types
+	end,
 	doc = L["Hide value if value is within ..."],
 	example = '[1:Hide(1, 2, 3)] => ""; ["Alpha":Hide("Bravo", "Charlie")] => "Alpha"',
 	category = L["Miscellaneous"]

@@ -12,7 +12,7 @@ if MINOR_VERSION > _G.DogTag_MINOR_VERSION then
 	_G.DogTag_MINOR_VERSION = MINOR_VERSION
 end
 
-local type, error, pairs, ipairs, next, pcall, _G = type, error, pairs, ipairs, next, pcall, _G
+local type, error, pairs, ipairs, next, xpcall, _G = type, error, pairs, ipairs, next, xpcall, _G
 
 -- #AUTODOC_NAMESPACE DogTag
 
@@ -299,7 +299,7 @@ local function updateFontString(fs)
 		local func = codeToFunction[nsList][kwargTypes][code]
 		DogTag.__isMouseOver = DogTag.__lastMouseover == fsToFrame[fs]
 		
-		local success, text, opacity, outline = pcall(func, kwargs)
+		local success, text, opacity, outline = xpcall(func, CallErrorHandler, kwargs)
 		if not success then
 			DogTag.tagError(code, nsList, text)
 			return

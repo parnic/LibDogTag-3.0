@@ -10,6 +10,7 @@ local _G, math, type, tostring, tonumber, ipairs, table, select = _G, math, type
 DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 
 local L = DogTag.L
+local issecretvalue = DogTag.issecretvalue
 
 DogTag:AddTag("Base", "Percent", {
 	code = function(number)
@@ -27,7 +28,10 @@ DogTag:AddTag("Base", "Percent", {
 
 DogTag:AddTag("Base", "Short", {
 	code = function(value)
-		if type(value) == "number" then
+		if issecretvalue(value) then
+			-- todo: AbbreviateNumbers/AbbreviateLargeNumbers
+			return value
+		elseif type(value) == "number" then
 			if abs(value) >= 10000000000 then
 				return ("%.1fb"):format(value / 1000000000)
 			elseif abs(value) >= 1000000000 then
@@ -91,7 +95,10 @@ DogTag:AddTag("Base", "Short", {
 
 DogTag:AddTag("Base", "VeryShort", {
 	code = function(value)
-		if type(value) == "number" then
+		if issecretvalue(value) then
+			-- todo: AbbreviateNumbers/AbbreviateLargeNumbers
+			return value
+		elseif type(value) == "number" then
 			if abs(value) >= 1000000000 then
 				return ("%.0fb"):format(value / 1000000000)
 			elseif value >= 1000000 or value <= -1000000 then

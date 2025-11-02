@@ -135,6 +135,8 @@ if DEBUG then
 	end
 end
 
+DogTag.issecretvalue = _G.issecretvalue or function() return false end
+
 local function sortStringList(s)
 	if not s then
 		return nil
