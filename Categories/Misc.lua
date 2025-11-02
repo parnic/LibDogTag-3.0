@@ -233,8 +233,8 @@ DogTag:AddTag("Base", "IsIn", {
 })
 
 DogTag:AddTag("Base", "Hide", {
-	alias = not issecretvalue and [=[not IsIn(value, ...)]=] or nil,
-	code = issecretvalue and function(value, ...)
+	alias = not _G.issecretvalue and [=[not IsIn(value, ...)]=] or nil,
+	code = _G.issecretvalue and function(value, ...)
 		local good = true
 		if issecretvalue(value) then
 			return value
