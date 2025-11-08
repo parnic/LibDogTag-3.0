@@ -12,6 +12,25 @@ DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 local L = DogTag.L
 local issecretvalue = DogTag.issecretvalue
 
+local shortNumberOptions = {
+	breakpointData = {
+		{ breakpoint = 10000000000, abbreviation = "THIRD_NUMBER_CAP_NO_SPACE", significandDivisor = 100000000, fractionDivisor = 10 },
+		{ breakpoint = 1000000000, abbreviation = "THIRD_NUMBER_CAP_NO_SPACE", significandDivisor = 10000000, fractionDivisor = 100 },
+		{ breakpoint = 10000000, abbreviation = "SECOND_NUMBER_CAP_NO_SPACE", significandDivisor = 100000, fractionDivisor = 10 },
+		{ breakpoint = 1000000, abbreviation = "SECOND_NUMBER_CAP_NO_SPACE", significandDivisor = 10000, fractionDivisor = 100 },
+		{ breakpoint = 100000, abbreviation = "FIRST_NUMBER_CAP_NO_SPACE", significandDivisor = 1000, fractionDivisor = 1 },
+		{ breakpoint = 10000, abbreviation = "FIRST_NUMBER_CAP_NO_SPACE", significandDivisor = 100, fractionDivisor = 10 },
+	}
+}
+
+local veryShortNumberOptions = {
+	breakpointData = {
+		{ breakpoint = 1000000000, abbreviation = "THIRD_NUMBER_CAP_NO_SPACE", significandDivisor = 1000000000, fractionDivisor = 1 },
+		{ breakpoint = 1000000, abbreviation = "SECOND_NUMBER_CAP_NO_SPACE", significandDivisor = 1000000, fractionDivisor = 1 },
+		{ breakpoint = 1000, abbreviation = "FIRST_NUMBER_CAP_NO_SPACE", significandDivisor = 1000, fractionDivisor = 1 },
+	}
+}
+
 DogTag:AddTag("Base", "Percent", {
 	code = function(number)
 		return number .. "%"
@@ -29,8 +48,7 @@ DogTag:AddTag("Base", "Percent", {
 DogTag:AddTag("Base", "Short", {
 	code = function(value)
 		if issecretvalue(value) then
-			-- todo: AbbreviateNumbers/AbbreviateLargeNumbers
-			return value
+			return AbbreviateNumbers(value, shortNumberOptions)
 		elseif type(value) == "number" then
 			if abs(value) >= 10000000000 then
 				return ("%.1fb"):format(value / 1000000000)
@@ -96,8 +114,7 @@ DogTag:AddTag("Base", "Short", {
 DogTag:AddTag("Base", "VeryShort", {
 	code = function(value)
 		if issecretvalue(value) then
-			-- todo: AbbreviateNumbers/AbbreviateLargeNumbers
-			return value
+			return AbbreviateLargeNumbers(value, veryShortNumberOptions)
 		elseif type(value) == "number" then
 			if abs(value) >= 1000000000 then
 				return ("%.0fb"):format(value / 1000000000)
