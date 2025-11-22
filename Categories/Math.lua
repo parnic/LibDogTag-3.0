@@ -10,9 +10,13 @@ local _G, math = _G, math
 DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 
 local L = DogTag.L
+local issecretvalue = DogTag.issecretvalue
 
 DogTag:AddTag("Base", "Round", {
 	code = function(number, digits)
+		if issecretvalue(number) then
+			return string.format("%." .. digits .. "f", number)
+		end
 		local mantissa = 10^digits
 		local norm = number*mantissa + 0.5
 		local norm_floor = math.floor(norm)
