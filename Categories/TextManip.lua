@@ -31,6 +31,12 @@ local veryShortNumberOptions = {
 	}
 }
 
+if CreateAbbreviateConfig then
+	-- High perf API
+	shortNumberOptions = { config = CreateAbbreviateConfig(shortNumberOptions.breakpointData) }
+	veryShortNumberOptions = { config = CreateAbbreviateConfig(veryShortNumberOptions.breakpointData) }
+end
+
 DogTag:AddTag("Base", "Percent", {
 	code = function(number)
 		return number .. "%"
@@ -47,59 +53,7 @@ DogTag:AddTag("Base", "Percent", {
 
 DogTag:AddTag("Base", "Short", {
 	code = function(value)
-		if issecretvalue(value) then
-			return AbbreviateNumbers(value, shortNumberOptions)
-		elseif type(value) == "number" then
-			if abs(value) >= 10000000000 then
-				return ("%.1fb"):format(value / 1000000000)
-			elseif abs(value) >= 1000000000 then
-				return ("%.2fb"):format(value / 1000000000)
-			elseif value >= 10000000 or value <= -10000000 then
-				return ("%.1fm"):format(value / 1000000)
-			elseif value >= 1000000 or value <= -1000000 then
-				return ("%.2fm"):format(value / 1000000)
-			elseif value >= 100000 or value <= -100000 then
-				return ("%.0fk"):format(value / 1000)
-			elseif value >= 10000 or value <= -10000 then
-				return ("%.1fk"):format(value / 1000)
-			else
-				return math.floor(value+0.5)..''
-			end
-		else
-			local a,b = value:match("^(%d+)/(%d+)$")
-			if a then
-				a, b = tonumber(a), tonumber(b)
-				if abs(a) >= 10000000000 then
-					a = ("%.1fb"):format(a / 1000000000)
-				elseif abs(a) >= 1000000000 then
-					a = ("%.2fb"):format(a / 1000000000)
-				elseif a >= 10000000 or a <= -10000000 then
-					a = ("%.1fm"):format(a / 1000000)
-				elseif a >= 1000000 or a <= -1000000 then
-					a = ("%.2fm"):format(a / 1000000)
-				elseif a >= 100000 or a <= -100000 then
-					a = ("%.0fk"):format(a / 1000)
-				elseif a >= 10000 or a <= -10000 then
-					a = ("%.1fk"):format(a / 1000)
-				end
-				if abs(b) >= 10000000000 then
-					b = ("%.1fb"):format(b / 1000000000)
-				elseif abs(b) >= 1000000000 then
-					b = ("%.2fb"):format(b / 1000000000)
-				elseif b >= 10000000 or b <= -10000000 then
-					b = ("%.1fm"):format(b / 1000000)
-				elseif b >= 1000000 or b <= -1000000 then
-					b = ("%.2fm"):format(b / 1000000)
-				elseif b >= 100000 or b <= -100000 then
-					b = ("%.0fk"):format(b / 1000)
-				elseif b >= 10000 or b <= -10000 then
-					b = ("%.1fk"):format(b / 1000)
-				end
-				return a.."/"..b
-			else
-				return value
-			end
-		end
+		return AbbreviateNumbers(value, shortNumberOptions)
 	end,
 	arg = {
 		'value', 'number;string', '@req'
@@ -113,41 +67,7 @@ DogTag:AddTag("Base", "Short", {
 
 DogTag:AddTag("Base", "VeryShort", {
 	code = function(value)
-		if issecretvalue(value) then
-			return AbbreviateLargeNumbers(value, veryShortNumberOptions)
-		elseif type(value) == "number" then
-			if abs(value) >= 1000000000 then
-				return ("%.0fb"):format(value / 1000000000)
-			elseif value >= 1000000 or value <= -1000000 then
-				return ("%.0fm"):format(value / 1000000)
-			elseif value >= 1000 or value <= -1000 then
-				return ("%.0fk"):format(value / 1000)
-			else
-				return ("%.0f"):format(value)
-			end
-		else
-			local a,b = value:match("^(%d+)/(%d+)")
-			if a then
-				a, b = tonumber(a), tonumber(b)
-				if abs(b) >= 1000000000 then
-					b = ("%.0fb"):format(b / 1000000000)
-				elseif b >= 1000000 or b <= -1000000 then
-					b = ("%.0fm"):format(b / 1000000)
-				elseif b >= 1000 or b <= -1000 then
-					b = ("%.0fk"):format(b / 1000)
-				end
-				if abs(a) >= 1000000000 then
-					a = ("%.0fb"):format(a / 1000000000)
-				elseif a >= 1000000 or a <= -1000000 then
-					a = ("%.0fm"):format(a / 1000000)
-				elseif a >= 1000 or a <= -1000 then
-					a = ("%.0fk"):format(a / 1000)
-				end
-				return a.."/"..b
-			else
-				return value
-			end
-		end
+		return AbbreviateNumbers(value, veryShortNumberOptions)
 	end,
 	arg = {
 		'value', 'number;string', "@req"
