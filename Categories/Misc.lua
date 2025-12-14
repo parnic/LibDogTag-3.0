@@ -237,6 +237,9 @@ DogTag:AddTag("Base", "Hide", {
 	code = _G.issecretvalue and function(value, ...)
 		local good = true
 		if issecretvalue(value) then
+			if ... == 0 then
+				return C_StringUtil.TruncateWhenZero(value)
+			end
 			return value
 		end
 		for i = 1, select('#', ...) do
