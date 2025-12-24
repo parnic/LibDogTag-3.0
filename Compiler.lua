@@ -1285,7 +1285,7 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 		end
 		t[#t+1] = [=[;]=]
 		t[#t+1] = "\n"
-		if _G.issecretvalue then
+		if C_Secrets and C_Secrets.HasSecretRestrictions() then
 			t[#t+1] = [=[if issecretvalue(]=]
 			t[#t+1] = storeKey
 			t[#t+1] = [=[) then]=]
@@ -1331,7 +1331,7 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 				t[#t+1] = "end;\n"
 			end
 		end
-		if _G.issecretvalue then
+		if C_Secrets and C_Secrets.HasSecretRestrictions() then
 			t[#t+1] = "end;\n"
 		end
 		args = del(args)
@@ -2120,7 +2120,7 @@ function DogTag:CreateFunctionFromCode(code, nsList, kwargs, notDebug)
 		t[#t+1] = "if type(result) == 'string' then\n"
 --		t[#t+1] = "result = result:trim();\n"
 --		t[#t+1] = "result = result:gsub('  +', ' ');\n"
-		if _G.issecretvalue then
+		if C_Secrets and C_Secrets.HasSecretRestrictions() then
 			t[#t+1] = "if issecretvalue(result) then\n"
 			-- do nothing
 			t[#t+1] = "else"
@@ -2151,7 +2151,7 @@ function DogTag:CreateFunctionFromCode(code, nsList, kwargs, notDebug)
 	t[#t+1] = "\n"
 	t[#t+1] = [=[DogTag.outline = nil;]=]
 	t[#t+1] = "\n"
-		if _G.issecretvalue then
+	if C_Secrets and C_Secrets.HasSecretRestrictions() then
 		-- If secrets exist, assume that result could be secret.
 		t[#t+1] = [=[return result, opacity, outline;]=]
 	else

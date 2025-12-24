@@ -13,7 +13,7 @@ local L = DogTag.L
 local issecretvalue = DogTag.issecretvalue
 
 DogTag:AddTag("Base", "+", {
-	code = _G.issecretvalue
+	code = C_Secrets and C_Secrets.HasSecretRestrictions()
 		and function(left, right)
 			if issecretvalue(left) or issecretvalue(right) then
 				return 0
@@ -34,7 +34,7 @@ DogTag:AddTag("Base", "+", {
 })
 
 DogTag:AddTag("Base", "-", {
-	code = _G.issecretvalue
+	code = C_Secrets and C_Secrets.HasSecretRestrictions()
 		and function(left, right)
 			if issecretvalue(left) or issecretvalue(right) then
 				return 0
@@ -56,7 +56,7 @@ DogTag:AddTag("Base", "-", {
 })
 
 DogTag:AddTag("Base", "*", {
-	code = _G.issecretvalue
+	code = C_Secrets and C_Secrets.HasSecretRestrictions()
 		and function(left, right)
 			if issecretvalue(left) or issecretvalue(right) then
 				return 0
@@ -78,7 +78,7 @@ DogTag:AddTag("Base", "*", {
 })
 
 DogTag:AddTag("Base", "/", {
-	code = _G.issecretvalue
+	code = C_Secrets and C_Secrets.HasSecretRestrictions()
 		and function(left, right)
 			if issecretvalue(left) or issecretvalue(right) then
 				return 0
@@ -108,7 +108,7 @@ DogTag:AddTag("Base", "/", {
 })
 
 DogTag:AddTag("Base", "%", {
-	code = _G.issecretvalue
+	code = C_Secrets and C_Secrets.HasSecretRestrictions()
 		and function(left, right)
 			if issecretvalue(left) or issecretvalue(right) then
 				return 0
@@ -130,7 +130,7 @@ DogTag:AddTag("Base", "%", {
 })
 
 DogTag:AddTag("Base", "^", {
-	code = _G.issecretvalue
+	code = C_Secrets and C_Secrets.HasSecretRestrictions()
 		and function(left, right)
 			if issecretvalue(left) or issecretvalue(right) then
 				return 0
@@ -151,7 +151,7 @@ DogTag:AddTag("Base", "^", {
 })
 
 DogTag:AddTag("Base", "<", {
-	code = _G.issecretvalue
+	code = C_Secrets and C_Secrets.HasSecretRestrictions()
 		and function(left, right)
 			if issecretvalue(left) or issecretvalue(right) then
 				return nil
@@ -199,7 +199,7 @@ DogTag:AddTag("Base", "<", {
 })
 
 DogTag:AddTag("Base", ">", {
-	code = _G.issecretvalue
+	code = C_Secrets and C_Secrets.HasSecretRestrictions()
 		and function(left, right)
 			if issecretvalue(left) or issecretvalue(right) then
 				return nil
@@ -269,7 +269,7 @@ DogTag:AddTag("Base", ">=", {
 })
 
 DogTag:AddTag("Base", "=", {
-	code = _G.issecretvalue
+	code = C_Secrets and C_Secrets.HasSecretRestrictions()
 		and function(left, right)
 			if issecretvalue(left) or issecretvalue(right) then
 				return nil
@@ -312,7 +312,7 @@ DogTag:AddTag("Base", "~=", {
 })
 
 DogTag:AddTag("Base", "unm", {
-	code = _G.issecretvalue
+	code = C_Secrets and C_Secrets.HasSecretRestrictions()
 		and function(number)
 			if issecretvalue(number) then
 				return 0
