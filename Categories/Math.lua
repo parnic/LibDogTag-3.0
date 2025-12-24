@@ -30,7 +30,7 @@ DogTag:AddTag("Base", "Round", {
 		'number', "number", "@req",
 		'digits', "number", 0,
 	},
-	ret = "number",
+	ret = C_Secrets and C_Secrets.HasSecretRestrictions() and "number;string" or "number",
 	static = true,
 	doc = L["Round number to the one's place or the place specified by digits"],
 	example = '[1234.5:Round] => "1234"; [1234:Round(-2)] => "1200"; [Round(1235.5)] => "1236"; [Round(1234, -2)] => "1200"',

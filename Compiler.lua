@@ -1246,7 +1246,16 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 				if lastCouldBeNil and v:match("^%(\"%s") then
 					t[#t+1] = "("
 					if lastCouldBeNil ~= true then
-						t[#t+1] = '(('
+						t[#t+1] = '('
+
+						if C_Secrets and C_Secrets.HasSecretRestrictions() then
+							-- Prevent ` == '' ` check against secrets
+							t[#t+1] = 'not issecretvalue('
+							t[#t+1] = lastCouldBeNil
+							t[#t+1] = ') and'
+						end
+
+						t[#t+1] = '('
 						t[#t+1] = lastCouldBeNil
 						t[#t+1] = " or '') == ''"
 						t[#t+1] = ') and '
