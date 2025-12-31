@@ -19,6 +19,14 @@
         "UIDropDownMenu_SetSelectedValue",
         "UIDropDownMenu_AddButton",
         "CallErrorHandler",
-        "AbbreviateLargeNumbers"
+        "AbbreviateLargeNumbers",
+        "DAY_ONELETTER_ABBR",
+        "HOUR_ONELETTER_ABBR",
+        "MINUTE_ONELETTER_ABBR",
+        "SECOND_ONELETTER_ABBR",
+        "DAYS_ABBR",
+        "HOURS_ABBR",
+        "MINUTES_ABBR",
+        "SECONDS_ABBR"
     ]
 }
