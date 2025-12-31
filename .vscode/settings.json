@@ -27,6 +27,7 @@
         "DAYS_ABBR",
         "HOURS_ABBR",
         "MINUTES_ABBR",
-        "SECONDS_ABBR"
+        "SECONDS_ABBR",
+        "includes"
     ]
 }

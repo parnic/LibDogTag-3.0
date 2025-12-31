@@ -83,7 +83,7 @@ DogTag:AddTag("Base", "Short", {
 		if type(value) == 'string' and not issecretvalue(value) then
 			local a,b = value:match("^(%d+)/(%d+)$")
 			if a then
-				return FormatShort(a) .. "/" .. FormatShort(b)
+				return FormatShort(tonumber(a)) .. "/" .. FormatShort(tonumber(b))
 			end
 		end
 		return value
@@ -123,7 +123,7 @@ DogTag:AddTag("Base", "VeryShort", {
 		if type(value) == 'string' and not issecretvalue(value) then
 			local a,b = value:match("^(%d+)/(%d+)$")
 			if a then
-				return FormatVeryShort(a) .. "/" .. FormatVeryShort(b)
+				return FormatVeryShort(tonumber(a)) .. "/" .. FormatVeryShort(tonumber(b))
 			end
 		end
 		return value

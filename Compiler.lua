@@ -1974,6 +1974,12 @@ function DogTag:CreateFunctionFromCode(code, nsList, kwargs, notDebug)
 	end
 	
 	local t = newList()
+	-- Included for error handling - these will show in stack traces via xpcall.
+	t[#t+1] = ("local __nsList = %q;"):format(nsList)
+	t[#t+1] = "\n"
+	t[#t+1] = ("local __code = [======[\n%s\n]======];"):format(code)
+	t[#t+1] = "\n\n"
+
 	t[#t+1] = [=[local _G = _G;]=]
 	t[#t+1] = "\n"
 	t[#t+1] = ([=[local DogTag = _G.LibStub(%q);]=]):format(MAJOR_VERSION)
