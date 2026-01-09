@@ -83,14 +83,14 @@ DogTag:AddTag("Base", "/", {
 			if issecretvalue(left) or issecretvalue(right) then
 				return 0
 			end
-			if left == 0 then
+			if right == 0 then
 				return 0
 			else
 				return left / right
 			end
 		end
 		or function(left, right)
-			if left == 0 then
+			if right == 0 then
 				return 0
 			else
 				return left / right
@@ -113,10 +113,18 @@ DogTag:AddTag("Base", "%", {
 			if issecretvalue(left) or issecretvalue(right) then
 				return 0
 			end
-			return left % right
+			if right == 0 then
+				return 0
+			else
+				return left % right
+			end
 		end
 		or function(left, right)
-			return left % right
+			if right == 0 then
+				return 0
+			else
+				return left % right
+			end
 		end,
 	arg = {
 		'left', 'number', "@req",
