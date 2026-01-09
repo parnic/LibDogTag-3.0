@@ -10,6 +10,32 @@ local _G, math, type, tostring, tonumber, ipairs, table, select = _G, math, type
 DogTag_funcs[#DogTag_funcs+1] = function(DogTag)
 
 local L = DogTag.L
+local issecretvalue = DogTag.issecretvalue
+
+local shortNumberOptions = {
+	breakpointData = {
+		{ breakpoint = 10000000000, abbreviation = "THIRD_NUMBER_CAP_NO_SPACE", significandDivisor = 100000000, fractionDivisor = 10 },
+		{ breakpoint = 1000000000, abbreviation = "THIRD_NUMBER_CAP_NO_SPACE", significandDivisor = 10000000, fractionDivisor = 100 },
+		{ breakpoint = 10000000, abbreviation = "SECOND_NUMBER_CAP_NO_SPACE", significandDivisor = 100000, fractionDivisor = 10 },
+		{ breakpoint = 1000000, abbreviation = "SECOND_NUMBER_CAP_NO_SPACE", significandDivisor = 10000, fractionDivisor = 100 },
+		{ breakpoint = 100000, abbreviation = "FIRST_NUMBER_CAP_NO_SPACE", significandDivisor = 1000, fractionDivisor = 1 },
+		{ breakpoint = 10000, abbreviation = "FIRST_NUMBER_CAP_NO_SPACE", significandDivisor = 100, fractionDivisor = 10 },
+	}
+}
+
+local veryShortNumberOptions = {
+	breakpointData = {
+		{ breakpoint = 1000000000, abbreviation = "THIRD_NUMBER_CAP_NO_SPACE", significandDivisor = 1000000000, fractionDivisor = 1 },
+		{ breakpoint = 1000000, abbreviation = "SECOND_NUMBER_CAP_NO_SPACE", significandDivisor = 1000000, fractionDivisor = 1 },
+		{ breakpoint = 1000, abbreviation = "FIRST_NUMBER_CAP_NO_SPACE", significandDivisor = 1000, fractionDivisor = 1 },
+	}
+}
+
+if CreateAbbreviateConfig then
+	-- High perf API
+	shortNumberOptions = { config = CreateAbbreviateConfig(shortNumberOptions.breakpointData) }
+	veryShortNumberOptions = { config = CreateAbbreviateConfig(veryShortNumberOptions.breakpointData) }
+end
 
 DogTag:AddTag("Base", "Percent", {
 	code = function(number)
@@ -25,59 +51,42 @@ DogTag:AddTag("Base", "Percent", {
 	category = L["Text manipulation"]
 })
 
+local FormatShort = C_Secrets and C_Secrets.HasSecretRestrictions() and 
+-- Always use AbbreviateNumbers on clients with secrets.
+-- Don't use AbbreviateNumbers only for secrets since this causes format to
+-- flip/flop between the two as values gain or lose secret status.
+function(value)
+	return AbbreviateNumbers(value, shortNumberOptions)
+end or
+function(value)
+	local value_abs = abs(value)
+	if value_abs >= 10000000000 then
+		return ("%.1fb"):format(value / 1000000000)
+	elseif value_abs >= 1000000000 then
+		return ("%.2fb"):format(value / 1000000000)
+	elseif value >= 10000000 or value <= -10000000 then
+		return ("%.1fm"):format(value / 1000000)
+	elseif value >= 1000000 or value <= -1000000 then
+		return ("%.2fm"):format(value / 1000000)
+	elseif value >= 100000 or value <= -100000 then
+		return ("%.0fk"):format(value / 1000)
+	elseif value >= 10000 or value <= -10000 then
+		return ("%.1fk"):format(value / 1000)
+	else
+		return math.floor(value+0.5)..''
+	end
+end
+
 DogTag:AddTag("Base", "Short", {
 	code = function(value)
-		if type(value) == "number" then
-			if abs(value) >= 10000000000 then
-				return ("%.1fb"):format(value / 1000000000)
-			elseif abs(value) >= 1000000000 then
-				return ("%.2fb"):format(value / 1000000000)
-			elseif value >= 10000000 or value <= -10000000 then
-				return ("%.1fm"):format(value / 1000000)
-			elseif value >= 1000000 or value <= -1000000 then
-				return ("%.2fm"):format(value / 1000000)
-			elseif value >= 100000 or value <= -100000 then
-				return ("%.0fk"):format(value / 1000)
-			elseif value >= 10000 or value <= -10000 then
-				return ("%.1fk"):format(value / 1000)
-			else
-				return math.floor(value+0.5)..''
-			end
-		else
+		if type(value) == 'number' then return FormatShort(value) end
+		if type(value) == 'string' and not issecretvalue(value) then
 			local a,b = value:match("^(%d+)/(%d+)$")
 			if a then
-				a, b = tonumber(a), tonumber(b)
-				if abs(a) >= 10000000000 then
-					a = ("%.1fb"):format(a / 1000000000)
-				elseif abs(a) >= 1000000000 then
-					a = ("%.2fb"):format(a / 1000000000)
-				elseif a >= 10000000 or a <= -10000000 then
-					a = ("%.1fm"):format(a / 1000000)
-				elseif a >= 1000000 or a <= -1000000 then
-					a = ("%.2fm"):format(a / 1000000)
-				elseif a >= 100000 or a <= -100000 then
-					a = ("%.0fk"):format(a / 1000)
-				elseif a >= 10000 or a <= -10000 then
-					a = ("%.1fk"):format(a / 1000)
-				end
-				if abs(b) >= 10000000000 then
-					b = ("%.1fb"):format(b / 1000000000)
-				elseif abs(b) >= 1000000000 then
-					b = ("%.2fb"):format(b / 1000000000)
-				elseif b >= 10000000 or b <= -10000000 then
-					b = ("%.1fm"):format(b / 1000000)
-				elseif b >= 1000000 or b <= -1000000 then
-					b = ("%.2fm"):format(b / 1000000)
-				elseif b >= 100000 or b <= -100000 then
-					b = ("%.0fk"):format(b / 1000)
-				elseif b >= 10000 or b <= -10000 then
-					b = ("%.1fk"):format(b / 1000)
-				end
-				return a.."/"..b
-			else
-				return value
+				return FormatShort(tonumber(a)) .. "/" .. FormatShort(tonumber(b))
 			end
 		end
+		return value
 	end,
 	arg = {
 		'value', 'number;string', '@req'
@@ -89,41 +98,35 @@ DogTag:AddTag("Base", "Short", {
 	category = L["Text manipulation"],
 })
 
+local FormatVeryShort = C_Secrets and C_Secrets.HasSecretRestrictions() and 
+-- Always use AbbreviateNumbers on clients with secrets.
+-- Don't use AbbreviateNumbers only for secrets since this causes format to
+-- flip/flop between the two as values gain or lose secret status.
+function(value)
+	return AbbreviateNumbers(value, veryShortNumberOptions)
+end or
+function(value)
+	if abs(value) >= 1000000000 then
+		return ("%.0fb"):format(value / 1000000000)
+	elseif value >= 1000000 or value <= -1000000 then
+		return ("%.0fm"):format(value / 1000000)
+	elseif value >= 1000 or value <= -1000 then
+		return ("%.0fk"):format(value / 1000)
+	else
+		return ("%.0f"):format(value)
+	end
+end
+
 DogTag:AddTag("Base", "VeryShort", {
 	code = function(value)
-		if type(value) == "number" then
-			if abs(value) >= 1000000000 then
-				return ("%.0fb"):format(value / 1000000000)
-			elseif value >= 1000000 or value <= -1000000 then
-				return ("%.0fm"):format(value / 1000000)
-			elseif value >= 1000 or value <= -1000 then
-				return ("%.0fk"):format(value / 1000)
-			else
-				return ("%.0f"):format(value)
-			end
-		else
-			local a,b = value:match("^(%d+)/(%d+)")
+		if type(value) == 'number' then return FormatVeryShort(value) end
+		if type(value) == 'string' and not issecretvalue(value) then
+			local a,b = value:match("^(%d+)/(%d+)$")
 			if a then
-				a, b = tonumber(a), tonumber(b)
-				if abs(b) >= 1000000000 then
-					b = ("%.0fb"):format(b / 1000000000)
-				elseif b >= 1000000 or b <= -1000000 then
-					b = ("%.0fm"):format(b / 1000000)
-				elseif b >= 1000 or b <= -1000 then
-					b = ("%.0fk"):format(b / 1000)
-				end
-				if abs(a) >= 1000000000 then
-					a = ("%.0fb"):format(a / 1000000000)
-				elseif a >= 1000000 or a <= -1000000 then
-					a = ("%.0fm"):format(a / 1000000)
-				elseif a >= 1000 or a <= -1000 then
-					a = ("%.0fk"):format(a / 1000)
-				end
-				return a.."/"..b
-			else
-				return value
+				return FormatVeryShort(tonumber(a)) .. "/" .. FormatVeryShort(tonumber(b))
 			end
 		end
+		return value
 	end,
 	arg = {
 		'value', 'number;string', "@req"

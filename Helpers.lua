@@ -135,6 +135,8 @@ if DEBUG then
 	end
 end
 
+DogTag.issecretvalue = _G.issecretvalue or function() return false end
+
 local function sortStringList(s)
 	if not s then
 		return nil
@@ -520,8 +522,8 @@ DogTag.clearCodes = clearCodes
 
 function DogTag.tagError(code, nsList, err)
 	local _, minor = LibStub(MAJOR_VERSION)
-	local message = ("%s.%d: Error with code %q (%s). %s"):format(MAJOR_VERSION, minor/1000000, code, nsList, err)
-	geterrorhandler()(message)
+	local message = ("%s.%d: Error with code %q (%s). %s"):format(MAJOR_VERSION, minor/1000000, code, nsList, err or "<unknown error>")
+	CallErrorHandler(message)
 	return message, code, nsList, err
 end
 end

@@ -12,7 +12,7 @@ if MINOR_VERSION > _G.DogTag_MINOR_VERSION then
 	_G.DogTag_MINOR_VERSION = MINOR_VERSION
 end
 
-local type, error, pairs, ipairs, next, pcall, _G = type, error, pairs, ipairs, next, pcall, _G
+local type, error, pairs, ipairs, next, xpcall, _G = type, error, pairs, ipairs, next, xpcall, _G
 
 -- #AUTODOC_NAMESPACE DogTag
 
@@ -299,9 +299,12 @@ local function updateFontString(fs)
 		local func = codeToFunction[nsList][kwargTypes][code]
 		DogTag.__isMouseOver = DogTag.__lastMouseover == fsToFrame[fs]
 		
-		local success, text, opacity, outline = pcall(func, kwargs)
+		-- When xpcall is allowed to invoke CallErrorHandler directly, 
+		-- it includes the compiled func's Lua in the stack trace, which is invaluable.
+		-- So, we don't manually call tagError anymore since xpcall was improved in ~2018.
+		-- Instead, tag debugging info is now included in the tag func generated code.
+		local success, text, opacity, outline = xpcall(func, CallErrorHandler, kwargs)
 		if not success then
-			DogTag.tagError(code, nsList, text)
 			return
 		end
 	

@@ -18,6 +18,7 @@ local newList, newDict, newSet, del, deepCopy, deepDel = DogTag.newList, DogTag.
 
 local fixNamespaceList = DogTag.fixNamespaceList
 local select2 = DogTag.select2
+local issecretvalue = DogTag.issecretvalue
 local joinSet = DogTag.joinSet
 local unpackNamespaceList = DogTag.unpackNamespaceList
 local getASTType = DogTag.getASTType
@@ -291,6 +292,7 @@ end
 
 local function mytonumber(value)
 	local type_value = type(value)
+	if issecretvalue(value) then return nil end
 	if type_value == "number" then
 		return value
 	elseif type_value ~= "string" then
@@ -308,6 +310,13 @@ local function mytonumber(value)
 	return tonumber(value)
 end
 DogTag.__mytonumber = mytonumber
+
+DogTag.__mytostring = function(value)
+	local type_value = type(value)
+	if type_value == 'nil' then return '' end
+	if type_value == 'string' then return value end
+	return '' .. value
+end
 
 local allOperators = {
 	["concat"] = true,
@@ -1224,9 +1233,9 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 			local types = argTypes[i]
 			types = newSet((';'):split(types))
 			if types['nil'] and (types['string'] or types['number']) then
-				t[#t+1] = "("
+				t[#t+1] = "mytostring("
 				t[#t+1] = v
-				t[#t+1] = " or '')"
+				t[#t+1] = ")"
 				lastCouldBeNil = v
 			elseif types['nil'] then
 				-- just nil
@@ -1237,7 +1246,16 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 				if lastCouldBeNil and v:match("^%(\"%s") then
 					t[#t+1] = "("
 					if lastCouldBeNil ~= true then
-						t[#t+1] = '(('
+						t[#t+1] = '('
+
+						if C_Secrets and C_Secrets.HasSecretRestrictions() then
+							-- Prevent ` == '' ` check against secrets
+							t[#t+1] = 'not issecretvalue('
+							t[#t+1] = lastCouldBeNil
+							t[#t+1] = ') and'
+						end
+
+						t[#t+1] = '('
 						t[#t+1] = lastCouldBeNil
 						t[#t+1] = " or '') == ''"
 						t[#t+1] = ') and '
@@ -1276,6 +1294,16 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 		end
 		t[#t+1] = [=[;]=]
 		t[#t+1] = "\n"
+		if C_Secrets and C_Secrets.HasSecretRestrictions() then
+			t[#t+1] = [=[if issecretvalue(]=]
+			t[#t+1] = storeKey
+			t[#t+1] = [=[) then]=]
+			t[#t+1] = "\n"
+			t[#t+1] = [=[-- do nothing]=]
+			t[#t+1] = "\n"
+			t[#t+1] = [=[else ]=]
+			t[#t+1] = "\n"
+		end
 		if lastCouldBeNil then
 			t[#t+1] = storeKey
 			t[#t+1] = [=[ = (]=]
@@ -1311,6 +1339,9 @@ local function compile(ast, nsList, t, cachedTags, events, functions, extraKwarg
 			if finalTypes['number'] then
 				t[#t+1] = "end;\n"
 			end
+		end
+		if C_Secrets and C_Secrets.HasSecretRestrictions() then
+			t[#t+1] = "end;\n"
 		end
 		args = del(args)
 		argTypes = del(argTypes)
@@ -1943,6 +1974,12 @@ function DogTag:CreateFunctionFromCode(code, nsList, kwargs, notDebug)
 	end
 	
 	local t = newList()
+	-- Included for error handling - these will show in stack traces via xpcall.
+	t[#t+1] = ("local __nsList = %q;"):format(nsList)
+	t[#t+1] = "\n"
+	t[#t+1] = ("local __code = [======[\n%s\n]======];"):format(code)
+	t[#t+1] = "\n\n"
+
 	t[#t+1] = [=[local _G = _G;]=]
 	t[#t+1] = "\n"
 	t[#t+1] = ([=[local DogTag = _G.LibStub(%q);]=]):format(MAJOR_VERSION)
@@ -1952,6 +1989,8 @@ function DogTag:CreateFunctionFromCode(code, nsList, kwargs, notDebug)
 	t[#t+1] = [=[local NIL = DogTag.__NIL;]=]
 	t[#t+1] = "\n"
 	t[#t+1] = [=[local mytonumber = DogTag.__mytonumber;]=]
+	t[#t+1] = "\n"
+	t[#t+1] = [=[local mytostring = DogTag.__mytostring;]=]
 	t[#t+1] = "\n"
 	local t_num = #t
 	t[#t+1] = [=[return function(kwargs)]=]
@@ -2096,6 +2135,11 @@ function DogTag:CreateFunctionFromCode(code, nsList, kwargs, notDebug)
 		t[#t+1] = "if type(result) == 'string' then\n"
 --		t[#t+1] = "result = result:trim();\n"
 --		t[#t+1] = "result = result:gsub('  +', ' ');\n"
+		if C_Secrets and C_Secrets.HasSecretRestrictions() then
+			t[#t+1] = "if issecretvalue(result) then\n"
+			-- do nothing
+			t[#t+1] = "else"
+		end
 		t[#t+1] = "if result == '' then\n"
 		t[#t+1] = "result = nil;\n"
 		t[#t+1] = "elseif mytonumber(result) then\n"
@@ -2122,7 +2166,12 @@ function DogTag:CreateFunctionFromCode(code, nsList, kwargs, notDebug)
 	t[#t+1] = "\n"
 	t[#t+1] = [=[DogTag.outline = nil;]=]
 	t[#t+1] = "\n"
-	t[#t+1] = [=[return result or nil, opacity, outline;]=]
+	if C_Secrets and C_Secrets.HasSecretRestrictions() then
+		-- If secrets exist, assume that result could be secret.
+		t[#t+1] = [=[return result, opacity, outline;]=]
+	else
+		t[#t+1] = [=[return result or nil, opacity, outline;]=]
+	end
 	t[#t+1] = "\n"
 	t[#t+1] = "end;\n"
 	

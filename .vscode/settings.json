@@ -1,0 +1,33 @@
+{
+    "Lua.runtime.version": "Lua 5.1",
+    "Lua.runtime.builtin": {
+        "basic": "disable",
+        "debug": "disable",
+        "io": "disable",
+        "math": "disable",
+        "os": "disable",
+        "package": "disable",
+        "string": "disable",
+        "table": "disable",
+        "utf8": "disable"
+    },
+    "Lua.workspace.library": [
+        "~\\.vscode\\extensions\\ketho.wow-api-0.21.0\\Annotations\\Core"
+    ],
+    "Lua.diagnostics.globals": [
+        "UIDropDownMenu_Initialize",
+        "UIDropDownMenu_SetSelectedValue",
+        "UIDropDownMenu_AddButton",
+        "CallErrorHandler",
+        "AbbreviateLargeNumbers",
+        "DAY_ONELETTER_ABBR",
+        "HOUR_ONELETTER_ABBR",
+        "MINUTE_ONELETTER_ABBR",
+        "SECOND_ONELETTER_ABBR",
+        "DAYS_ABBR",
+        "HOURS_ABBR",
+        "MINUTES_ABBR",
+        "SECONDS_ABBR",
+        "includes"
+    ]
+}
