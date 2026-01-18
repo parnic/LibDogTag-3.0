@@ -39,12 +39,15 @@ DogTag:AddTag("Base", "Round", {
 
 DogTag:AddTag("Base", "Floor", {
 	code = function(number)
+		if issecretvalue(number) then
+			return string.format("%d", number)
+		end
 		return math.floor(number)
 	end,
 	arg = {
 		'number', "number", "@req",
 	},
-	ret = "number",
+	ret = C_Secrets and C_Secrets.HasSecretRestrictions() and "number;string" or "number",
 	static = true,
 	doc = L["Take the floor of number"],
 	example = '[9.876:Floor] => "9"; [Floor(9.876)] => "9"',
