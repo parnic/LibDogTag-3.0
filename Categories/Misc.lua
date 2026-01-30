@@ -237,7 +237,7 @@ DogTag:AddTag("Base", "Hide", {
 	code = C_Secrets and C_Secrets.HasSecretRestrictions() and function(value, ...)
 		local good = true
 		if issecretvalue(value) then
-			if ... == 0 then
+			if ... == 0 and type(value) == "number" then
 				return C_StringUtil.TruncateWhenZero(value)
 			end
 			return value
