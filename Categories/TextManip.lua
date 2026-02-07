@@ -167,7 +167,11 @@ DogTag:AddTag("Base", "Lower", {
 })
 
 DogTag:AddTag("Base", "Bracket", {
-	code = function(value)
+	code = C_Secrets and C_Secrets.HasSecretRestrictions()
+	and function(value)
+		return C_StringUtil.WrapString(value, "[", "]")
+	end
+	or function(value)
 		return "[" .. value .. "]"
 	end,
 	arg = {
@@ -181,7 +185,11 @@ DogTag:AddTag("Base", "Bracket", {
 })
 
 DogTag:AddTag("Base", "Angle", {
-	code = function(value)
+	code = C_Secrets and C_Secrets.HasSecretRestrictions()
+	and function(value)
+		return C_StringUtil.WrapString(value, "<", ">")
+	end
+	or function(value)
 		return "<" .. value .. ">"
 	end,
 	arg = {
@@ -195,7 +203,11 @@ DogTag:AddTag("Base", "Angle", {
 })
 
 DogTag:AddTag("Base", "Brace", {
-	code = function(value)
+	code = C_Secrets and C_Secrets.HasSecretRestrictions()
+	and function(value)
+		return C_StringUtil.WrapString(value, "{", "}")
+	end
+	or function(value)
 		return "{" .. value .. "}"
 	end,
 	arg = {
@@ -209,7 +221,11 @@ DogTag:AddTag("Base", "Brace", {
 })
 
 DogTag:AddTag("Base", "Paren", {
-	code = function(value)
+	code = C_Secrets and C_Secrets.HasSecretRestrictions()
+	and function(value)
+		return C_StringUtil.WrapString(value, "(", ")")
+	end
+	or function(value)
 		return "(" .. value .. ")"
 	end,
 	arg = {
