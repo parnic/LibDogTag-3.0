@@ -240,6 +240,10 @@ DogTag:AddTag("Base", "Paren", {
 
 DogTag:AddTag("Base", "Truncate", {
 	code = function(value, number, ellipses)
+		if issecretvalue(value) then
+			return value
+		end
+
 		local len = 0
 		for i = 1, number do
 			local b = value:byte(len+1)
