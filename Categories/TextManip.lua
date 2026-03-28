@@ -31,7 +31,13 @@ local veryShortNumberOptions = {
 	}
 }
 
-if CreateAbbreviateConfig then
+local locale = GetLocale and GetLocale()
+if locale == "zhCN" or locale == "zhTW" or locale == "koKR" then
+	-- Asian localizations only use 万 and 亿 as abbreviations, so do not apply
+	-- custom breakpoint options which are designed for western k/m/b notation.
+	shortNumberOptions = nil
+	veryShortNumberOptions = nil
+elseif CreateAbbreviateConfig then
 	-- High perf API
 	shortNumberOptions = { config = CreateAbbreviateConfig(shortNumberOptions.breakpointData) }
 	veryShortNumberOptions = { config = CreateAbbreviateConfig(veryShortNumberOptions.breakpointData) }
