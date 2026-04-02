@@ -18,6 +18,7 @@ DogTag:AddTag("Base", "+", {
 			if issecretvalue(left) or issecretvalue(right) then
 				return 0
 			end
+			return left + right
 		end
 		or function(left, right)
 			return left + right
