@@ -1,4 +1,4 @@
-## Interface: 11509, 20506, 38002, 50504, 120100, 120105, 16001
+## Interface: 11509, 20506, 38002, 50504, 120105, 16001
 ## LoadOnDemand: 1
 ## Title: Lib: DogTag-3.0
 ## Notes: A library to provide a markup syntax
