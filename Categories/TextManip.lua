@@ -598,6 +598,13 @@ end
 local t = {}
 DogTag:AddTag("Base", "SeparateDigits", {
 	code = function(number, thousands, decimal)
+		if issecretvalue(number) then
+			if thousands == LARGE_NUMBER_SEPERATOR and decimal == DECIMAL_SEPERATOR then
+				return BreakUpLargeNumbers(number)
+			end
+			return number
+		end
+
 		local int = math.floor(number)
 		local rest = number % 1
 		if int == 0 then
@@ -630,9 +637,9 @@ DogTag:AddTag("Base", "SeparateDigits", {
 		'thousands', 'string', default_thousands_separator,
 		'decimal', 'string', default_decimal_separator,
 	},
-	ret = "string",
+	ret = C_Secrets and C_Secrets.HasSecretRestrictions() and "number;string" or "number",
 	static = true,
-	doc = L["Separate the digits of number into a more human-readable manner"],
+	doc = C_Secrets and C_Secrets.HasSecretRestrictions() and L["Separate the digits of number into a more human-readable manner; may not honor custom thousands or decimal separators on secret values"] or L["Separate the digits of number into a more human-readable manner"],
 	example = ('[1234567.89:SeparateDigits] => "1%s234%s567%s89"'):format(default_thousands_separator, default_thousands_separator, default_decimal_separator),
 	category = L["Text manipulation"],
 })

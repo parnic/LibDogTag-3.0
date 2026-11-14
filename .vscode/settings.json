@@ -28,6 +28,8 @@
         "HOURS_ABBR",
         "MINUTES_ABBR",
         "SECONDS_ABBR",
-        "includes"
+        "includes",
+        "LARGE_NUMBER_SEPERATOR",
+        "DECIMAL_SEPERATOR"
     ]
 }
